@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: trading-sql
+    environment:
+      SA_PASSWORD: "YourStrong!Passw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    networks:
+      - trading-net
+
+  backend:
+    build:
+      context: ../backend/TradingPlatform.Api
+      dockerfile: Dockerfile
+    container_name: trading-backend
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=TradingDB;User Id=sa;Password=YourStrong!Passw0rd;"
+    depends_on:
+      - sqlserver
+    ports:
+      - "5001:5001"
+    networks:
+      - trading-net
+
+networks:
+  trading-net:
+    driver: bridge

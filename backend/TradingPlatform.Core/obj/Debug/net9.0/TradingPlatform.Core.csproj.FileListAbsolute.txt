@@ -1,0 +1,11 @@
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\bin\Debug\net9.0\TradingPlatform.Core.deps.json
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\bin\Debug\net9.0\TradingPlatform.Core.dll
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\bin\Debug\net9.0\TradingPlatform.Core.pdb
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\TradingPlatform.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\TradingPlatform.Core.AssemblyInfoInputs.cache
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\TradingPlatform.Core.AssemblyInfo.cs
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\TradingPlatform.Core.csproj.CoreCompileInputs.cache
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\TradingPlatform.Core.dll
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\refint\TradingPlatform.Core.dll
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\TradingPlatform.Core.pdb
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\ref\TradingPlatform.Core.dll
