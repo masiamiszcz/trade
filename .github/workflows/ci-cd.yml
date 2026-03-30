@@ -16,10 +16,11 @@ jobs:
         run: docker compose -f docker/docker-compose.yaml up --build -d
 
       - name: Wait for API to be ready
+        shell: bash
         run: |
           echo "Waiting for API..."
           for i in {1..30}; do
-            if curl -s http://localhost:5001/ | grep -q "Trading Platform API"; then
+            if curl -s http://localhost:5001/hello | grep -q "Hello World"; then
               echo "API is up!"
               exit 0
             fi
@@ -30,10 +31,11 @@ jobs:
           exit 1
 
       - name: Validate JSON response
+        shell: bash
         run: |
           RESPONSE=$(curl -s http://localhost:5001/hello)
           echo "Response: $RESPONSE"
-
+          
           echo "$RESPONSE" | grep -q "Hello World"
           echo "$RESPONSE" | grep -q "API is working"
 
