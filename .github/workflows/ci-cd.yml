@@ -36,7 +36,7 @@ jobs:
           RESPONSE=$(curl -s http://localhost:5001/hello)
           echo "Response: $RESPONSE"
           
-          echo "$RESPONSE" | grep -q "Hello World"
+          echo "$RESPONSE" | grep -q "Trading Platform API"
           echo "$RESPONSE" | grep -q "API is working"
 
       - name: Show logs (always)
