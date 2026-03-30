@@ -9,3 +9,5 @@ C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\ob
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\refint\TradingPlatform.Core.dll
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\TradingPlatform.Core.pdb
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\ref\TradingPlatform.Core.dll
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\TradingPlatform.Core.sourcelink.json
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\obj\Debug\net9.0\TradingPlatform.Core.csproj.AssemblyReference.cache
