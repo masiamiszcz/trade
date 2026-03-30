@@ -20,7 +20,7 @@ jobs:
         run: |
           echo "Waiting for API..."
           for i in {1..30}; do
-            if curl -s http://localhost:5001/hello | grep -q "Hello World"; then
+            if curl -s http://localhost:5001/hello | grep -q "Trading Platform API"; then
               echo "API is up!"
               exit 0
             fi
