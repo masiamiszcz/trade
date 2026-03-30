@@ -30,3 +30,5 @@ C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\obj
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\obj\Debug\net9.0\TradingPlatform.Api.pdb
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\obj\Debug\net9.0\TradingPlatform.Api.genruntimeconfig.cache
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\obj\Debug\net9.0\ref\TradingPlatform.Api.dll
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin\Debug\net9.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\obj\Debug\net9.0\TradingPlatform.Api.sourcelink.json

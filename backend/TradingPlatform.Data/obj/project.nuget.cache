@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "p7A/Z9HUZ6Q=",
+  "dgSpecHash": "egbd/v/5TYU=",
   "success": true,
   "projectFilePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\kubac\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\9.0.5\\microsoft.extensions.dependencyinjection.abstractions.9.0.5.nupkg.sha512"
+  ],
   "logs": []
 }

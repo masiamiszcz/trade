@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  docker-compose-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Build and start containers
+        run: docker compose -f docker/docker-compose.yaml up --build -d
+
+      - name: Wait for API to be ready
+        run: |
+          echo "Waiting for API..."
+          for i in {1..30}; do
+            if curl -s http://localhost:5001/ | grep -q "Trading Platform API"; then
+              echo "API is up!"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API failed to start"
+          docker compose -f docker/docker-compose.yaml logs
+          exit 1
+
+      - name: Validate JSON response
+        run: |
+          RESPONSE=$(curl -s http://localhost:5001/hello)
+          echo "Response: $RESPONSE"
+
+          echo "$RESPONSE" | grep -q "Hello World"
+          echo "$RESPONSE" | grep -q "API is working"
+
+      - name: Show logs (always)
+        if: always()
+        run: docker compose -f docker/docker-compose.yaml logs
+
+      - name: Shutdown containers
+        if: always()
+        run: docker compose -f docker/docker-compose.yaml down -v
