@@ -32,7 +32,7 @@ app.UseCors("Frontend");
 
 app.MapControllers();
 
-app.MapGet("/", () =>
+app.MapGet("/hello", () =>
 {
     return Results.Json(new
     {
