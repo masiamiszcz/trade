@@ -18,7 +18,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddCoreServices();
-builder.Services.AddDataServices();
+builder.Services.AddDataServices(builder.Configuration);
 
 var app = builder.Build();
 
@@ -31,6 +31,8 @@ app.UseHttpsRedirection();
 app.UseCors("Frontend");
 
 app.MapControllers();
+
+await app.Services.ApplyDatabaseMigrationsAsync();
 
 app.MapGet("/hello", () =>
 {

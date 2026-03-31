@@ -14,3 +14,5 @@ C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\ob
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\bin\Debug\net9.0\TradingPlatform.Core.dll
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\bin\Debug\net9.0\TradingPlatform.Core.pdb
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\obj\Debug\net9.0\TradingP.F526C08E.Up2Date
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\bin\Debug\net9.0\TradingPlatform.Data.runtimeconfig.json
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\obj\Debug\net9.0\TradingPlatform.Data.genruntimeconfig.cache
