@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "04uOzwn3YIc=",
+  "dgSpecHash": "MByzRdgoEmg=",
   "success": true,
   "projectFilePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Tests\\TradingPlatform.Tests.csproj",
   "expectedPackageFiles": [
@@ -15,6 +15,7 @@
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.entityframeworkcore\\9.0.5\\microsoft.entityframeworkcore.9.0.5.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\9.0.5\\microsoft.entityframeworkcore.abstractions.9.0.5.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\9.0.5\\microsoft.entityframeworkcore.analyzers.9.0.5.nupkg.sha512",
+    "C:\\Users\\kubac\\.nuget\\packages\\microsoft.entityframeworkcore.inmemory\\9.0.5\\microsoft.entityframeworkcore.inmemory.9.0.5.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.entityframeworkcore.relational\\9.0.5\\microsoft.entityframeworkcore.relational.9.0.5.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.entityframeworkcore.sqlserver\\9.0.5\\microsoft.entityframeworkcore.sqlserver.9.0.5.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.extensions.caching.abstractions\\9.0.5\\microsoft.extensions.caching.abstractions.9.0.5.nupkg.sha512",
