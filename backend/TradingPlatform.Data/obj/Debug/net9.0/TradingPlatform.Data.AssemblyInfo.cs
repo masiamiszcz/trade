@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TradingPlatform.Data")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+82f10cce6714f948c0b6eb85eb0882e7544269c6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+82fc601699c4bf0685ba994612097db606a9f5e9")]
 [assembly: System.Reflection.AssemblyProductAttribute("TradingPlatform.Data")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TradingPlatform.Data")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

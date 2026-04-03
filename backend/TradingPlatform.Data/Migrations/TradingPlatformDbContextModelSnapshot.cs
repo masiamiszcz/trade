@@ -394,6 +394,10 @@ namespace TradingPlatform.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<int>("Role")
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 

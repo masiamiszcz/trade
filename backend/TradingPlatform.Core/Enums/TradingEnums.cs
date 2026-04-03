@@ -8,6 +8,12 @@ public enum UserStatus
     Locked = 4
 }
 
+public enum UserRole
+{
+    User = 1,
+    Admin = 2
+}
+
 public enum AccountType
 {
     Main = 1,

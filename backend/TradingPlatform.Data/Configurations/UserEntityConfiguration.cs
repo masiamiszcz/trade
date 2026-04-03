@@ -38,6 +38,11 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
             .HasMaxLength(500)
             .IsRequired();
 
+        builder.Property(x => x.Role)
+            .HasConversion<int>()
+            .IsRequired()
+            .HasDefaultValue(Core.Enums.UserRole.User);
+
         builder.Property(x => x.TwoFactorSecret)
             .HasMaxLength(256);
 

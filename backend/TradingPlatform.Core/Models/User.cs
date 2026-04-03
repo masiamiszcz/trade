@@ -8,6 +8,7 @@ public sealed record User(
     string Email,
     string FirstName,
     string LastName,
+    UserRole Role,
     bool EmailConfirmed,
     bool TwoFactorEnabled,
     UserStatus Status,
