@@ -3,8 +3,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TradingPlatform.Core.Interfaces;
+using TradingPlatform.Core.Services;
 using TradingPlatform.Data.Context;
 using TradingPlatform.Data.Repositories;
+using TradingPlatform.Data.Services;
 
 namespace TradingPlatform.Data.Extensions;
 
@@ -19,6 +21,8 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString));
 
         services.AddScoped<IMarketDataRepository, SqlMarketDataRepository>();
+        services.AddScoped<IMarketDataService, MarketDataService>();
+        services.AddScoped<IHealthService, HealthService>();
 
         return services;
     }
