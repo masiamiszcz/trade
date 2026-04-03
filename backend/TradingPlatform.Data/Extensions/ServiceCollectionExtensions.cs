@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IMarketDataRepository, SqlMarketDataRepository>();
         services.AddScoped<IMarketDataService, MarketDataService>();
+        services.AddScoped<IUserRepository, SqlUserRepository>();
         services.AddScoped<IHealthService, HealthService>();
 
         return services;

@@ -72,3 +72,91 @@
 .action-button:active {
   transform: translateY(0);
 }
+
+.form-shell {
+  margin-top: 2rem;
+  width: 350px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1.4rem;
+  border-radius: 14px;
+  backdrop-filter: blur(5px);
+}
+
+.toggle-bar {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.toggle-bar button {
+  flex: 1;
+  padding: 0.8rem;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  cursor: pointer;
+  border-radius: 8px;
+  margin-right: 0.4rem;
+  font-weight: 700;
+}
+
+.toggle-bar button:last-child {
+  margin-right: 0;
+}
+
+.toggle-bar button.active {
+  background: #ff6b6b;
+}
+
+.auth-form h2 {
+  margin-bottom: 1rem;
+}
+
+.auth-form input {
+  width: 100%;
+  margin-bottom: 0.8rem;
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.auth-form button {
+  width: 100%;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(45deg, #43e97b, #38f9d7);
+  color: #0a0a0a;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.message {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.35);
+}
+
+.message.error {
+  border: 1px solid #ff4f4f;
+}
+
+.message.success {
+  border: 1px solid #4cd137;
+}
+
+.auth-success {
+  margin-top: 1rem;
+}
+
+.token-output {
+  margin-top: 1rem;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.8rem;
+  border-radius: 8px;
+  word-break: break-all;
+}
+
