@@ -1,4 +1,3 @@
-using TradingPlatform.Core.Extensions;
 using TradingPlatform.Data.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,7 +16,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddCoreServices();
 builder.Services.AddDataServices(builder.Configuration);
 
 var app = builder.Build();
@@ -32,21 +30,19 @@ app.UseCors("Frontend");
 
 app.MapControllers();
 
-await app.Services.ApplyDatabaseMigrationsAsync();
-
-app.MapGet("/hello", () =>
+// Run database migrations in background
+_ = Task.Run(async () =>
 {
-    return Results.Json(new
+    try
     {
-        message = "Trading Platform API",
-        status = "API is working",
-        endpoints = new[]
-        {
-            "/api/market",
-            "/api/market/{symbol}"
-        },
-        timestamp = DateTime.UtcNow
-    });
+        await app.Services.ApplyDatabaseMigrationsAsync();
+    }
+    catch (Exception ex)
+    {
+        // Log error but don't crash the app
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Failed to apply database migrations");
+    }
 });
 
 app.Run();
