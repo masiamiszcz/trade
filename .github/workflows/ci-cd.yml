@@ -27,7 +27,7 @@ jobs:
             fi
 
             echo "Current status: $STATUS"
-            sleep 2
+            sleep 5
           done
 
           echo "Backend failed to become healthy"
