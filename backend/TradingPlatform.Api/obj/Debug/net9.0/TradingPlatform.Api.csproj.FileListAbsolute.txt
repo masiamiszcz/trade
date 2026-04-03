@@ -168,3 +168,5 @@ C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin\Debug\net9.0\FluentValidation.dll
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin\Debug\net9.0\AutoMapper.dll
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin\Debug\net9.0\AutoMapper.Extensions.Microsoft.DependencyInjection.dll
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin\Debug\net9.0\FluentValidation.AspNetCore.dll
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin\Debug\net9.0\FluentValidation.DependencyInjectionExtensions.dll
