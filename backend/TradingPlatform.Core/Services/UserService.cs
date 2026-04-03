@@ -1,5 +1,7 @@
+using AutoMapper;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
+using TradingPlatform.Core.Dtos;
 using TradingPlatform.Core.Enums;
 using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Models;
@@ -11,19 +13,22 @@ public sealed class UserService : IUserService
     private readonly IUserRepository _userRepository;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly IValidator<RegisterRequest> _registerValidator;
+    private readonly IMapper _mapper;
     private readonly PasswordHasher<User> _hasher = new();
 
     public UserService(
         IUserRepository userRepository,
         IJwtTokenGenerator jwtTokenGenerator,
-        IValidator<RegisterRequest> registerValidator)
+        IValidator<RegisterRequest> registerValidator,
+        IMapper mapper)
     {
         _userRepository = userRepository;
         _jwtTokenGenerator = jwtTokenGenerator;
         _registerValidator = registerValidator;
+        _mapper = mapper;
     }
 
-    public async Task<User> RegisterAsync(RegisterRequest registerRequest, CancellationToken cancellationToken = default)
+    public async Task<UserDto> RegisterAsync(RegisterRequest registerRequest, CancellationToken cancellationToken = default)
     {
         // Validate using FluentValidation
         var validationResult = await _registerValidator.ValidateAsync(registerRequest, cancellationToken);
@@ -62,7 +67,7 @@ public sealed class UserService : IUserService
         await _userRepository.AddAsync(user, passwordHash, cancellationToken);
         await _userRepository.SaveChangesAsync(cancellationToken);
 
-        return user;
+        return _mapper.Map<UserDto>(user);
     }
 
     public async Task<string> LoginAsync(LoginRequest loginRequest, CancellationToken cancellationToken = default)

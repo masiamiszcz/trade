@@ -22,8 +22,8 @@ public sealed class AuthController : ControllerBase
     {
         try
         {
-            var user = await _userService.RegisterAsync(request, cancellationToken);
-            return CreatedAtAction(null, new { user.Id }, new { user.Id, user.UserName, user.Email, user.Role });
+            var userDto = await _userService.RegisterAsync(request, cancellationToken);
+            return CreatedAtAction(nameof(Register), new { id = userDto.Id }, userDto);
         }
         catch (InvalidOperationException ex)
         {
