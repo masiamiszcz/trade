@@ -18,32 +18,30 @@ jobs:
         shell: bash
         run: |
           echo "Waiting for backend container health..."
-          for i in {1..30}; do
-            STATUS=$(docker inspect --format='{{.State.Health.Status}}' trading-backend || echo "starting")
-            
-            if [ "$STATUS" = "healthy" ]; then
+          for i in {1..60}; do
+            if curl -f http://localhost:5001/health > /dev/null 2>&1; then
               echo "Backend is healthy!"
               exit 0
             fi
-
-            echo "Current status: $STATUS"
+            
+            echo "Attempt $i: Backend not ready yet..."
             sleep 5
           done
 
           echo "Backend failed to become healthy"
-          docker compose -f docker/docker-compose.yaml logs
+          docker compose -f docker/docker-compose.yaml logs trading-backend
           exit 1
 
       - name: Validate API response
         shell: bash
         run: |
           echo "Calling API..."
-          RESPONSE=$(curl --fail http://localhost:5001/hello)
+          RESPONSE=$(curl --fail http://localhost:5001/health)
 
           echo "Response: $RESPONSE"
 
-          echo "$RESPONSE" | grep -q "Trading Platform API"
-          echo "$RESPONSE" | grep -q "API is working"
+          echo "$RESPONSE" | grep -q "Healthy"
+          echo "$RESPONSE" | grep -q "databaseHealthy"
 
       - name: Show logs (always)
         if: always()
