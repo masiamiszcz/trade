@@ -18,6 +18,9 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddDataServices(builder.Configuration);
 
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<TradingPlatform.Data.Context.TradingPlatformDbContext>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -29,6 +32,9 @@ app.UseHttpsRedirection();
 app.UseCors("Frontend");
 
 app.MapControllers();
+
+// Map health checks
+app.MapHealthChecks("/health");
 
 // Run database migrations in background
 _ = Task.Run(async () =>
