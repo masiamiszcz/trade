@@ -1,10 +1,12 @@
 using System.Text;
+using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using TradingPlatform.Core.Extensions;
 using TradingPlatform.Core.Interfaces;
+using TradingPlatform.Core.Mapping;
 using TradingPlatform.Core.Models;
 using TradingPlatform.Core.Services;
 using TradingPlatform.Data.Extensions;
@@ -16,6 +18,7 @@ builder.Services.AddOpenApi();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddValidators();
+builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();

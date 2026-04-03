@@ -20,7 +20,8 @@ interface FieldErrors {
 }
 
 function App() {
-  const [mode, setMode] = useState<Mode>('start');
+  const initialMode: Mode = process.env.REACT_APP_API_URL ? 'start' : 'login';
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [token, setToken] = useState('');
@@ -42,7 +43,9 @@ function App() {
     password: ''
   });
 
-  const apiBase = 'http://localhost:5001/api/auth';
+  const apiBase = process.env.REACT_APP_API_URL
+    ? `${process.env.REACT_APP_API_URL}/api/auth`
+    : 'http://localhost:5001/api/auth';
 
   const openForm = (target: Mode) => {
     setError('');
