@@ -1,7 +1,23 @@
 import React, { useState } from 'react';
 import './App.css';
+import {
+  validateUsername,
+  validateEmail,
+  validatePassword,
+  validateFirstName,
+  validateLastName,
+  validateRegisterForm
+} from './utils/validators';
 
 type Mode = 'start' | 'register' | 'login' | 'loggedIn';
+
+interface FieldErrors {
+  userName?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  password?: string;
+}
 
 function App() {
   const [mode, setMode] = useState<Mode>('start');
@@ -18,6 +34,9 @@ function App() {
     password: ''
   });
 
+  const [registerFieldErrors, setRegisterFieldErrors] = useState<FieldErrors>({});
+  const [fieldTouched, setFieldTouched] = useState<Set<string>>(new Set());
+
   const [loginData, setLoginData] = useState({
     userNameOrEmail: '',
     password: ''
@@ -29,6 +48,77 @@ function App() {
     setError('');
     setMessage('');
     setMode(target);
+    setRegisterFieldErrors({});
+    setFieldTouched(new Set());
+  };
+
+  // Real-time validation for each field
+  const handleRegisterFieldChange = (field: keyof typeof registerData, value: string) => {
+    setRegisterData({ ...registerData, [field]: value });
+
+    // Validate only if field has been touched
+    if (fieldTouched.has(field)) {
+      let fieldError: string | null = null;
+      switch (field) {
+        case 'userName':
+          fieldError = validateUsername(value);
+          break;
+        case 'email':
+          fieldError = validateEmail(value);
+          break;
+        case 'password':
+          fieldError = validatePassword(value);
+          break;
+        case 'firstName':
+          fieldError = validateFirstName(value);
+          break;
+        case 'lastName':
+          fieldError = validateLastName(value);
+          break;
+      }
+
+      setRegisterFieldErrors({
+        ...registerFieldErrors,
+        [field]: fieldError || undefined
+      });
+    }
+  };
+
+  const handleFieldBlur = (field: string) => {
+    setFieldTouched(new Set([...fieldTouched, field]));
+
+    // Validate on blur
+    let fieldError: string | null = null;
+    const registerField = field as keyof typeof registerData;
+    const value = registerData[registerField];
+
+    switch (field) {
+      case 'userName':
+        fieldError = validateUsername(value);
+        break;
+      case 'email':
+        fieldError = validateEmail(value);
+        break;
+      case 'password':
+        fieldError = validatePassword(value);
+        break;
+      case 'firstName':
+        fieldError = validateFirstName(value);
+        break;
+      case 'lastName':
+        fieldError = validateLastName(value);
+        break;
+    }
+
+    setRegisterFieldErrors({
+      ...registerFieldErrors,
+      [field]: fieldError || undefined
+    });
+  };
+
+  const isRegisterFormValid = (): boolean => {
+    const errors = validateRegisterForm(registerData);
+    return errors.length === 0 && Object.keys(registerFieldErrors).length === 0;
   };
 
   const handleRegister = async (event: React.FormEvent) => {
@@ -36,8 +126,14 @@ function App() {
     setError('');
     setMessage('');
 
-    if (!registerData.userName || !registerData.email || !registerData.password) {
-      setError('UserName, Email i Password są wymagane.');
+    // Final validation
+    const allErrors = validateRegisterForm(registerData);
+    if (allErrors.length > 0) {
+      const errorMap: FieldErrors = {};
+      allErrors.forEach(err => {
+        errorMap[err.field as keyof FieldErrors] = err.message;
+      });
+      setRegisterFieldErrors(errorMap);
       return;
     }
 
@@ -53,11 +149,22 @@ function App() {
 
       const payload = await response.json();
       if (!response.ok) {
-        setError(payload.message || 'Błąd podczas rejestracji');
+        // Check if error is about unique constraints
+        const errorMsg = payload.message || 'Błąd podczas rejestracji';
+        if (errorMsg.includes('username')) {
+          setRegisterFieldErrors({ ...registerFieldErrors, userName: errorMsg });
+        } else if (errorMsg.includes('email')) {
+          setRegisterFieldErrors({ ...registerFieldErrors, email: errorMsg });
+        } else {
+          setError(errorMsg);
+        }
         return;
       }
 
       setMessage('Rejestracja zakończona sukcesem. Teraz możesz się zalogować.');
+      setRegisterData({ userName: '', email: '', firstName: '', lastName: '', password: '' });
+      setRegisterFieldErrors({});
+      setFieldTouched(new Set());
       setMode('login');
     } catch (err) {
       setError('Nie udało się połączyć z serwerem.');
@@ -72,7 +179,7 @@ function App() {
     setMessage('');
 
     if (!loginData.userNameOrEmail || !loginData.password) {
-      setError('UserName/Email i Password są wymagane.');
+      setError('Nazwa użytkownika/Email i hasło są wymagane.');
       return;
     }
 
@@ -107,12 +214,80 @@ function App() {
       return (
         <form className="auth-form" onSubmit={handleRegister}>
           <h2>Rejestracja</h2>
-          <input value={registerData.userName} onChange={(e) => setRegisterData({ ...registerData, userName: e.target.value })} placeholder="Nazwa użytkownika" />
-          <input value={registerData.email} onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })} type="email" placeholder="Email" />
-          <input value={registerData.firstName} onChange={(e) => setRegisterData({ ...registerData, firstName: e.target.value })} placeholder="Imię" />
-          <input value={registerData.lastName} onChange={(e) => setRegisterData({ ...registerData, lastName: e.target.value })} placeholder="Nazwisko" />
-          <input value={registerData.password} onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })} type="password" placeholder="Hasło" />
-          <button type="submit" disabled={loading}>{loading ? 'Przesyłanie...' : 'Zarejestruj się'}</button>
+
+          <div className="form-group">
+            <input
+              value={registerData.userName}
+              onChange={(e) => handleRegisterFieldChange('userName', e.target.value)}
+              onBlur={() => handleFieldBlur('userName')}
+              placeholder="Nazwa użytkownika"
+              className={registerFieldErrors.userName ? 'input-error' : ''}
+            />
+            {registerFieldErrors.userName && (
+              <span className="error-text">{registerFieldErrors.userName}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <input
+              value={registerData.email}
+              onChange={(e) => handleRegisterFieldChange('email', e.target.value)}
+              onBlur={() => handleFieldBlur('email')}
+              type="email"
+              placeholder="Email"
+              className={registerFieldErrors.email ? 'input-error' : ''}
+            />
+            {registerFieldErrors.email && (
+              <span className="error-text">{registerFieldErrors.email}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <input
+              value={registerData.firstName}
+              onChange={(e) => handleRegisterFieldChange('firstName', e.target.value)}
+              onBlur={() => handleFieldBlur('firstName')}
+              placeholder="Imię"
+              className={registerFieldErrors.firstName ? 'input-error' : ''}
+            />
+            {registerFieldErrors.firstName && (
+              <span className="error-text">{registerFieldErrors.firstName}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <input
+              value={registerData.lastName}
+              onChange={(e) => handleRegisterFieldChange('lastName', e.target.value)}
+              onBlur={() => handleFieldBlur('lastName')}
+              placeholder="Nazwisko"
+              className={registerFieldErrors.lastName ? 'input-error' : ''}
+            />
+            {registerFieldErrors.lastName && (
+              <span className="error-text">{registerFieldErrors.lastName}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <input
+              value={registerData.password}
+              onChange={(e) => handleRegisterFieldChange('password', e.target.value)}
+              onBlur={() => handleFieldBlur('password')}
+              type="password"
+              placeholder="Hasło"
+              className={registerFieldErrors.password ? 'input-error' : ''}
+            />
+            {registerFieldErrors.password && (
+              <span className="error-text">{registerFieldErrors.password}</span>
+            )}
+            <small className="password-hint">
+              Wymagania: min. 8 znaków, 1 wielka litera, 1 mała litera, 1 cyfra, 1 znak specjalny (@$!%*?&)
+            </small>
+          </div>
+
+          <button type="submit" disabled={loading || !isRegisterFormValid()}>
+            {loading ? 'Przesyłanie...' : 'Zarejestruj się'}
+          </button>
         </form>
       );
     }
@@ -121,9 +296,20 @@ function App() {
       return (
         <form className="auth-form" onSubmit={handleLogin}>
           <h2>Logowanie</h2>
-          <input value={loginData.userNameOrEmail} onChange={(e) => setLoginData({ ...loginData, userNameOrEmail: e.target.value })} placeholder="Nazwa użytkownika lub email" />
-          <input value={loginData.password} onChange={(e) => setLoginData({ ...loginData, password: e.target.value })} type="password" placeholder="Hasło" />
-          <button type="submit" disabled={loading}>{loading ? 'Przesyłanie...' : 'Zaloguj się'}</button>
+          <input
+            value={loginData.userNameOrEmail}
+            onChange={(e) => setLoginData({ ...loginData, userNameOrEmail: e.target.value })}
+            placeholder="Nazwa użytkownika lub email"
+          />
+          <input
+            value={loginData.password}
+            onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+            type="password"
+            placeholder="Hasło"
+          />
+          <button type="submit" disabled={loading}>
+            {loading ? 'Przesyłanie...' : 'Zaloguj się'}
+          </button>
         </form>
       );
     }
@@ -132,9 +318,7 @@ function App() {
       return (
         <div className="auth-success">
           <h2>Zalogowano</h2>
-          {token && (
-            <pre className="token-output">{token}</pre>
-          )}
+          {token && <pre className="token-output">{token}</pre>}
           <button onClick={() => setMode('start')}>Wyloguj / wróć</button>
         </div>
       );
@@ -156,16 +340,26 @@ function App() {
         ) : (
           <div className="form-shell">
             <div className="toggle-bar">
-              <button className={mode === 'register' ? 'active' : ''} onClick={() => openForm('register')} type="button">Rejestracja</button>
-              <button className={mode === 'login' ? 'active' : ''} onClick={() => openForm('login')} type="button">Logowanie</button>
+              <button
+                className={mode === 'register' ? 'active' : ''}
+                onClick={() => openForm('register')}
+                type="button"
+              >
+                Rejestracja
+              </button>
+              <button
+                className={mode === 'login' ? 'active' : ''}
+                onClick={() => openForm('login')}
+                type="button"
+              >
+                Logowanie
+              </button>
             </div>
 
             {renderForm()}
 
             {(message || error) && (
-              <div className={`message ${error ? 'error' : 'success'}`}>
-                {error || message}
-              </div>
+              <div className={`message ${error ? 'error' : 'success'}`}>{error || message}</div>
             )}
           </div>
         )}

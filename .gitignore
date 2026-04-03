@@ -1,0 +1,55 @@
+# Build results
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+
+# Visual Studio cache/options directory
+.vs/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Configuration files with secrets - NEVER COMMIT
+appsettings.Production.json
+appsettings.Staging.json
+appsettings.Local.json
+
+# User Secrets (if used)
+secrets.json
+
+# NuGet
+*.nupkg
+*.snupkg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (for frontend)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Docker
+.dockerignore

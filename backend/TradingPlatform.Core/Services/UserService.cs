@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using TradingPlatform.Core.Enums;
 using TradingPlatform.Core.Interfaces;
@@ -9,33 +10,39 @@ public sealed class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly IValidator<RegisterRequest> _registerValidator;
     private readonly PasswordHasher<User> _hasher = new();
 
     public UserService(
         IUserRepository userRepository,
-        IJwtTokenGenerator jwtTokenGenerator)
+        IJwtTokenGenerator jwtTokenGenerator,
+        IValidator<RegisterRequest> registerValidator)
     {
         _userRepository = userRepository;
         _jwtTokenGenerator = jwtTokenGenerator;
+        _registerValidator = registerValidator;
     }
 
     public async Task<User> RegisterAsync(RegisterRequest registerRequest, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(registerRequest.UserName) || string.IsNullOrWhiteSpace(registerRequest.Email) || string.IsNullOrWhiteSpace(registerRequest.Password))
+        // Validate using FluentValidation
+        var validationResult = await _registerValidator.ValidateAsync(registerRequest, cancellationToken);
+        if (!validationResult.IsValid)
         {
-            throw new ArgumentException("UserName, Email and Password are required.");
+            var errorMessage = string.Join(" ", validationResult.Errors.Select(e => e.ErrorMessage));
+            throw new ArgumentException(errorMessage);
         }
 
         var existingByUserName = await _userRepository.GetByUserNameAsync(registerRequest.UserName, cancellationToken);
         if (existingByUserName is not null)
         {
-            throw new InvalidOperationException("UserName already exists.");
+            throw new InvalidOperationException("Nazwa użytkownika już jest zajęta.");
         }
 
         var existingByEmail = await _userRepository.GetByEmailAsync(registerRequest.Email, cancellationToken);
         if (existingByEmail is not null)
         {
-            throw new InvalidOperationException("Email already exists.");
+            throw new InvalidOperationException("Adres email już jest zarejestrowany.");
         }
 
         var user = new User(

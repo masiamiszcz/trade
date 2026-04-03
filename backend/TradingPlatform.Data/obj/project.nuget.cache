@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "roQFiLWJIIw=",
+  "dgSpecHash": "9w4Tt+cti40=",
   "success": true,
   "projectFilePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\kubac\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",
+    "C:\\Users\\kubac\\.nuget\\packages\\fluentvalidation\\12.1.1\\fluentvalidation.12.1.1.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.aspnetcore.authentication\\2.3.0\\microsoft.aspnetcore.authentication.2.3.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.aspnetcore.authentication.abstractions\\2.3.0\\microsoft.aspnetcore.authentication.abstractions.2.3.0.nupkg.sha512",

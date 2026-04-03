@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "Zjh2xWZerY4=",
+  "dgSpecHash": "5akEp6Yog8w=",
   "success": true,
   "projectFilePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\kubac\\.nuget\\packages\\fluentvalidation\\12.1.1\\fluentvalidation.12.1.1.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.aspnetcore.authentication\\2.3.0\\microsoft.aspnetcore.authentication.2.3.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.aspnetcore.authentication.abstractions\\2.3.0\\microsoft.aspnetcore.authentication.abstractions.2.3.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.aspnetcore.authentication.cookies\\2.3.0\\microsoft.aspnetcore.authentication.cookies.2.3.0.nupkg.sha512",
@@ -53,7 +54,7 @@
     {
       "code": "NU1603",
       "level": "Warning",
-      "message": "TradingPlatform.Core depends on Microsoft.IdentityModel.Tokens (>= 6.40.0) but Microsoft.IdentityModel.Tokens 6.40.0 was not found. Microsoft.IdentityModel.Tokens 7.0.0 was resolved instead.",
+      "message": "Wersja TradingPlatform.Core jest zależna od Microsoft.IdentityModel.Tokens (>= 6.40.0), ale nie znaleziono Microsoft.IdentityModel.Tokens 6.40.0. Zamiast tego rozwiązano Microsoft.IdentityModel.Tokens 7.0.0.",
       "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "warningLevel": 1,
       "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
@@ -65,7 +66,7 @@
     {
       "code": "NU1603",
       "level": "Warning",
-      "message": "TradingPlatform.Core depends on System.IdentityModel.Tokens.Jwt (>= 6.40.0) but System.IdentityModel.Tokens.Jwt 6.40.0 was not found. System.IdentityModel.Tokens.Jwt 7.0.0 was resolved instead.",
+      "message": "Wersja TradingPlatform.Core jest zależna od System.IdentityModel.Tokens.Jwt (>= 6.40.0), ale nie znaleziono System.IdentityModel.Tokens.Jwt 6.40.0. Zamiast tego rozwiązano System.IdentityModel.Tokens.Jwt 7.0.0.",
       "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "warningLevel": 1,
       "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
@@ -77,7 +78,7 @@
     {
       "code": "NU1902",
       "level": "Warning",
-      "message": "Package 'System.IdentityModel.Tokens.Jwt' 7.0.0 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
+      "message": "Pakiet „System.IdentityModel.Tokens.Jwt” 7.0.0 ma znane umiarkowana luki w zabezpieczeniach o ważności, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
       "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "warningLevel": 1,
       "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
