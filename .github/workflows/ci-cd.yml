@@ -19,8 +19,8 @@ jobs:
         run: |
           echo "Waiting for backend container health..."
           for i in {1..60}; do
-            if curl -f http://localhost:5001/health > /dev/null 2>&1; then
-              echo "Backend is healthy!"
+            if curl -f http://localhost:5001/api/health > /dev/null 2>&1; then
+              echo "ATTEMPT $i: Backend is healthy!"
               exit 0
             fi
             
@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: |
           echo "Calling API..."
-          RESPONSE=$(curl --fail http://localhost:5001/health)
+          RESPONSE=$(curl --fail http://localhost:5001/api/health)
 
           echo "Response: $RESPONSE"
 
