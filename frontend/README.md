@@ -1,6 +1,54 @@
-# Getting Started with Create React App
+# Trading Platform Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**Engineering Thesis Project** - Modern trading platform built with React, TypeScript, and professional architecture.
+
+## 🚀 Features
+
+- **Modern React 19** with TypeScript
+- **Professional Layout** with Header, Sidebar, Footer
+- **Responsive Design** for all devices
+- **Authentication System** with JWT tokens
+- **Modular Architecture** with clean separation of concerns
+- **REST API Integration** with backend services
+
+## 🏗️ Architecture
+
+```
+src/
+├── layout/          # Layout components (Header, Sidebar, Footer, MainLayout)
+├── pages/           # Page components (Login, Register, Dashboard, etc.)
+├── components/      # Reusable UI components
+├── hooks/           # Custom React hooks
+├── services/        # API services and utilities
+├── types/           # TypeScript type definitions
+└── utils/           # Helper functions and validators
+```
+
+## 📋 Requirements
+
+- Node.js 16+
+- npm or yarn
+- Backend API running on configured endpoint
+
+## 🛠️ Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start development server:
+   ```bash
+   npm start
+   ```
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
+
+## 🎓 Academic Project
+
+This application was developed as part of an engineering thesis project. All code is original and properly licensed.
 
 ## Available Scripts
 

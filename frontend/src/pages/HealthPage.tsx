@@ -4,7 +4,7 @@ import { apiService } from '../services/ApiService';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { HealthStatus } from '../types';
-import './HealthPage.css';
+
 
 export const HealthPage: React.FC = () => {
   const { data, loading, error, refetch } = useApi<HealthStatus>(

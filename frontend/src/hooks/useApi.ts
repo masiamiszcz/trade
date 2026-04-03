@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ApiResponse, ApiError } from '../types';
 
 interface UseApiState<T> {
@@ -7,21 +7,23 @@ interface UseApiState<T> {
   error: ApiError | null;
 }
 
-export function useApi<T>(
-  apiCall: () => Promise<ApiResponse<T>>,
-  dependencies: any[] = []
-) {
+export function useApi<T>(apiCall: () => Promise<ApiResponse<T>>) {
   const [state, setState] = useState<UseApiState<T>>({
     data: null,
     loading: false,
     error: null,
   });
 
+  const apiCallRef = useRef(apiCall);
+  useEffect(() => {
+    apiCallRef.current = apiCall;
+  }, [apiCall]);
+
   const execute = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const response = await apiCall();
+      const response = await apiCallRef.current();
 
       if (response.error) {
         setState(prev => ({
@@ -45,7 +47,7 @@ export function useApi<T>(
         },
       }));
     }
-  }, dependencies);
+  }, []);
 
   useEffect(() => {
     execute();

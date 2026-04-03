@@ -11,7 +11,7 @@ public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest
     private const int PasswordMaxLength = 128;
 
     // Regex: At least 1 uppercase, 1 lowercase, 1 digit, 1 special character
-    private const string PasswordPattern = @"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$";
+    private const string PasswordPattern = @"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$";
 
     public RegisterRequestValidator()
     {

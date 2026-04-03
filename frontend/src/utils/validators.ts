@@ -10,7 +10,7 @@ export interface ValidationError {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]+$/;
-const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
 export const validateEmail = (email: string): string | null => {
   if (!email || !email.trim()) {
@@ -128,14 +128,13 @@ export const validateLoginForm = (data: {
 }): ValidationError[] => {
   const errors: ValidationError[] = [];
 
-  const userNameOrEmailError = validateUserNameOrEmail(data.userNameOrEmail);
-  if (userNameOrEmailError) {
-    errors.push({ field: 'userNameOrEmail', message: userNameOrEmailError });
+  // Dla logowania sprawdzamy tylko czy pola nie są puste
+  if (!data.userNameOrEmail || !data.userNameOrEmail.trim()) {
+    errors.push({ field: 'userNameOrEmail', message: 'Nazwa użytkownika lub email jest wymagana.' });
   }
 
-  const passwordError = validatePassword(data.password);
-  if (passwordError) {
-    errors.push({ field: 'password', message: passwordError });
+  if (!data.password || !data.password.trim()) {
+    errors.push({ field: 'password', message: 'Hasło jest wymagane.' });
   }
 
   return errors;
