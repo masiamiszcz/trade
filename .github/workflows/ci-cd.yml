@@ -14,29 +14,34 @@ jobs:
       - name: Build and start containers
         run: docker compose -f docker/docker-compose.yaml up --build -d
 
-      - name: Wait for API to be ready
+      - name: Wait for backend container to be healthy
         shell: bash
         run: |
-          echo "Waiting for API..."
-          for i in {1..30}; do
-            if curl -s http://localhost:5001/hello | grep -q "Trading Platform API"; then
-              echo "API is up!"
+          echo "Waiting for backend container health..."
+          for i in {1..60}; do
+            if curl -f http://localhost:5001/api/health > /dev/null 2>&1; then
+              echo "ATTEMPT $i: Backend is healthy!"
               exit 0
             fi
-            sleep 2
+            
+            echo "Attempt $i: Backend not ready yet..."
+            sleep 5
           done
-          echo "API failed to start"
-          docker compose -f docker/docker-compose.yaml logs
+
+          echo "Backend failed to become healthy"
+          docker compose -f docker/docker-compose.yaml logs trading-backend
           exit 1
 
-      - name: Validate JSON response
+      - name: Validate API response
         shell: bash
         run: |
-          RESPONSE=$(curl -s http://localhost:5001/hello)
+          echo "Calling API..."
+          RESPONSE=$(curl --fail http://localhost:5001/api/health)
+
           echo "Response: $RESPONSE"
-          
-          echo "$RESPONSE" | grep -q "Trading Platform API"
-          echo "$RESPONSE" | grep -q "API is working"
+
+          echo "$RESPONSE" | grep -q "Healthy"
+          echo "$RESPONSE" | grep -q "databaseHealthy"
 
       - name: Show logs (always)
         if: always()
