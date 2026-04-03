@@ -4,7 +4,7 @@ import { apiService } from '../services/ApiService';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { MarketAsset } from '../types';
-import './MarketPage.css';
+
 
 export const MarketPage: React.FC = () => {
   const [searchSymbol, setSearchSymbol] = useState('');

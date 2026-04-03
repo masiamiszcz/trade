@@ -15,6 +15,23 @@ export interface MarketAsset {
   changePercent: number;
 }
 
+export interface LoginRequest {
+  userNameOrEmail: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  userName: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+}
+
 // API Error type
 export interface ApiError {
   message: string;

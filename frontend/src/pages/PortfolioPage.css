@@ -1,0 +1,64 @@
+.portfolio-page {
+  max-width: 1080px;
+  margin: 3rem auto;
+  padding: 0 1rem;
+}
+
+.portfolio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.portfolio-header h1 {
+  margin: 0;
+  color: #ffffff;
+}
+
+.portfolio-header p {
+  margin: 0.4rem 0 0;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.portfolio-token {
+  color: rgba(255, 255, 255, 0.65);
+  word-break: break-all;
+  max-width: 360px;
+}
+
+.portfolio-summary h2 {
+  color: #ffffff;
+  margin-bottom: 1rem;
+}
+
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.portfolio-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  padding: 1.25rem;
+  color: #ffffff;
+}
+
+.portfolio-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.portfolio-card h3 {
+  margin: 0;
+}
+
+.portfolio-details p {
+  margin: 0.35rem 0;
+  color: rgba(255, 255, 255, 0.8);
+}
