@@ -1,23 +1,27 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
 
 function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
+        <h1>🚀 Trading Platform</h1>
         <p>
-          Edit <code>src/App.tsx</code> and save to reload.
+          Witaj w aplikacji do handlu giełdowego!
         </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <div className="status">
+          <div className="status-item">
+            <span className="status-dot healthy"></span>
+            Frontend: Aktywny
+          </div>
+          <div className="status-item">
+            <span className="status-dot">?</span>
+            Backend: Sprawdzam...
+          </div>
+        </div>
+        <button className="action-button">
+          Rozpocznij handel
+        </button>
       </header>
     </div>
   );
