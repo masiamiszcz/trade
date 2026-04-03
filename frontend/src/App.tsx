@@ -6,13 +6,16 @@ import {
   validatePassword,
   validateFirstName,
   validateLastName,
-  validateRegisterForm
+  validateUserNameOrEmail,
+  validateRegisterForm,
+  validateLoginForm
 } from './utils/validators';
 
 type Mode = 'start' | 'register' | 'login' | 'loggedIn';
 
 interface FieldErrors {
   userName?: string;
+  userNameOrEmail?: string;
   email?: string;
   firstName?: string;
   lastName?: string;
@@ -37,11 +40,12 @@ function App() {
 
   const [registerFieldErrors, setRegisterFieldErrors] = useState<FieldErrors>({});
   const [fieldTouched, setFieldTouched] = useState<Set<string>>(new Set());
-
   const [loginData, setLoginData] = useState({
     userNameOrEmail: '',
     password: ''
   });
+  const [loginFieldErrors, setLoginFieldErrors] = useState<FieldErrors>({});
+  const [loginTouched, setLoginTouched] = useState<Set<string>>(new Set());
 
   const apiBase = process.env.REACT_APP_API_URL
     ? `${process.env.REACT_APP_API_URL}/api/auth`
@@ -53,6 +57,8 @@ function App() {
     setMode(target);
     setRegisterFieldErrors({});
     setFieldTouched(new Set());
+    setLoginFieldErrors({});
+    setLoginTouched(new Set());
   };
 
   // Real-time validation for each field
@@ -82,6 +88,27 @@ function App() {
 
       setRegisterFieldErrors({
         ...registerFieldErrors,
+        [field]: fieldError || undefined
+      });
+    }
+  };
+
+  const handleLoginFieldChange = (field: keyof typeof loginData, value: string) => {
+    setLoginData({ ...loginData, [field]: value });
+
+    if (loginTouched.has(field)) {
+      let fieldError: string | null = null;
+      switch (field) {
+        case 'userNameOrEmail':
+          fieldError = validateUserNameOrEmail(value);
+          break;
+        case 'password':
+          fieldError = validatePassword(value);
+          break;
+      }
+
+      setLoginFieldErrors({
+        ...loginFieldErrors,
         [field]: fieldError || undefined
       });
     }
@@ -119,9 +146,35 @@ function App() {
     });
   };
 
+  const handleLoginFieldBlur = (field: keyof typeof loginData) => {
+    setLoginTouched(new Set([...loginTouched, field]));
+
+    let fieldError: string | null = null;
+    const value = loginData[field];
+
+    switch (field) {
+      case 'userNameOrEmail':
+        fieldError = validateUserNameOrEmail(value);
+        break;
+      case 'password':
+        fieldError = validatePassword(value);
+        break;
+    }
+
+    setLoginFieldErrors({
+      ...loginFieldErrors,
+      [field]: fieldError || undefined
+    });
+  };
+
   const isRegisterFormValid = (): boolean => {
     const errors = validateRegisterForm(registerData);
     return errors.length === 0 && Object.keys(registerFieldErrors).length === 0;
+  };
+
+  const isLoginFormValid = (): boolean => {
+    const errors = validateLoginForm(loginData);
+    return errors.length === 0 && Object.keys(loginFieldErrors).length === 0;
   };
 
   const handleRegister = async (event: React.FormEvent) => {
@@ -181,8 +234,13 @@ function App() {
     setError('');
     setMessage('');
 
-    if (!loginData.userNameOrEmail || !loginData.password) {
-      setError('Nazwa użytkownika/Email i hasło są wymagane.');
+    const allErrors = validateLoginForm(loginData);
+    if (allErrors.length > 0) {
+      const errorMap: FieldErrors = {};
+      allErrors.forEach(err => {
+        errorMap[err.field as keyof FieldErrors] = err.message;
+      });
+      setLoginFieldErrors(errorMap);
       return;
     }
 
@@ -299,18 +357,34 @@ function App() {
       return (
         <form className="auth-form" onSubmit={handleLogin}>
           <h2>Logowanie</h2>
-          <input
-            value={loginData.userNameOrEmail}
-            onChange={(e) => setLoginData({ ...loginData, userNameOrEmail: e.target.value })}
-            placeholder="Nazwa użytkownika lub email"
-          />
-          <input
-            value={loginData.password}
-            onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-            type="password"
-            placeholder="Hasło"
-          />
-          <button type="submit" disabled={loading}>
+          <div className="form-group">
+            <input
+              value={loginData.userNameOrEmail}
+              onChange={(e) => handleLoginFieldChange('userNameOrEmail', e.target.value)}
+              onBlur={() => handleLoginFieldBlur('userNameOrEmail')}
+              placeholder="Nazwa użytkownika lub email"
+              className={loginFieldErrors.userNameOrEmail ? 'input-error' : ''}
+            />
+            {loginFieldErrors.userNameOrEmail && (
+              <span className="error-text">{loginFieldErrors.userNameOrEmail}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <input
+              value={loginData.password}
+              onChange={(e) => handleLoginFieldChange('password', e.target.value)}
+              onBlur={() => handleLoginFieldBlur('password')}
+              type="password"
+              placeholder="Hasło"
+              className={loginFieldErrors.password ? 'input-error' : ''}
+            />
+            {loginFieldErrors.password && (
+              <span className="error-text">{loginFieldErrors.password}</span>
+            )}
+          </div>
+
+          <button type="submit" disabled={loading || !isLoginFormValid()}>
             {loading ? 'Przesyłanie...' : 'Zaloguj się'}
           </button>
         </form>

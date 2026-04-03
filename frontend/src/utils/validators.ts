@@ -51,6 +51,27 @@ export const validatePassword = (password: string): string | null => {
   return null;
 };
 
+export const validateUserNameOrEmail = (value: string): string | null => {
+  if (!value || !value.trim()) {
+    return 'Nazwa użytkownika lub email jest wymagana.';
+  }
+
+  if (value.includes('@')) {
+    if (!EMAIL_REGEX.test(value)) {
+      return 'Podaj prawidłowy adres email.';
+    }
+  } else {
+    if (value.length < 8 || value.length > 50) {
+      return 'Nazwa użytkownika musi mieć od 8 do 50 znaków.';
+    }
+    if (!USERNAME_REGEX.test(value)) {
+      return 'Nazwa użytkownika może zawierać tylko litery, cyfry, myślnik i podkreślenie.';
+    }
+  }
+
+  return null;
+};
+
 export const validateFirstName = (firstName: string): string | null => {
   if (!firstName || !firstName.trim()) {
     return 'Imię jest wymagane.';
@@ -97,6 +118,25 @@ export const validateRegisterForm = (data: {
 
   const lastNameError = validateLastName(data.lastName);
   if (lastNameError) errors.push({ field: 'lastName', message: lastNameError });
+
+  return errors;
+};
+
+export const validateLoginForm = (data: {
+  userNameOrEmail: string;
+  password: string;
+}): ValidationError[] => {
+  const errors: ValidationError[] = [];
+
+  const userNameOrEmailError = validateUserNameOrEmail(data.userNameOrEmail);
+  if (userNameOrEmailError) {
+    errors.push({ field: 'userNameOrEmail', message: userNameOrEmailError });
+  }
+
+  const passwordError = validatePassword(data.password);
+  if (passwordError) {
+    errors.push({ field: 'password', message: passwordError });
+  }
 
   return errors;
 };
