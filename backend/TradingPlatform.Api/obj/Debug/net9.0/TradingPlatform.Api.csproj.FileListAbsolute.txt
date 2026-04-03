@@ -165,3 +165,4 @@ C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin\Debug\net9.0\Microsoft.AspNetCore.Authorization.dll
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin\Debug\net9.0\Microsoft.AspNetCore.Metadata.dll
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin\Debug\net9.0\Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore.dll
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\bin\Debug\net9.0\FluentValidation.dll

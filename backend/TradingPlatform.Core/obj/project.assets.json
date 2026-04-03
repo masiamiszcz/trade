@@ -2,6 +2,19 @@
   "version": 3,
   "targets": {
     "net9.0": {
+      "FluentValidation/12.1.1": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/FluentValidation.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/FluentValidation.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Microsoft.AspNetCore.Authentication/2.3.0": {
         "type": "package",
         "dependencies": {
@@ -787,6 +800,21 @@
     }
   },
   "libraries": {
+    "FluentValidation/12.1.1": {
+      "sha512": "EPpkIe1yh1a0OXyC100oOA8WMbZvqUu5plwhvYcb7oSELfyUZzfxV48BLhvs3kKo4NwG7MGLNgy1RJiYtT8Dpw==",
+      "type": "package",
+      "path": "fluentvalidation/12.1.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "fluent-validation-icon.png",
+        "fluentvalidation.12.1.1.nupkg.sha512",
+        "fluentvalidation.nuspec",
+        "lib/net8.0/FluentValidation.dll",
+        "lib/net8.0/FluentValidation.xml"
+      ]
+    },
     "Microsoft.AspNetCore.Authentication/2.3.0": {
       "sha512": "Tq6bxTOe65Ikh9dWVTEOqpvNqBGIQueO0J+zl2rQba0yP0YV66iYDkSz9MqTdRZftvJ2I5kMeRUm9Z2mjEAbUQ==",
       "type": "package",
@@ -1901,6 +1929,7 @@
   },
   "projectFileDependencyGroups": {
     "net9.0": [
+      "FluentValidation >= 12.1.1",
       "Microsoft.AspNetCore.Identity >= 2.3.9",
       "Microsoft.Extensions.DependencyInjection.Abstractions >= 9.0.5",
       "Microsoft.Extensions.Options >= 9.0.5",
@@ -1959,6 +1988,10 @@
       "net9.0": {
         "targetAlias": "net9.0",
         "dependencies": {
+          "FluentValidation": {
+            "target": "Package",
+            "version": "[12.1.1, )"
+          },
           "Microsoft.AspNetCore.Identity": {
             "target": "Package",
             "version": "[2.3.9, )"
@@ -2005,7 +2038,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "TradingPlatform.Core depends on Microsoft.IdentityModel.Tokens (>= 6.40.0) but Microsoft.IdentityModel.Tokens 6.40.0 was not found. Microsoft.IdentityModel.Tokens 7.0.0 was resolved instead.",
+      "message": "Wersja TradingPlatform.Core jest zależna od Microsoft.IdentityModel.Tokens (>= 6.40.0), ale nie znaleziono Microsoft.IdentityModel.Tokens 6.40.0. Zamiast tego rozwiązano Microsoft.IdentityModel.Tokens 7.0.0.",
       "libraryId": "Microsoft.IdentityModel.Tokens",
       "targetGraphs": [
         "net9.0"
@@ -2015,7 +2048,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "TradingPlatform.Core depends on System.IdentityModel.Tokens.Jwt (>= 6.40.0) but System.IdentityModel.Tokens.Jwt 6.40.0 was not found. System.IdentityModel.Tokens.Jwt 7.0.0 was resolved instead.",
+      "message": "Wersja TradingPlatform.Core jest zależna od System.IdentityModel.Tokens.Jwt (>= 6.40.0), ale nie znaleziono System.IdentityModel.Tokens.Jwt 6.40.0. Zamiast tego rozwiązano System.IdentityModel.Tokens.Jwt 7.0.0.",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net9.0"
@@ -2025,7 +2058,7 @@
       "code": "NU1902",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "Package 'System.IdentityModel.Tokens.Jwt' 7.0.0 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
+      "message": "Pakiet „System.IdentityModel.Tokens.Jwt” 7.0.0 ma znane umiarkowana luki w zabezpieczeniach o ważności, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net9.0"

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.IdentityModel.Tokens;
+using TradingPlatform.Core.Extensions;
 using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Models;
 using TradingPlatform.Core.Services;
@@ -13,6 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
+
+builder.Services.AddValidators();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -36,9 +39,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()
-                 ?? throw new InvalidOperationException("JWT settings are not configured properly.");
-
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -46,6 +46,9 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()
+        ?? throw new InvalidOperationException("JWT settings are not configured properly.");
+
     options.RequireHttpsMetadata = true;
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
