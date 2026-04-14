@@ -92,6 +92,17 @@ export const validateLastName = (lastName: string): string | null => {
   return null;
 };
 
+export const validateBaseCurrency = (currency: string): string | null => {
+  if (!currency || !currency.trim()) {
+    return 'Waluta bazowa jest wymagana.';
+  }
+  const currencyRegex = /^[A-Z]{3}$/;
+  if (!currencyRegex.test(currency)) {
+    return 'Kod waluty musi mieć dokładnie 3 znaki (np. PLN, EUR, USD).';
+  }
+  return null;
+};
+
 /**
  * Validate all register form fields at once
  */
@@ -101,6 +112,7 @@ export const validateRegisterForm = (data: {
   firstName: string;
   lastName: string;
   password: string;
+  baseCurrency?: string;
 }): ValidationError[] => {
   const errors: ValidationError[] = [];
 
@@ -118,6 +130,9 @@ export const validateRegisterForm = (data: {
 
   const lastNameError = validateLastName(data.lastName);
   if (lastNameError) errors.push({ field: 'lastName', message: lastNameError });
+
+  const baseCurrencyError = validateBaseCurrency(data.baseCurrency || 'PLN');
+  if (baseCurrencyError) errors.push({ field: 'baseCurrency', message: baseCurrencyError });
 
   return errors;
 };

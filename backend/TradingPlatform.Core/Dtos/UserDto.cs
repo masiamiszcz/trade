@@ -10,4 +10,5 @@ public sealed record UserDto(
     bool EmailConfirmed,
     bool TwoFactorEnabled,
     string Status,
+    string BaseCurrency,
     DateTimeOffset CreatedAtUtc);

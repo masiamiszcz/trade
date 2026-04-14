@@ -1,15 +1,21 @@
 .auth-page {
-  max-width: 520px;
-  margin: 3rem auto;
+  max-width: 420px;
+  width: 100%;
+  margin: 1.5rem auto 2rem;
   padding: 0 1rem;
+  box-sizing: border-box;
 }
 
 .auth-card {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
   padding: 2rem;
   box-shadow: 0 28px 76px rgba(0, 0, 0, 0.16);
+  box-sizing: border-box;
 }
 
 .auth-card h1 {
@@ -17,7 +23,17 @@
   color: #ffffff;
 }
 
+.auth-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
 .auth-form .form-group {
+  width: 100%;
+  max-width: 360px;
   margin-bottom: 1rem;
   text-align: left;
 }
@@ -28,18 +44,22 @@
   color: rgba(255, 255, 255, 0.75);
 }
 
-.auth-form input {
+.auth-form input,
+.auth-form select {
   width: 100%;
+  max-width: 360px;
   padding: 0.9rem 1rem;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
+  box-sizing: border-box;
 }
 
 .auth-form button {
-  margin-top: 0.7rem;
   width: 100%;
+  max-width: 360px;
+  margin-top: 0.7rem;
   padding: 0.95rem 1rem;
   border: none;
   border-radius: 12px;
@@ -57,6 +77,34 @@
 .form-footer {
   margin-top: 1rem;
   color: rgba(255, 255, 255, 0.75);
+}
+
+.form-error,
+.form-success {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  color: #ffffff;
+}
+
+.form-error {
+  background: rgba(255, 79, 79, 0.18);
+  border: 1px solid rgba(255, 79, 79, 0.35);
+}
+
+.form-success {
+  background: rgba(67, 233, 123, 0.18);
+  border: 1px solid rgba(67, 233, 123, 0.35);
+}
+
+.error-text {
+  margin-top: 0.35rem;
+  color: #ff9ca7;
+  font-size: 0.9rem;
+}
+
+.input-error {
+  border-color: #ff6b6b;
 }
 
 .form-error,

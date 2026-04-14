@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { validateLoginForm } from '../utils/validators';
 import { LoginRequest } from '../types';
+import './LoginPage.css';
 
 
 interface LocationState {

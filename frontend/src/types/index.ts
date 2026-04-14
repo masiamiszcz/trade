@@ -26,10 +26,26 @@ export interface RegisterRequest {
   firstName: string;
   lastName: string;
   password: string;
+  baseCurrency?: string; // Default: PLN
 }
 
 export interface AuthResponse {
   token: string;
+}
+
+export interface AccountDto {
+  id: string;
+  userId: string;
+  parentAccountId: string | null;
+  accountNumber: string;
+  name: string;
+  accountType: string;
+  pillar: string;
+  status: string;
+  currency: string;
+  availableBalance: number;
+  reservedBalance: number;
+  createdAtUtc: string;
 }
 
 // API Error type

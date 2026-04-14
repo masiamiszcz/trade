@@ -59,6 +59,7 @@ public sealed class SqlUserRepository : IUserRepository
             TwoFactorEnabled = user.TwoFactorEnabled,
             Status = user.Status,
             Role = user.Role,
+            BaseCurrency = user.BaseCurrency,
             CreatedAtUtc = user.CreatedAtUtc,
             SecurityStamp = Guid.NewGuid().ToString("N"),
             PasswordHash = passwordHash
@@ -71,5 +72,5 @@ public sealed class SqlUserRepository : IUserRepository
         => _dbContext.SaveChangesAsync(cancellationToken);
 
     private static User MapToDomain(UserEntity entity)
-        => new User(entity.Id, entity.UserName, entity.Email, entity.FirstName, entity.LastName, entity.Role, entity.EmailConfirmed, entity.TwoFactorEnabled, entity.Status, entity.CreatedAtUtc);
+        => new User(entity.Id, entity.UserName, entity.Email, entity.FirstName, entity.LastName, entity.Role, entity.EmailConfirmed, entity.TwoFactorEnabled, entity.Status, entity.BaseCurrency, entity.CreatedAtUtc);
 }

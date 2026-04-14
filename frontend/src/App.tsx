@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { MainLayout } from './layout/MainLayout';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -9,9 +9,12 @@ import './App.css';
 
 const App: React.FC = () => {
   const auth = useAuth();
+  const location = useLocation();
+
+  const isDashboard = location.pathname === '/dashboard';
 
   return (
-    <MainLayout>
+    <MainLayout isDashboard={isDashboard}>
       <Routes>
         <Route
           path="/"

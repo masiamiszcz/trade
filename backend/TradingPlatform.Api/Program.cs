@@ -4,6 +4,7 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using TradingPlatform.Api.Middleware;
 using TradingPlatform.Core.Extensions;
@@ -11,6 +12,7 @@ using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Mapping;
 using TradingPlatform.Core.Models;
 using TradingPlatform.Core.Services;
+using TradingPlatform.Data.Context;
 using TradingPlatform.Data.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,7 +25,6 @@ builder.Services.AddValidators();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
-builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
 builder.Logging.ClearProviders();
@@ -93,6 +94,13 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Apply migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<TradingPlatformDbContext>();
+    dbContext.Database.Migrate();
+}
 
 app.MapControllers();
 

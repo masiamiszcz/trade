@@ -43,6 +43,11 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
             .IsRequired()
             .HasDefaultValue(Core.Enums.UserRole.User);
 
+        builder.Property(x => x.BaseCurrency)
+            .HasMaxLength(3)
+            .IsRequired()
+            .HasDefaultValue("PLN");
+
         builder.Property(x => x.TwoFactorSecret)
             .HasMaxLength(256);
 

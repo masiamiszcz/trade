@@ -358,6 +358,13 @@ namespace TradingPlatform.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("BaseCurrency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)")
+                        .HasDefaultValue("PLN");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetimeoffset")
@@ -386,6 +393,11 @@ namespace TradingPlatform.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("Role")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("SecurityStamp")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -393,10 +405,6 @@ namespace TradingPlatform.Data.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
