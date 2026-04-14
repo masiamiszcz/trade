@@ -3,11 +3,21 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { validateRegisterForm } from '../utils/validators';
 import { RegisterRequest } from '../types';
+import { CustomSelect, SelectOption } from '../components/CustomSelect';
+import './RegisterPage.css';
 
 
 export const RegisterPage: React.FC = () => {
   const auth = useAuth();
   const navigate = useNavigate();
+
+  const currencyOptions: SelectOption[] = [
+    { value: 'PLN', label: 'PLN (Polski Złoty)' },
+    { value: 'EUR', label: 'EUR (Euro)' },
+    { value: 'USD', label: 'USD (Dolar USA)' },
+    { value: 'GBP', label: 'GBP (Funt Brytyjski)' },
+    { value: 'CHF', label: 'CHF (Frank Szwajcarski)' },
+  ];
 
   const [formData, setFormData] = useState<RegisterRequest>({
     userName: '',
@@ -15,6 +25,7 @@ export const RegisterPage: React.FC = () => {
     firstName: '',
     lastName: '',
     password: '',
+    baseCurrency: 'PLN',
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -73,7 +84,7 @@ export const RegisterPage: React.FC = () => {
     }
 
     setSuccessMessage('Rejestracja zakończona sukcesem. Zaloguj się, aby kontynuować.');
-    setFormData({ userName: '', email: '', firstName: '', lastName: '', password: '' });
+    setFormData({ userName: '', email: '', firstName: '', lastName: '', password: '', baseCurrency: 'PLN' });
     setFieldErrors({});
     setTouched(new Set());
     navigate('/login');
@@ -147,6 +158,18 @@ export const RegisterPage: React.FC = () => {
               className={fieldErrors.password ? 'input-error' : ''}
             />
             {fieldErrors.password && <span className="error-text">{fieldErrors.password}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="baseCurrency">Waluta bazowa</label>
+            <CustomSelect
+              id="baseCurrency"
+              value={formData.baseCurrency || 'PLN'}
+              options={currencyOptions}
+              onChange={(value) => handleChange('baseCurrency', value)}
+              className={fieldErrors.baseCurrency ? 'input-error' : ''}
+            />
+            {fieldErrors.baseCurrency && <span className="error-text">{fieldErrors.baseCurrency}</span>}
           </div>
 
           <button type="submit" disabled={loading || !isFormValid()}>

@@ -55,5 +55,14 @@ public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest
             .WithMessage("Nazwisko jest wymagane.")
             .MaximumLength(50)
             .WithMessage("Nazwisko nie może być dłuższe niż 50 znaków.");
+
+        // BaseCurrency validation
+        RuleFor(x => x.BaseCurrency)
+            .NotEmpty()
+            .WithMessage("Waluta bazowa jest wymagana.")
+            .Length(3)
+            .WithMessage("Kod waluty musi mieć dokładnie 3 znaki (np. PLN, EUR, USD).")
+            .Matches("^[A-Z]{3}$")
+            .WithMessage("Kod waluty musi zawierać tylko wielkie litery (np. PLN).");
     }
 }

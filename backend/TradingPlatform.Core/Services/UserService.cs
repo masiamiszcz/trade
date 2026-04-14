@@ -11,6 +11,7 @@ namespace TradingPlatform.Core.Services;
 public sealed class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IAccountService _accountService;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly IValidator<RegisterRequest> _registerValidator;
     private readonly IMapper _mapper;
@@ -18,11 +19,13 @@ public sealed class UserService : IUserService
 
     public UserService(
         IUserRepository userRepository,
+        IAccountService accountService,
         IJwtTokenGenerator jwtTokenGenerator,
         IValidator<RegisterRequest> registerValidator,
         IMapper mapper)
     {
         _userRepository = userRepository;
+        _accountService = accountService;
         _jwtTokenGenerator = jwtTokenGenerator;
         _registerValidator = registerValidator;
         _mapper = mapper;
@@ -60,12 +63,16 @@ public sealed class UserService : IUserService
             EmailConfirmed: false,
             TwoFactorEnabled: false,
             UserStatus.Active,
+            BaseCurrency: registerRequest.BaseCurrency.ToUpper(),
             DateTimeOffset.UtcNow);
 
         var passwordHash = _hasher.HashPassword(user, registerRequest.Password);
 
         await _userRepository.AddAsync(user, passwordHash, cancellationToken);
         await _userRepository.SaveChangesAsync(cancellationToken);
+
+        // Create main account automatically with initial balance
+        await _accountService.CreateMainAccountAsync(user.Id, user.BaseCurrency, initialBalance: 10000, cancellationToken);
 
         return _mapper.Map<UserDto>(user);
     }

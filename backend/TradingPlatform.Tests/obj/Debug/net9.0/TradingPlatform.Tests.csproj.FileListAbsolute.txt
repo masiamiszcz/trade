@@ -184,3 +184,5 @@ C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Tests\b
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Tests\bin\Debug\net9.0\System.Security.Cryptography.Pkcs.dll
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Tests\bin\Debug\net9.0\System.Security.Cryptography.Xml.dll
 C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Tests\bin\Debug\net9.0\runtimes\win\lib\net8.0\System.Security.Cryptography.Pkcs.dll
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Tests\bin\Debug\net9.0\AutoMapper.dll
+C:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Tests\bin\Debug\net9.0\FluentValidation.dll

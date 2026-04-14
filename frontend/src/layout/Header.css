@@ -2,6 +2,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  width: 100%;
   background: rgba(29, 31, 49, 0.95);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -10,4 +11,9 @@
 
 .header-content {
   width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }

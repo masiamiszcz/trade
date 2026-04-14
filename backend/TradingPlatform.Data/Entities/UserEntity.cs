@@ -16,6 +16,7 @@ public sealed class UserEntity
     public string SecurityStamp { get; set; } = Guid.NewGuid().ToString("N");
     public UserStatus Status { get; set; } = UserStatus.PendingEmailConfirmation;
     public UserRole Role { get; set; } = UserRole.User;
+    public string BaseCurrency { get; set; } = "PLN";
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset? UpdatedAtUtc { get; set; }
 

@@ -12,4 +12,5 @@ public sealed record User(
     bool EmailConfirmed,
     bool TwoFactorEnabled,
     UserStatus Status,
+    string BaseCurrency,
     DateTimeOffset CreatedAtUtc);

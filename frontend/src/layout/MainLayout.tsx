@@ -10,12 +10,14 @@ interface MainLayoutProps {
   children: React.ReactNode;
   showSidebar?: boolean;
   sidebarContent?: React.ReactNode;
+  isDashboard?: boolean;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
   children,
   showSidebar = false,
-  sidebarContent
+  sidebarContent,
+  isDashboard = false
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -37,7 +39,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         )}
 
         <main className={`main-content ${showSidebar ? 'with-sidebar' : ''}`}>
-          <div className="content-wrapper">
+          <div className={`content-wrapper ${isDashboard ? 'dashboard-fullscreen' : ''}`}>
             {children}
           </div>
         </main>
