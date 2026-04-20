@@ -26,8 +26,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserRepository, SqlUserRepository>();
         services.AddScoped<IAccountRepository, SqlAccountRepository>();
         services.AddScoped<IAccountService, AccountService>();
-        // TODO: UserService registration - check if needed
-        // services.AddScoped<IUserService, TradingPlatform.Core.Services.UserService>();
+        services.AddScoped<IUserService, UserService>();
         services.AddScoped<IHealthService, HealthService>();
 
         // Configure settings
