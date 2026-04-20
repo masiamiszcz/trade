@@ -19,16 +19,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const login = async (payload: LoginRequest): Promise<ApiResponse<AuthResponse>> => {
-    const result = await authService.login(payload);
-    if (!result.error && result.data?.token) {
-      localStorage.setItem(STORAGE_KEY, result.data.token);
-      setToken(result.data.token);
+    try {
+      const result = await authService.userLogin(payload);
+      if (result.token) {
+        localStorage.setItem(STORAGE_KEY, result.token);
+        setToken(result.token);
+      }
+      return { data: result };
+    } catch (error) {
+      return {
+        error: {
+          message: error instanceof Error ? error.message : 'Login failed',
+          status: error instanceof Error && 'status' in error ? (error as any).status : undefined,
+        },
+      };
     }
-    return result;
   };
 
   const register = async (payload: RegisterRequest): Promise<ApiResponse<AuthResponse>> => {
-    return authService.register(payload);
+    try {
+      const result = await authService.userRegister(payload);
+      if (result.token) {
+        localStorage.setItem(STORAGE_KEY, result.token);
+        setToken(result.token);
+      }
+      return { data: result };
+    } catch (error) {
+      return {
+        error: {
+          message: error instanceof Error ? error.message : 'Registration failed',
+          status: error instanceof Error && 'status' in error ? (error as any).status : undefined,
+        },
+      };
+    }
   };
 
   const logout = (): void => {
