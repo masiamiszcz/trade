@@ -56,6 +56,8 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
     /// </summary>
     public string GenerateToken(User user, bool isTempToken, Models.TokenContext? context = null)
     {
+        Console.WriteLine($"[GenerateToken] Called with isTempToken={isTempToken}, context={context}");
+        
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -63,47 +65,54 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             new(ClaimTypes.Name, user.UserName),
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Role, user.Role.ToString()),
-            new("given_name", user.FirstName),
-            new("family_name", user.LastName),
-            new("userId", user.Id.ToString()),
-            new("baseCurrency", user.BaseCurrency)
+            new("userId", user.Id.ToString())
         };
 
-        // Add context-specific claims if provided
         if (context != null)
         {
+            Console.WriteLine($"[GenerateToken] Context is NOT null");
+            Console.WriteLine($"[GenerateToken] context.SessionId={context.SessionId}");
+            Console.WriteLine($"[GenerateToken] context.TwoFactorRequired={context.TwoFactorRequired}");
+            Console.WriteLine($"[GenerateToken] context.TotpSecret={context.TotpSecret} (is null or empty: {string.IsNullOrWhiteSpace(context.TotpSecret)})");
+            
             if (!string.IsNullOrWhiteSpace(context.SessionId))
                 claims.Add(new Claim("session_id", context.SessionId));
-
-            if (!string.IsNullOrWhiteSpace(context.AdminRegistrationStep))
-                claims.Add(new Claim("registration_step", context.AdminRegistrationStep));
 
             if (context.TwoFactorRequired)
                 claims.Add(new Claim("requires_2fa", "true"));
 
+            // Add TOTP secret for temp tokens used in 2FA verification
             if (!string.IsNullOrWhiteSpace(context.TotpSecret))
-                claims.Add(new Claim("totp_secret", context.TotpSecret));
-
-            // Add backup codes as JSON if provided
-            if (context.BackupCodes?.Count > 0)
             {
-                var backupCodesJson = System.Text.Json.JsonSerializer.Serialize(context.BackupCodes);
-                claims.Add(new Claim("backup_codes", backupCodesJson));
+                Console.WriteLine($"[GenerateToken] Adding totp_secret claim!");
+                claims.Add(new Claim("totp_secret", context.TotpSecret));
             }
+            else
+            {
+                Console.WriteLine($"[GenerateToken] WARNING: TotpSecret is null or empty, NOT adding claim!");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"[GenerateToken] Context is null!");
+        }
+
+        Console.WriteLine($"[GenerateToken] Total claims: {claims.Count}");
+        foreach (var claim in claims)
+        {
+            Console.WriteLine($"[GenerateToken]   - {claim.Type}: {claim.Value}");
         }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        // Expiry: 5 min for temp tokens, 60 min for normal tokens
-        var expiryMinutes = isTempToken ? 5 : 60;
+        var expiry = isTempToken ? 5 : 60;
 
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,
             audience: _jwtSettings.Audience,
             claims: claims,
-            notBefore: DateTime.UtcNow,
-            expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
+            expires: DateTime.UtcNow.AddMinutes(expiry),
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

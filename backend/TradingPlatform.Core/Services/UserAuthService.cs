@@ -147,6 +147,7 @@ public sealed class UserAuthService : IUserAuthService
             // - requires_2fa claim
             // - totpSecret (needed for verification)
             // - backupCodes (needed for account creation)
+            // - password (needed for account creation - will be hashed server-side)
             var tempToken = _jwtTokenGenerator.GenerateToken(
                 tempUser,
                 isTempToken: true,
@@ -155,7 +156,8 @@ public sealed class UserAuthService : IUserAuthService
                     SessionId = sessionId,
                     TwoFactorRequired = true,
                     TotpSecret = secretDto.Secret,
-                    BackupCodes = backupCodes.ToList()
+                    BackupCodes = backupCodes.ToList(),
+                    Password = password
                 });
 
             _logger.LogInformation("Registration STEP 1 completed for user '{Username}' - awaiting 2FA verification", username);
@@ -240,12 +242,15 @@ public sealed class UserAuthService : IUserAuthService
         string code,
         string totpSecret,
         List<string> backupCodes,
+        string password,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("Code is required", nameof(code));
         if (string.IsNullOrWhiteSpace(totpSecret))
             throw new ArgumentException("TOTP secret is required", nameof(totpSecret));
+        if (string.IsNullOrWhiteSpace(password))
+            throw new ArgumentException("Password is required", nameof(password));
 
         try
         {
@@ -283,13 +288,10 @@ public sealed class UserAuthService : IUserAuthService
                 BaseCurrency: baseCurrency.ToUpper(),
                 CreatedAtUtc: DateTimeOffset.UtcNow);
 
-            // Hash password (NOTE: password was already hashed client-side, but we hash again server-side for security)
-            // Actually, we don't have the password here. This needs to be handled differently.
-            // For now, we'll use a placeholder password hash
-            // TODO: Password needs to be passed from registration step 1 or stored securely
-            var passwordHashPlaceholder = _passwordHasher.HashPassword(user, Guid.NewGuid().ToString());
+            // Hash password securely (password was passed from registration step 1 via JWT)
+            var passwordHash = _passwordHasher.HashPassword(user, password);
             
-            await _userRepository.AddAsync(user, passwordHashPlaceholder, cancellationToken);
+            await _userRepository.AddAsync(user, passwordHash, cancellationToken);
             await _userRepository.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("User '{Username}' created with 2FA enabled", username);
@@ -380,6 +382,11 @@ public sealed class UserAuthService : IUserAuthService
             {
                 // 2FA is OPTIONAL for users - if enabled, require verification
                 var sessionId = Guid.NewGuid().ToString();
+
+                _logger.LogInformation("Login STEP 1 - 2FA enabled for user '{UserId}'", user.Id);
+                _logger.LogInformation("Login STEP 1 - TwoFactorSecret: '{TwoFactorSecret}' (length: {Length})", 
+                    string.IsNullOrWhiteSpace(user.TwoFactorSecret) ? "NULL/EMPTY" : user.TwoFactorSecret.Substring(0, Math.Min(10, user.TwoFactorSecret.Length)) + "...",
+                    user.TwoFactorSecret?.Length ?? 0);
                 
                 // Generate temp token (5 min)
                 var tempToken = _jwtTokenGenerator.GenerateToken(
@@ -388,7 +395,8 @@ public sealed class UserAuthService : IUserAuthService
                     context: new TokenContext
                     {
                         SessionId = sessionId,
-                        TwoFactorRequired = true
+                        TwoFactorRequired = true,
+                        TotpSecret = user.TwoFactorSecret  
                     });
 
                 _logger.LogInformation("Login STEP 1 successful for user '{UserId}' - awaiting 2FA", user.Id);
@@ -466,7 +474,7 @@ public sealed class UserAuthService : IUserAuthService
     /// LOGIN STEP 2 (Complete - with explicit parameters)
     /// This is the actual implementation that gets called from controller after JWT validation
     /// </summary>
-    internal async Task<UserAuthCompleteResponse> VerifyUserTwoFactorInternalAsync(
+    public async Task<UserAuthCompleteResponse> VerifyUserTwoFactorInternalAsync(
         Guid userId,
         string code,
         string totpSecret,

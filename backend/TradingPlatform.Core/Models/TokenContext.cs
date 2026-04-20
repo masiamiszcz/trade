@@ -22,4 +22,7 @@ public sealed class TokenContext
 
     /// <summary>Backup codes for 2FA (stored in JWT for registration completion)</summary>
     public List<string>? BackupCodes { get; set; }
+
+    /// <summary>User password for registration (stored in JWT temporarily for Step 2)</summary>
+    public string? Password { get; set; }
 }

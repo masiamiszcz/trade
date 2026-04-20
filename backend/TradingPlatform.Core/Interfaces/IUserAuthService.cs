@@ -62,6 +62,7 @@ public interface IUserAuthService
         string code,
         string totpSecret,
         List<string> backupCodes,
+        string password,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -89,6 +90,17 @@ public interface IUserAuthService
     Task<UserAuthCompleteResponse> VerifyUserTwoFactorAsync(
         string sessionId,
         string code,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Login STEP 2 (Internal variant): User provides 2FA code from authenticator
+    /// Called by controller after extracting userId and totpSecret from JWT temp token claims
+    /// Verifies 2FA code, returns final JWT token (60 min)
+    /// </summary>
+    Task<UserAuthCompleteResponse> VerifyUserTwoFactorInternalAsync(
+        Guid userId,
+        string code,
+        string totpSecret,
         CancellationToken cancellationToken = default);
 
     /// <summary>

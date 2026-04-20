@@ -36,13 +36,23 @@ export const UserVerify2FAPage: React.FC = () => {
     setError('');
     setLoading(true);
 
+    console.log('[UserVerify2FAPage] handleCodeSubmit started', {
+      sessionId: auth.sessionId,
+      tempTokenExists: !!auth.tempToken,
+      tempTokenLength: auth.tempToken?.length || 0,
+      requires2FA: auth.requires2FA,
+    });
+
     try {
       const request: UserVerifyLogin2FARequest = {
         sessionId: auth.sessionId!,
         code,
       };
 
-      const response = await authService.userVerifyLogin2FA(request);
+      console.log('[UserVerify2FAPage] Calling authService.userVerifyLogin2FA with tempToken:', 
+        auth.tempToken ? `${auth.tempToken.substring(0, 20)}...` : 'UNDEFINED');
+
+      const response = await authService.userVerifyLogin2FA(request, auth.tempToken!);
 
       // Token już był ustawiony w AuthenticationService.userVerifyLogin2FA
       // Wyczyść temp session

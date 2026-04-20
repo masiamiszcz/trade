@@ -116,6 +116,7 @@ public sealed class UserAuthController : ControllerBase
             var baseCurrency = claims.GetValueOrDefault("baseCurrency") ?? "PLN";
             var totpSecret = claims.GetValueOrDefault("totp_secret");
             var backupCodesJson = claims.GetValueOrDefault("backup_codes");
+            var password = claims.GetValueOrDefault("password");
 
             if (string.IsNullOrEmpty(username))
                 return BadRequest(new { error = "Username missing from token" });
@@ -123,6 +124,8 @@ public sealed class UserAuthController : ControllerBase
                 return BadRequest(new { error = "Email missing from token" });
             if (string.IsNullOrEmpty(totpSecret))
                 return BadRequest(new { error = "TOTP secret missing from token" });
+            if (string.IsNullOrEmpty(password))
+                return BadRequest(new { error = "Password missing from token" });
 
             // Parse backup codes from JSON
             var backupCodes = new List<string>();
@@ -149,6 +152,7 @@ public sealed class UserAuthController : ControllerBase
                 request.Code,
                 totpSecret,
                 backupCodes,
+                password,
                 cancellationToken);
 
             return Ok(response);
@@ -190,16 +194,58 @@ public sealed class UserAuthController : ControllerBase
     /// <summary>
     /// Step 2 of user login: Verify 2FA code (only required if user has 2FA enabled)
     /// Returns final token after successful 2FA verification
+    /// Extracts userId and totp_secret from JWT temp token claims
     /// </summary>
     [HttpPost("verify-2fa")]
     [AllowAnonymous]
     public async Task<IActionResult> VerifyLogin2FA([FromBody] UserVerifyLogin2FARequest request, CancellationToken cancellationToken)
     {
-        var response = await _userAuthService.VerifyUserTwoFactorAsync(
-            request.SessionId,
-            request.Code,
-            cancellationToken);
-        return Ok(response);
+        try
+        {
+            // Extract Bearer token from Authorization header
+            var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                return Unauthorized(new { error = "Authorization token required" });
+
+            var token = authHeader.Substring("Bearer ".Length).Trim();
+
+            // Validate token and extract all claims
+            var claims = _userAuthService.ValidateTokenAndExtractClaims(token);
+            if (claims == null)
+                return Unauthorized(new { error = "Invalid or expired token" });
+
+            // Extract required data from claims
+            if (!Guid.TryParse(claims.GetValueOrDefault("userId") ?? claims.GetValueOrDefault("sub"), out var userId))
+                return BadRequest(new { error = "Invalid user ID in token" });
+
+            var totpSecret = claims.GetValueOrDefault("totp_secret");
+            if (string.IsNullOrEmpty(totpSecret))
+                return BadRequest(new { error = "TOTP secret missing from token - must provide 2FA temp token" });
+
+            // Call service with extracted data
+            var response = await _userAuthService.VerifyUserTwoFactorInternalAsync(
+                userId,
+                request.Code,
+                cancellationToken);
+
+            return Ok(response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "2FA verification failed", detail = ex.Message });
+        }
     }
 
     /// <summary>

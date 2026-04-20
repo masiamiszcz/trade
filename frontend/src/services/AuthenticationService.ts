@@ -394,17 +394,36 @@ class AuthenticationService {
 
   /**
    * User Login Step 2: Verify 2FA code, get final token
+   * Requires temp token from Step 1 to be passed in Authorization header
    */
-  async userVerifyLogin2FA(request: UserVerifyLogin2FARequest): Promise<UserAuthCompleteResponse> {
+  async userVerifyLogin2FA(request: UserVerifyLogin2FARequest, tempToken: string): Promise<UserAuthCompleteResponse> {
     try {
+      console.log('[userVerifyLogin2FA] Starting 2FA verification with:', {
+        sessionId: request.sessionId,
+        code: request.code,
+        tempTokenExists: !!tempToken,
+        tempTokenLength: tempToken?.length || 0,
+        tempTokenPreview: tempToken ? tempToken.substring(0, 20) + '...' : 'UNDEFINED',
+      });
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${tempToken}`,
+      };
+
+      console.log('[userVerifyLogin2FA] Request headers:', {
+        'Content-Type': headers['Content-Type'],
+        'Authorization': headers['Authorization']?.substring(0, 30) + '...',
+      });
+
       const response = await httpClient.fetch<UserAuthCompleteResponse>({
         url: '/user/verify-2fa',
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ sessionId: request.sessionId, code: request.code }),
       });
+
+      console.log('[userVerifyLogin2FA] Response received:', { success: !!response.token });
 
       if (response.token) {
         this.setUserToken(response.token);
@@ -412,6 +431,7 @@ class AuthenticationService {
 
       return response;
     } catch (error) {
+      console.error('[userVerifyLogin2FA] Error:', error);
       throw this.handleError(error);
     }
   }
