@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { authService } from '../services/AuthenticationService';
 import { validateLoginForm } from '../utils/validators';
-import { LoginRequest } from '../types';
+import { UserLoginInitialRequest } from '../types/userAuth';
 import './LoginPage.css';
 
 
@@ -14,9 +15,9 @@ export const LoginPage: React.FC = () => {
   const auth = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as LocationState)?.from?.pathname || '/portfolio';
+  const from = (location.state as LocationState)?.from?.pathname || '/dashboard';
 
-  const [loginData, setLoginData] = useState<LoginRequest>({
+  const [loginData, setLoginData] = useState<UserLoginInitialRequest>({
     userNameOrEmail: '',
     password: '',
   });
@@ -31,7 +32,7 @@ export const LoginPage: React.FC = () => {
     }
   }, [auth.isAuthenticated, from, navigate]);
 
-  const handleChange = (field: keyof LoginRequest, value: string) => {
+  const handleChange = (field: keyof UserLoginInitialRequest, value: string) => {
     setLoginData((current) => ({ ...current, [field]: value }));
 
     if (touched.has(field)) {
@@ -42,7 +43,7 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleBlur = (field: keyof LoginRequest) => {
+  const handleBlur = (field: keyof UserLoginInitialRequest) => {
     setTouched((current) => new Set(current).add(field));
     const errors = validateLoginForm(loginData);
     const fieldError = errors.find((err) => err.field === field)?.message;
@@ -65,15 +66,29 @@ export const LoginPage: React.FC = () => {
     }
 
     setLoading(true);
-    const result = await auth.login(loginData);
-    setLoading(false);
 
-    if (result.error) {
-      setErrorMessage(result.error.message);
-      return;
+    try {
+      const response = await authService.userLoginInitial(loginData);
+
+      if (response.requiresTwoFactor) {
+        // 2FA enabled - store temp session and redirect to verification
+        auth.setTempSession(response.token, response.sessionId);
+        navigate('/user/verify-2fa', {
+          state: {
+            sessionId: response.sessionId,
+            username: response.username,
+          },
+          replace: true,
+        });
+      } else {
+        // 2FA disabled - token already set in AuthenticationService
+        navigate(from, { replace: true });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Błąd logowania';
+      setErrorMessage(message);
+      setLoading(false);
     }
-
-    navigate(from, { replace: true });
   };
 
   if (auth.isAuthenticated) {
@@ -84,43 +99,59 @@ export const LoginPage: React.FC = () => {
     <div className="auth-page">
       <div className="auth-card">
         <h1>Logowanie</h1>
+        <p className="auth-subtitle">Zaloguj się do Trading Platform</p>
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="userNameOrEmail">Nazwa użytkownika lub email</label>
+            <label htmlFor="userNameOrEmail" className="form-label">
+              Nazwa użytkownika lub email
+            </label>
             <input
               id="userNameOrEmail"
               type="text"
               value={loginData.userNameOrEmail}
               onChange={(e) => handleChange('userNameOrEmail', e.target.value)}
               onBlur={() => handleBlur('userNameOrEmail')}
-              className={fieldErrors.userNameOrEmail ? 'input-error' : ''}
+              className={`form-input ${fieldErrors.userNameOrEmail ? 'error' : ''}`}
+              placeholder="np. trader123 lub email@example.com"
+              disabled={loading}
             />
-            {fieldErrors.userNameOrEmail && <span className="error-text">{fieldErrors.userNameOrEmail}</span>}
+            {fieldErrors.userNameOrEmail && (
+              <div className="field-error">{fieldErrors.userNameOrEmail}</div>
+            )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Hasło</label>
+            <label htmlFor="password" className="form-label">
+              Hasło
+            </label>
             <input
               id="password"
               type="password"
               value={loginData.password}
               onChange={(e) => handleChange('password', e.target.value)}
               onBlur={() => handleBlur('password')}
-              className={fieldErrors.password ? 'input-error' : ''}
+              className={`form-input ${fieldErrors.password ? 'error' : ''}`}
+              placeholder="••••••••"
+              disabled={loading}
             />
-            {fieldErrors.password && <span className="error-text">{fieldErrors.password}</span>}
+            {fieldErrors.password && <div className="field-error">{fieldErrors.password}</div>}
           </div>
 
-          <button type="submit" disabled={loading || !isFormValid()}>
+          {errorMessage && <div className="error-message">{errorMessage}</div>}
+
+          <button type="submit" disabled={loading || !isFormValid()} className="btn-primary">
             {loading ? 'Logowanie...' : 'Zaloguj się'}
           </button>
-
-          {errorMessage && <div className="form-error">{errorMessage}</div>}
         </form>
 
-        <p className="form-footer">
-          Nie masz konta? <Link to="/register">Zarejestruj się</Link>
-        </p>
+        <div className="auth-footer">
+          <p>
+            Nie masz konta?{' '}
+            <Link to="/register" className="link">
+              Zarejestruj się
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

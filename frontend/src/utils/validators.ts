@@ -107,7 +107,7 @@ export const validateBaseCurrency = (currency: string): string | null => {
  * Validate all register form fields at once
  */
 export const validateRegisterForm = (data: {
-  userName: string;
+  username: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -116,8 +116,8 @@ export const validateRegisterForm = (data: {
 }): ValidationError[] => {
   const errors: ValidationError[] = [];
 
-  const usernameError = validateUsername(data.userName);
-  if (usernameError) errors.push({ field: 'userName', message: usernameError });
+  const usernameError = validateUsername(data.username);
+  if (usernameError) errors.push({ field: 'username', message: usernameError });
 
   const emailError = validateEmail(data.email);
   if (emailError) errors.push({ field: 'email', message: emailError });

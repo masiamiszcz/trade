@@ -1,6 +1,4 @@
-namespace TradingPlatform.Core.Services;
 
-// AdminService
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;

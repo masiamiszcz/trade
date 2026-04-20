@@ -145,6 +145,8 @@ public sealed class UserAuthService : IUserAuthService
             // - userId (needed for RegisterCompleteAsync)
             // - sessionId (for correlation)
             // - requires_2fa claim
+            // - totpSecret (needed for verification)
+            // - backupCodes (needed for account creation)
             var tempToken = _jwtTokenGenerator.GenerateToken(
                 tempUser,
                 isTempToken: true,
@@ -152,7 +154,8 @@ public sealed class UserAuthService : IUserAuthService
                 { 
                     SessionId = sessionId,
                     TwoFactorRequired = true,
-                    TotpSecret = secretDto.Secret
+                    TotpSecret = secretDto.Secret,
+                    BackupCodes = backupCodes.ToList()
                 });
 
             _logger.LogInformation("Registration STEP 1 completed for user '{Username}' - awaiting 2FA verification", username);
@@ -219,7 +222,7 @@ public sealed class UserAuthService : IUserAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Registration STEP 2 error for session '{SessionId}'", sessionId);
-            throw new InvalidOperationException("2FA verification failed", ex);
+            throw new InvalidOperationException("2FA verification failed 1", ex);
         }
     }
 
@@ -227,7 +230,7 @@ public sealed class UserAuthService : IUserAuthService
     /// REGISTRATION STEP 2 (Complete - with explicit parameters)
     /// This is the actual implementation that gets called from controller after JWT validation
     /// </summary>
-    internal async Task<UserRegistrationCompleteResponse> RegisterCompleteInternalAsync(
+    public async Task<UserRegistrationCompleteResponse> RegisterCompleteInternalAsync(
         Guid userId,
         string username,
         string email,
@@ -312,7 +315,8 @@ public sealed class UserAuthService : IUserAuthService
                 Username: user.UserName,
                 Email: user.Email,
                 ExpiresAt: expiresAt,
-                Message: "✅ 2FA verified! Your account is created and 2FA is enabled.");
+                Message: "✅ 2FA verified! Your account is created and 2FA is enabled.",
+                BackupCodes: backupCodes);
         }
         catch (UnauthorizedAccessException)
         {
@@ -454,7 +458,7 @@ public sealed class UserAuthService : IUserAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "2FA verification error for session '{SessionId}'", sessionId);
-            throw new InvalidOperationException("2FA verification failed", ex);
+            throw new InvalidOperationException("2FA verification failed 2", ex);
         }
     }
 
@@ -514,7 +518,7 @@ public sealed class UserAuthService : IUserAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Login STEP 2 error for user '{UserId}'", userId);
-            throw new InvalidOperationException("2FA verification failed", ex);
+            throw new InvalidOperationException("2FA verification failed 3", ex);
         }
     }
 
@@ -629,6 +633,23 @@ public sealed class UserAuthService : IUserAuthService
         {
             _logger.LogError(ex, "2FA status check error for user '{UserId}'", userId);
             throw new InvalidOperationException("Failed to get 2FA status", ex);
+        }
+    }
+
+    /// <summary>
+    /// Validate JWT token and extract all claims
+    /// Used by controller to extract user data from temp tokens
+    /// </summary>
+    public Dictionary<string, string>? ValidateTokenAndExtractClaims(string token)
+    {
+        try
+        {
+            return _jwtTokenGenerator.ValidateTokenAndGetClaims(token);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Token validation failed");
+            return null;
         }
     }
 }

@@ -8,15 +8,34 @@ interface AuthContextState {
   login: (payload: LoginRequest) => Promise<ApiResponse<AuthResponse>>;
   register: (payload: RegisterRequest) => Promise<ApiResponse<AuthResponse>>;
   logout: () => void;
+
+  // 2FA Session State (for temp tokens)
+  tempToken: string | null;
+  sessionId: string | null;
+  requires2FA: boolean;
+  setTempSession: (token: string, sessionId: string) => void;
+  clearTempSession: () => void;
 }
 
 const AuthContext = createContext<AuthContextState | undefined>(undefined);
 const STORAGE_KEY = 'trading-platform-auth-token';
+const TEMP_STORAGE_KEY = 'trading-platform-temp-token';
+const SESSION_STORAGE_KEY = 'trading-platform-session-id';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => {
     return localStorage.getItem(STORAGE_KEY);
   });
+
+  const [tempToken, setTempTokenState] = useState<string | null>(() => {
+    return localStorage.getItem(TEMP_STORAGE_KEY);
+  });
+
+  const [sessionId, setSessionIdState] = useState<string | null>(() => {
+    return localStorage.getItem(SESSION_STORAGE_KEY);
+  });
+
+  const [requires2FA, setRequires2FA] = useState<boolean>(false);
 
   const login = async (payload: LoginRequest): Promise<ApiResponse<AuthResponse>> => {
     try {
@@ -56,7 +75,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = (): void => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(TEMP_STORAGE_KEY);
+    localStorage.removeItem(SESSION_STORAGE_KEY);
     setToken(null);
+    setTempTokenState(null);
+    setSessionIdState(null);
+    setRequires2FA(false);
+  };
+
+  const setTempSession = (newTempToken: string, newSessionId: string): void => {
+    localStorage.setItem(TEMP_STORAGE_KEY, newTempToken);
+    localStorage.setItem(SESSION_STORAGE_KEY, newSessionId);
+    setTempTokenState(newTempToken);
+    setSessionIdState(newSessionId);
+    setRequires2FA(true);
+  };
+
+  const clearTempSession = (): void => {
+    localStorage.removeItem(TEMP_STORAGE_KEY);
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    setTempTokenState(null);
+    setSessionIdState(null);
+    setRequires2FA(false);
   };
 
   const value = useMemo(
@@ -66,8 +106,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login,
       register,
       logout,
+      tempToken,
+      sessionId,
+      requires2FA,
+      setTempSession,
+      clearTempSession,
     }),
-    [token]
+    [token, tempToken, sessionId, requires2FA]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

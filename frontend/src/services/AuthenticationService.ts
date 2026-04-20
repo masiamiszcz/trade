@@ -23,6 +23,23 @@ import type {
   AdminRegisterViaInviteRequest,
   AdminInviteRequest,
 } from '../types/adminAuth';
+import type {
+  UserRegisterInitialRequest,
+  UserRegisterComplete2FARequest,
+  UserLoginInitialRequest,
+  UserVerifyLogin2FARequest,
+  UserRegistrationInitialResponse,
+  UserRegistrationCompleteResponse,
+  UserLoginInitialResponse,
+  UserAuthCompleteResponse,
+  UserSetup2FAInitialRequest,
+  UserSetup2FAEnableRequest,
+  UserDisable2FARequest,
+  UserTwoFactorSetupResponse,
+  UserTwoFactorEnableResponse,
+  UserTwoFactorDisableResponse,
+  UserTwoFactorStatusResponse,
+} from '../types/userAuth';
 
 /**
  * Token storage key
@@ -303,6 +320,180 @@ class AuthenticationService {
     }
   }
 
+  // ============ USER 2FA METHODS ============
+
+  /**
+   * User Registration Step 1: Provide registration data, get QR code for 2FA
+   */
+  async userRegisterInitial(request: UserRegisterInitialRequest): Promise<UserRegistrationInitialResponse> {
+    try {
+      const response = await httpClient.fetch<UserRegistrationInitialResponse>({
+        url: '/user/register',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      return response;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * User Registration Step 2: Verify 2FA code, create user account
+   */
+  async userRegisterComplete2FA(request: UserRegisterComplete2FARequest, tempToken: string): Promise<UserRegistrationCompleteResponse> {
+    try {
+      const response = await httpClient.fetch<UserRegistrationCompleteResponse>({
+        url: '/user/register/verify-2fa',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tempToken}`,
+        },
+        body: JSON.stringify({ sessionId: request.sessionId, code: request.code }),
+      });
+
+      if (response.token) {
+        this.setUserToken(response.token);
+      }
+
+      return response;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * User Login Step 1: Verify password, return temp token if 2FA required
+   */
+  async userLoginInitial(request: UserLoginInitialRequest): Promise<UserLoginInitialResponse> {
+    try {
+      const response = await httpClient.fetch<UserLoginInitialResponse>({
+        url: '/user/login',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      // If 2FA not required, set token immediately
+      if (!response.requiresTwoFactor && response.token) {
+        this.setUserToken(response.token);
+      }
+
+      return response;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * User Login Step 2: Verify 2FA code, get final token
+   */
+  async userVerifyLogin2FA(request: UserVerifyLogin2FARequest): Promise<UserAuthCompleteResponse> {
+    try {
+      const response = await httpClient.fetch<UserAuthCompleteResponse>({
+        url: '/user/verify-2fa',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId: request.sessionId, code: request.code }),
+      });
+
+      if (response.token) {
+        this.setUserToken(response.token);
+      }
+
+      return response;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * User-initiated 2FA setup (optional, after login)
+   */
+  async userSetup2FAInitial(request: UserSetup2FAInitialRequest): Promise<UserTwoFactorSetupResponse> {
+    try {
+      const token = this.getUserToken();
+      return await httpClient.fetch<UserTwoFactorSetupResponse>({
+        url: '/user/2fa-setup',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify(request),
+      });
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * User confirms 2FA setup
+   */
+  async userSetup2FAEnable(request: UserSetup2FAEnableRequest): Promise<UserTwoFactorEnableResponse> {
+    try {
+      const response = await httpClient.fetch<UserTwoFactorEnableResponse>({
+        url: '/user/2fa-enable',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId: request.sessionId, code: request.code }),
+      });
+
+      return response;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * User disables 2FA
+   */
+  async userDisable2FA(request: UserDisable2FARequest): Promise<UserTwoFactorDisableResponse> {
+    try {
+      const token = this.getUserToken();
+      return await httpClient.fetch<UserTwoFactorDisableResponse>({
+        url: '/user/2fa-disable',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify(request),
+      });
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Check user's 2FA status
+   */
+  async userGet2FAStatus(): Promise<UserTwoFactorStatusResponse> {
+    try {
+      const token = this.getUserToken();
+      return await httpClient.fetch<UserTwoFactorStatusResponse>({
+        url: '/user/2fa-status',
+        method: 'GET',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   /**
    * Handle and normalize errors
    */
@@ -342,6 +533,28 @@ export const authService = new AuthenticationService();
 
 // Initialize request interceptor to add auth tokens
 httpClient.addRequestInterceptor((config) => {
+  // Don't override Authorization header if already provided (e.g., tempToken for 2FA)
+  if (config.headers && (config.headers as Record<string, string>)['Authorization']) {
+    console.log('[Interceptor] Authorization header already set, skipping token injection for:', config.url);
+    return config;
+  }
+
+  // Public endpoints that should NOT have auto-injected tokens
+  // These endpoints either don't require auth or handle auth explicitly (tempToken)
+  const publicEndpoints = [
+    '/user/register',           // Registration - no auth needed
+    '/user/register/verify-2fa', // 2FA verification - uses tempToken explicitly
+    '/user/login',              // Login - no auth needed
+    '/user/verify-2fa',         // Login 2FA verification - no auth needed
+  ];
+
+  // Check if this is a public endpoint
+  const isPublicEndpoint = publicEndpoints.some(endpoint => config.url?.includes(endpoint));
+  if (isPublicEndpoint) {
+    console.log('[Interceptor] Public endpoint detected, skipping token injection:', config.url);
+    return config;
+  }
+
   const userToken = authService.getUserToken();
   const adminToken = authService.getAdminToken();
 
@@ -353,6 +566,7 @@ httpClient.addRequestInterceptor((config) => {
   }
 
   if (token && config.headers) {
+    console.log('[Interceptor] Adding user token from localStorage for:', config.url);
     (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 

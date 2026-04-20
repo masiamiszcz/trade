@@ -53,7 +53,9 @@ public sealed record UserRegistrationCompleteResponse(
     /// <summary>Token expiry time (Unix timestamp)</summary>
     long ExpiresAt,
     /// <summary>User-friendly success message</summary>
-    string Message = "2FA verified! Your account is created and 2FA is enabled."
+    string Message = "2FA verified! Your account is created and 2FA is enabled.",
+    /// <summary>Backup codes for account recovery (displayed only once to user)</summary>
+    List<string>? BackupCodes = null
 );
 
 /// <summary>

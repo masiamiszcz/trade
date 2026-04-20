@@ -46,6 +46,25 @@ public interface IUserAuthService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// STEP 2 (Internal variant): User provides 2FA code from authenticator
+    /// Called by controller after extracting user data from JWT token claims
+    /// Verifies 2FA code against the secret
+    /// If valid: CREATES USER in database, saves encrypted TOTP secret, creates main account
+    /// Returns final JWT token (60 min) - user is now fully registered and authenticated
+    /// </summary>
+    Task<UserRegistrationCompleteResponse> RegisterCompleteInternalAsync(
+        Guid userId,
+        string username,
+        string email,
+        string firstName,
+        string lastName,
+        string baseCurrency,
+        string code,
+        string totpSecret,
+        List<string> backupCodes,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Login STEP 1: User provides username/email and password
     /// Verifies password against stored hash
     /// 
@@ -112,4 +131,11 @@ public interface IUserAuthService
     Task<UserTwoFactorStatusResponse> Get2FAStatusAsync(
         Guid userId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Validate JWT token and extract all claims
+    /// Used by controller to extract user data from temp tokens (registration, 2FA)
+    /// Returns dictionary of claims or null if token is invalid
+    /// </summary>
+    Dictionary<string, string>? ValidateTokenAndExtractClaims(string token);
 }

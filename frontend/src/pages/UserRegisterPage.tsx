@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/AuthenticationService';
 import { useAuth } from '../hooks/useAuth';
 import { validateRegisterForm } from '../utils/validators';
@@ -7,10 +7,14 @@ import { UserRegisterInitialRequest } from '../types/userAuth';
 import { CustomSelect, SelectOption } from '../components/CustomSelect';
 import './RegisterPage.css';
 
-
-export const RegisterPage: React.FC = () => {
-  const auth = useAuth();
+export const UserRegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const auth = useAuth();
+
+  // Clear old temp session on component mount (from previous registration attempts)
+  useEffect(() => {
+    auth.clearTempSession();
+  }, []);
 
   const currencyOptions: SelectOption[] = [
     { value: 'PLN', label: 'PLN (Polski Złoty)' },
@@ -28,19 +32,22 @@ export const RegisterPage: React.FC = () => {
     password: '',
     baseCurrency: 'PLN',
   });
+
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [successMessage, setSuccessMessage] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (field: keyof UserRegisterInitialRequest, value: string) => {
     setFormData((current) => ({ ...current, [field]: value }));
 
     if (touched.has(field)) {
+      // Validate on change if field was already touched
+      const errors = validateRegisterForm(formData);
+      const fieldError = errors.find((err) => err.field === field)?.message;
       setFieldErrors((current) => ({
         ...current,
-        [field]: validateRegisterForm({ ...formData, [field]: value }).find((err) => err.field === field)?.message || '',
+        [field]: fieldError || '',
       }));
     }
   };
@@ -60,7 +67,6 @@ export const RegisterPage: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage('');
-    setSuccessMessage('');
 
     const errors = validateRegisterForm(formData);
     if (errors.length > 0) {
@@ -69,22 +75,13 @@ export const RegisterPage: React.FC = () => {
     }
 
     setLoading(true);
-    console.log('🔵 RegisterPage: Button clicked, form submitted');
-    console.log('📤 RegisterPage: Sending registration request:', formData);
 
     try {
-      console.log('⏳ RegisterPage: Waiting for API response...');
       const response = await authService.userRegisterInitial(formData);
 
-      console.log('✅ RegisterPage: API response received:', response);
-      console.log('🔐 RegisterPage: Response contains - token:', !!response.token, ', sessionId:', !!response.sessionId);
-      console.log('📋 RegisterPage: Response contains - qrCodeDataUrl:', !!response.qrCodeDataUrl, ', manualKey:', !!response.manualKey);
-
       // Store temp session data in context + navigate to 2FA setup
-      console.log('💾 RegisterPage: Storing temp session in context');
       auth.setTempSession(response.token, response.sessionId);
 
-      console.log('🚀 RegisterPage: Navigating to /register/2fa-setup');
       navigate('/register/2fa-setup', {
         state: {
           qrCodeDataUrl: response.qrCodeDataUrl,
@@ -94,9 +91,7 @@ export const RegisterPage: React.FC = () => {
         },
         replace: true,
       });
-      console.log('✨ RegisterPage: Navigation triggered!');
     } catch (error) {
-      console.error('❌ RegisterPage: Error occurred:', error);
       const message = error instanceof Error ? error.message : 'Błąd podczas rejestracji';
       const lowerMessage = message.toLowerCase();
 
@@ -114,96 +109,151 @@ export const RegisterPage: React.FC = () => {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Rejestracja</h1>
-        <form onSubmit={handleSubmit} className="auth-form">
+        <h1>Zarejestruj się</h1>
+        <p className="auth-subtitle">Utwórz konto w Trading Platform</p>
+
+        {errorMessage && <div className="error-message">{errorMessage}</div>}
+
+        <form onSubmit={handleSubmit}>
+          {/* Username */}
           <div className="form-group">
-            <label htmlFor="username">Nazwa użytkownika</label>
+            <label htmlFor="username" className="form-label">
+              Nazwa użytkownika
+            </label>
             <input
               id="username"
               type="text"
               value={formData.username}
               onChange={(e) => handleChange('username', e.target.value)}
               onBlur={() => handleBlur('username')}
-              className={fieldErrors.username ? 'input-error' : ''}
+              className={`form-input ${fieldErrors.username ? 'error' : ''}`}
+              placeholder="np. trader123"
+              autoComplete="username"
+              disabled={loading}
             />
-            {fieldErrors.username && <span className="error-text">{fieldErrors.username}</span>}
+            {fieldErrors.username && (
+              <div className="field-error">{fieldErrors.username}</div>
+            )}
           </div>
 
+          {/* Email */}
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email" className="form-label">
+              Email
+            </label>
             <input
               id="email"
               type="email"
               value={formData.email}
               onChange={(e) => handleChange('email', e.target.value)}
               onBlur={() => handleBlur('email')}
-              className={fieldErrors.email ? 'input-error' : ''}
+              className={`form-input ${fieldErrors.email ? 'error' : ''}`}
+              placeholder="twoj@email.com"
+              autoComplete="email"
+              disabled={loading}
             />
-            {fieldErrors.email && <span className="error-text">{fieldErrors.email}</span>}
+            {fieldErrors.email && <div className="field-error">{fieldErrors.email}</div>}
           </div>
 
+          {/* First Name */}
           <div className="form-group">
-            <label htmlFor="firstName">Imię</label>
+            <label htmlFor="firstName" className="form-label">
+              Imię
+            </label>
             <input
               id="firstName"
               type="text"
               value={formData.firstName}
               onChange={(e) => handleChange('firstName', e.target.value)}
               onBlur={() => handleBlur('firstName')}
-              className={fieldErrors.firstName ? 'input-error' : ''}
+              className={`form-input ${fieldErrors.firstName ? 'error' : ''}`}
+              placeholder="Jan"
+              autoComplete="given-name"
+              disabled={loading}
             />
-            {fieldErrors.firstName && <span className="error-text">{fieldErrors.firstName}</span>}
+            {fieldErrors.firstName && (
+              <div className="field-error">{fieldErrors.firstName}</div>
+            )}
           </div>
 
+          {/* Last Name */}
           <div className="form-group">
-            <label htmlFor="lastName">Nazwisko</label>
+            <label htmlFor="lastName" className="form-label">
+              Nazwisko
+            </label>
             <input
               id="lastName"
               type="text"
               value={formData.lastName}
               onChange={(e) => handleChange('lastName', e.target.value)}
               onBlur={() => handleBlur('lastName')}
-              className={fieldErrors.lastName ? 'input-error' : ''}
+              className={`form-input ${fieldErrors.lastName ? 'error' : ''}`}
+              placeholder="Kowalski"
+              autoComplete="family-name"
+              disabled={loading}
             />
-            {fieldErrors.lastName && <span className="error-text">{fieldErrors.lastName}</span>}
+            {fieldErrors.lastName && (
+              <div className="field-error">{fieldErrors.lastName}</div>
+            )}
           </div>
 
+          {/* Password */}
           <div className="form-group">
-            <label htmlFor="password">Hasło</label>
+            <label htmlFor="password" className="form-label">
+              Hasło
+            </label>
             <input
               id="password"
               type="password"
               value={formData.password}
               onChange={(e) => handleChange('password', e.target.value)}
               onBlur={() => handleBlur('password')}
-              className={fieldErrors.password ? 'input-error' : ''}
+              className={`form-input ${fieldErrors.password ? 'error' : ''}`}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              disabled={loading}
             />
-            {fieldErrors.password && <span className="error-text">{fieldErrors.password}</span>}
+            {fieldErrors.password && (
+              <div className="field-error">{fieldErrors.password}</div>
+            )}
           </div>
 
+          {/* Base Currency */}
           <div className="form-group">
-            <label htmlFor="baseCurrency">Waluta bazowa</label>
+            <label htmlFor="baseCurrency" className="form-label">
+              Waluta bazowa
+            </label>
             <CustomSelect
               id="baseCurrency"
-              value={formData.baseCurrency || 'PLN'}
               options={currencyOptions}
+              value={formData.baseCurrency}
               onChange={(value) => handleChange('baseCurrency', value)}
-              className={fieldErrors.baseCurrency ? 'input-error' : ''}
+              disabled={loading}
             />
-            {fieldErrors.baseCurrency && <span className="error-text">{fieldErrors.baseCurrency}</span>}
+            {fieldErrors.baseCurrency && (
+              <div className="field-error">{fieldErrors.baseCurrency}</div>
+            )}
           </div>
 
-          <button type="submit" disabled={loading || !isFormValid()}>
-            {loading ? 'Rejestruję...' : 'Zarejestruj się'}
+          {/* Submit Button */}
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={!isFormValid() || loading}
+          >
+            {loading ? 'Przetwarzanie...' : 'Przejdź do konfiguracji 2FA'}
           </button>
-
-          {errorMessage && <div className="form-error">{errorMessage}</div>}
-          {successMessage && <div className="form-success">{successMessage}</div>}
         </form>
 
-        <p className="form-footer">
-          Masz już konto? <Link to="/login">Zaloguj się</Link>
-        </p>
+        {/* Login Link */}
+        <div className="auth-footer">
+          <p>
+            Masz już konto?{' '}
+            <a href="/user/login" className="link">
+              Zaloguj się
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

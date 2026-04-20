@@ -1,0 +1,217 @@
+/* Backup Codes Modal Styles */
+/* Extracted and adapted from AdminAuth.css */
+
+/* Modal Overlay Background */
+.backup-codes-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Modal Container */
+.modal-content.backup-codes-modal {
+  position: relative;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  padding: 0;
+  max-width: 550px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 40px 60px -15px rgba(0, 0, 0, 0.8);
+}
+
+/* Modal Header */
+.modal-header {
+  padding: 2rem;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.modal-header h2 {
+  color: #10b981;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+.modal-subtitle {
+  color: #a4b5d6;
+  font-size: 0.9rem;
+  margin: 0;
+  opacity: 0.85;
+}
+
+/* Modal Body */
+.modal-body {
+  padding: 2rem;
+}
+
+/* Warning Box */
+.warning-box {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1.5px solid rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  color: #fcd34d;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.warning-box p {
+  margin: 0;
+}
+
+/* Backup Codes List */
+.backup-codes-list {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Individual Backup Code Item */
+.backup-code-item {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 6px;
+  padding: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.backup-code-item:hover {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+/* Code Number */
+.code-number {
+  color: #06b6d4;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-width: 20px;
+}
+
+/* Code Value */
+.code-value {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.95rem;
+  color: #10b981;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  flex: 1;
+}
+
+/* Action Buttons Container */
+.backup-codes-actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+.backup-codes-actions button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1.5px solid #10b981;
+  color: #10b981;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.02em;
+  font-family: inherit;
+}
+
+.backup-codes-actions button:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #34d399;
+  color: #34d399;
+  box-shadow: 0 6px 15px rgba(16, 185, 129, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Modal Footer */
+.modal-footer {
+  padding: 2rem;
+  border-top: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.modal-footer button {
+  width: 100%;
+  padding: 0.9rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.05em;
+  font-family: inherit;
+}
+
+.modal-footer button:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .backup-codes-list {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .modal-content.backup-codes-modal {
+    width: 95%;
+    max-width: 100%;
+    max-height: 90vh;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 1.5rem;
+  }
+
+  .backup-codes-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .backup-codes-actions button {
+    padding: 0.65rem 0.9rem;
+    font-size: 0.85rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.3rem;
+  }
+}

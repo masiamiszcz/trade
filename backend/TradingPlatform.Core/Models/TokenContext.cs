@@ -19,4 +19,7 @@ public sealed class TokenContext
 
     /// <summary>TOTP secret for 2FA setup (temporarily stored in JWT for validation)</summary>
     public string? TotpSecret { get; set; }
+
+    /// <summary>Backup codes for 2FA (stored in JWT for registration completion)</summary>
+    public List<string>? BackupCodes { get; set; }
 }

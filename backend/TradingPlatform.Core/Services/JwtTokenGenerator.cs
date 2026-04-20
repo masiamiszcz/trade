@@ -62,7 +62,11 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             new("sub", user.Id.ToString()),
             new(ClaimTypes.Name, user.UserName),
             new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Role, user.Role.ToString())
+            new(ClaimTypes.Role, user.Role.ToString()),
+            new("given_name", user.FirstName),
+            new("family_name", user.LastName),
+            new("userId", user.Id.ToString()),
+            new("baseCurrency", user.BaseCurrency)
         };
 
         // Add context-specific claims if provided
@@ -79,6 +83,13 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
 
             if (!string.IsNullOrWhiteSpace(context.TotpSecret))
                 claims.Add(new Claim("totp_secret", context.TotpSecret));
+
+            // Add backup codes as JSON if provided
+            if (context.BackupCodes?.Count > 0)
+            {
+                var backupCodesJson = System.Text.Json.JsonSerializer.Serialize(context.BackupCodes);
+                claims.Add(new Claim("backup_codes", backupCodesJson));
+            }
         }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));

@@ -1,6 +1,6 @@
+
 import React from 'react';
-import React from 'react';
-import { AdminRequest } from '../../types/admin';
+import { AdminRequest } from '../../../types/admin';
 import './ApprovalActionModal.css';
 
 interface ApprovalActionModalProps {

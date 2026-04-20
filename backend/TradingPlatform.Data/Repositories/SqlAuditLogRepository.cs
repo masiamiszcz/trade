@@ -1,4 +1,3 @@
-
 using Microsoft.EntityFrameworkCore;
 using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Models;
