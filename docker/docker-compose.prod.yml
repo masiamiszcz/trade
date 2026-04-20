@@ -1,0 +1,56 @@
+# Docker Compose Production Configuration
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Production-specific overrides with security and performance optimizations
+
+services:
+  sqlserver:
+    restart: always
+    environment:
+      MSSQL_BACKUP_DIR: "/var/opt/mssql/backup"
+      MSSQL_AGENT_ENABLED: "true"
+    volumes:
+      - mssql-data:/var/opt/mssql
+      - mssql-backup:/var/opt/mssql/backup
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+
+  backend:
+    restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+
+  frontend:
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+
+  nginx:
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl-certs:/etc/nginx/certs:ro
+      - nginx-cache:/var/cache/nginx
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+
+volumes:
+  mssql-data:
+    driver: local
+  mssql-backup:
+    driver: local
+  nginx-cache:
+    driver: local

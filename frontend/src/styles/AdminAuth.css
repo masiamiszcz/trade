@@ -1,0 +1,577 @@
+/* AdminAuth Styles */
+/* Admin Auth - Login, Register, 2FA Setup, Verify Forms */
+
+.admin-auth-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
+  padding: 2rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.admin-auth-container {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px;
+  padding: 2.5rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.admin-auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.admin-auth-header h1 {
+  color: #10b981;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+.admin-auth-header p {
+  color: #a4b5d6;
+  font-size: 0.95rem;
+  margin: 0;
+  opacity: 0.85;
+}
+
+.admin-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.admin-form-label {
+  display: block;
+  color: #e2e8f0;
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.02em;
+}
+
+.admin-form-input,
+.admin-form-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.admin-form-input::placeholder {
+  color: rgba(164, 181, 214, 0.5);
+}
+
+.admin-form-input:focus,
+.admin-form-textarea:focus {
+  outline: none;
+  background: rgba(30, 41, 59, 0.9);
+  border-color: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+}
+
+.admin-form-error {
+  color: #fca5a5;
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Primary Button - with Gradient (Zaloguj) */
+.admin-btn-primary,
+.btn-primary {
+  width: 100%;
+  padding: 0.85rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1.5rem;
+}
+
+.admin-btn-primary:hover,
+.btn-primary:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+  transform: translateY(-1px);
+}
+
+.admin-btn-primary:disabled,
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Verify Button - Tech Style */
+.btn-verify {
+  width: 100% !important;
+  padding: 0.85rem !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  margin-top: 1.5rem !important;
+}
+
+.btn-verify:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.btn-verify:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Link Button - For "Create Super Admin" or "Verify Manually" */
+.btn-link {
+  background: linear-gradient(135deg, #00d4ff 0%, #10b981 100%);
+  color: #0f172a;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  letter-spacing: 0.02em;
+  margin-top: 1rem;
+}
+
+.btn-link:hover {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Secondary Button - Traditional */
+.btn-secondary {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1.5px solid #10b981;
+  color: #10b981;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  letter-spacing: 0.02em;
+  margin-top: 1rem;
+}
+
+.btn-secondary:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #34d399;
+  color: #34d399;
+  box-shadow: 0 6px 15px rgba(16, 185, 129, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-small {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid #10b981;
+  color: #10b981;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-small:hover {
+  background: #10b981;
+  color: #0f172a;
+  border-color: #10b981;
+}
+
+.admin-form-footer {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(16, 185, 129, 0.1);
+  text-align: center;
+  font-size: 0.9rem;
+  color: #a4b5d6;
+}
+
+.admin-form-footer a {
+  color: #10b981;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.admin-form-footer a:hover {
+  color: #34d399;
+}
+
+/* 2FA Setup - QR Code */
+.qr-code-wrapper {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.qr-code-canvas {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  max-width: 100%;
+  margin-bottom: 1rem;
+}
+
+.manual-key-box {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.manual-key-label {
+  color: #a4b5d6;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.manual-key-value {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 1.1rem;
+  color: #10b981;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  word-break: break-all;
+}
+
+/* 2FA Code Input */
+.two-factor-code-input {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 2rem 0;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.code-digit {
+  width: 3rem;
+  height: 3rem;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: rgba(30, 41, 59, 0.6);
+  border: 2px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+  color: #10b981;
+  font-family: 'Monaco', monospace;
+  transition: all 0.2s ease;
+}
+
+.code-digit:focus {
+  outline: none;
+  background: rgba(30, 41, 59, 0.9);
+  border-color: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+/* Code Counter - Tech Style */
+.code-counter {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: 'Monaco', monospace;
+  letter-spacing: 0.05em;
+  display: inline-block;
+  margin-left: 0.5rem;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+}
+
+/* ===== BACKUP CODES MODAL ===== */
+/* Modal Overlay */
+.modal-content.backup-codes-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  padding: 0;
+  max-width: 550px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 40px 60px -15px rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+}
+
+.modal-header {
+  padding: 2rem;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.modal-header h2 {
+  color: #10b981;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+.modal-subtitle {
+  color: #a4b5d6;
+  font-size: 0.9rem;
+  margin: 0;
+  opacity: 0.85;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+/* Warning Box in Modal */
+.warning-box {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1.5px solid rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  color: #fcd34d;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.warning-box p {
+  margin: 0;
+}
+
+/* Backup Codes List - Green Tech Style */
+.backup-codes-list {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.backup-code-item {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 6px;
+  padding: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.backup-code-item:hover {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.code-number {
+  color: #06b6d4;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-width: 20px;
+}
+
+.code-value {
+  font-family: 'Monaco', monospace;
+  font-size: 0.95rem;
+  color: #10b981;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  flex: 1;
+}
+
+/* Action Buttons - Traditional Secondary Style */
+.backup-codes-actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+.backup-codes-actions button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1.5px solid #10b981;
+  color: #10b981;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.02em;
+}
+
+.backup-codes-actions button:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #34d399;
+  color: #34d399;
+  box-shadow: 0 6px 15px rgba(16, 185, 129, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Modal Footer */
+.modal-footer {
+  padding: 2rem;
+  border-top: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.modal-footer button {
+  width: 100%;
+  padding: 0.9rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.05em;
+}
+
+.modal-footer button:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Messages */
+.admin-success-message {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #86efac;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.admin-error-message {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.admin-info-message {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: #a5f3fc;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Loading */
+.admin-loading {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(16, 185, 129, 0.2);
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .admin-auth-container {
+    padding: 1.5rem;
+    max-width: 100%;
+  }
+
+  .admin-auth-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .backup-codes-list {
+    grid-template-columns: 1fr;
+  }
+
+  .code-digit {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.2rem;
+  }
+
+  .backup-codes-actions {
+    flex-direction: column;
+  }
+
+  .modal-content.backup-codes-modal {
+    width: 95%;
+    max-width: 100%;
+    max-height: 90vh;
+    margin: auto;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 1.5rem;
+  }
+
+  .backup-codes-list {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+}

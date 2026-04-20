@@ -6035,7 +6035,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "TradingPlatform.Core depends on Microsoft.IdentityModel.Tokens (>= 6.40.0) but Microsoft.IdentityModel.Tokens 6.40.0 was not found. Microsoft.IdentityModel.Tokens 7.0.0 was resolved instead.",
+      "message": "Wersja TradingPlatform.Core jest zależna od Microsoft.IdentityModel.Tokens (>= 6.40.0), ale nie znaleziono Microsoft.IdentityModel.Tokens 6.40.0. Zamiast tego rozwiązano Microsoft.IdentityModel.Tokens 7.0.0.",
       "libraryId": "Microsoft.IdentityModel.Tokens",
       "targetGraphs": [
         "net9.0"
@@ -6045,7 +6045,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "TradingPlatform.Core depends on System.IdentityModel.Tokens.Jwt (>= 6.40.0) but System.IdentityModel.Tokens.Jwt 6.40.0 was not found. System.IdentityModel.Tokens.Jwt 7.0.0 was resolved instead.",
+      "message": "Wersja TradingPlatform.Core jest zależna od System.IdentityModel.Tokens.Jwt (>= 6.40.0), ale nie znaleziono System.IdentityModel.Tokens.Jwt 6.40.0. Zamiast tego rozwiązano System.IdentityModel.Tokens.Jwt 7.0.0.",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net9.0"

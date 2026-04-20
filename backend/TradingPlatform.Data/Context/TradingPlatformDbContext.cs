@@ -11,6 +11,11 @@ public sealed class TradingPlatformDbContext(DbContextOptions<TradingPlatformDbC
     public DbSet<InstrumentEntity> Instruments => Set<InstrumentEntity>();
     public DbSet<PositionEntity> Positions => Set<PositionEntity>();
     public DbSet<AccountTransferEntity> AccountTransfers => Set<AccountTransferEntity>();
+    public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
+    public DbSet<AdminInvitationEntity> AdminInvitations => Set<AdminInvitationEntity>();
+    public DbSet<AdminAuditLogEntity> AdminAuditLogs => Set<AdminAuditLogEntity>();
+    public DbSet<AdminRequestEntity> AdminRequests => Set<AdminRequestEntity>();
+    public DbSet<AdminRegistrationLogEntity> AdminRegistrationLogs => Set<AdminRegistrationLogEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

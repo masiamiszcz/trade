@@ -11,6 +11,8 @@ public sealed record User(
     UserRole Role,
     bool EmailConfirmed,
     bool TwoFactorEnabled,
+    string TwoFactorSecret,
+    string BackupCodes,
     UserStatus Status,
     string BaseCurrency,
     DateTimeOffset CreatedAtUtc);

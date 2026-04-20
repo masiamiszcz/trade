@@ -1,0 +1,761 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+using TradingPlatform.Core.Dtos;
+using TradingPlatform.Core.Enums;
+using TradingPlatform.Core.Interfaces;
+using TradingPlatform.Core.Models;
+using TradingPlatform.Data.Entities;
+
+namespace TradingPlatform.Data.Services;
+
+/// <summary>
+/// Core service for admin authentication
+/// Handles registration, login, and 2FA verification
+/// IMPORTANT: 2FA is MANDATORY for all admins
+/// </summary>
+public sealed class AdminAuthService : IAdminAuthService
+{
+    private readonly IAdminInvitationService _invitationService;
+    private readonly ITwoFactorService _twoFactorService;
+    private readonly IEncryptionService _encryptionService;
+    private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly IAdminAuthRepository _authRepository;
+    private readonly IAdminAuditLogRepository _auditLogRepository;
+    private readonly IAdminRegistrationLogRepository _registrationLogRepository;
+    private readonly PasswordHasher<User> _passwordHasher = new();
+    private readonly ILogger<AdminAuthService> _logger;
+
+    public AdminAuthService(
+        IAdminInvitationService invitationService,
+        ITwoFactorService twoFactorService,
+        IEncryptionService encryptionService,
+        IJwtTokenGenerator jwtTokenGenerator,
+        IAdminAuthRepository authRepository,
+        IAdminAuditLogRepository auditLogRepository,
+        IAdminRegistrationLogRepository registrationLogRepository,
+        ILogger<AdminAuthService> logger)
+    {
+        _invitationService = invitationService ?? throw new ArgumentNullException(nameof(invitationService));
+        _twoFactorService = twoFactorService ?? throw new ArgumentNullException(nameof(twoFactorService));
+        _encryptionService = encryptionService ?? throw new ArgumentNullException(nameof(encryptionService));
+        _jwtTokenGenerator = jwtTokenGenerator ?? throw new ArgumentNullException(nameof(jwtTokenGenerator));
+        _authRepository = authRepository ?? throw new ArgumentNullException(nameof(authRepository));
+        _auditLogRepository = auditLogRepository ?? throw new ArgumentNullException(nameof(auditLogRepository));
+        _registrationLogRepository = registrationLogRepository ?? throw new ArgumentNullException(nameof(registrationLogRepository));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <summary>
+    /// Register admin via invitation token
+    /// Creates user account but doesn't enable login until 2FA is set up
+    /// </summary>
+    public async Task<AdminRegistrationResponse> RegisterAdminViaInviteAsync(
+        string token,
+        string username,
+        string password,
+        string? ipAddress = null,
+        string? userAgent = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            throw new ArgumentException("Token is required", nameof(token));
+        if (string.IsNullOrWhiteSpace(username))
+            throw new ArgumentException("Username is required", nameof(username));
+        if (string.IsNullOrWhiteSpace(password))
+            throw new ArgumentException("Password is required", nameof(password));
+
+        Guid? invitationId = null;
+
+        try
+        {
+            // Validate invitation token
+            var invitation = await _invitationService.ValidateInvitationAsync(token, cancellationToken);
+            invitationId = invitation.Id;
+
+            // Check username uniqueness
+            var existingUser = await _authRepository.GetAdminByUserNameAsync(username, cancellationToken);
+            if (existingUser != null)
+            {
+                await LogRegistrationAsync(invitationId, null, invitation.Email, 
+                    AdminRegistrationAction.RegistrationFailed, AdminRegistrationLogStatus.Failed,
+                    "Username already taken", ipAddress, userAgent, cancellationToken);
+                throw new InvalidOperationException("Username is already taken");
+            }
+
+            // Create admin user
+            var adminId = Guid.NewGuid();
+            var user = new User(adminId, username.Trim(), invitation.Email, invitation.FirstName, invitation.LastName,
+                UserRole.Admin, false, false, string.Empty, string.Empty, UserStatus.Active, "PLN", DateTimeOffset.UtcNow);
+
+            // Hash password
+            var passwordHash = _passwordHasher.HashPassword(user, password);
+
+            // Save to repository (repository should persist this)
+            await _authRepository.CreateAdminAsync(user, passwordHash, cancellationToken);
+
+            // Mark invitation as used
+            await _invitationService.MarkAsUsedAsync(token, adminId, cancellationToken);
+
+            // Log successful registration
+            await LogRegistrationAsync(invitationId, adminId, invitation.Email,
+                AdminRegistrationAction.RegistrationCompleted, AdminRegistrationLogStatus.Success,
+                "Admin account created, 2FA setup required", ipAddress, userAgent, cancellationToken);
+
+            _logger.LogInformation("Admin {AdminId} registered with invitation {InvitationId}", adminId, invitationId);
+
+            // Generate temporary session token (for 2FA setup)
+            var tempToken = _jwtTokenGenerator.GenerateToken(user, isTempToken: true, 
+                context: new TokenContext { AdminRegistrationStep = "pending_2fa" });
+
+            // Extract session ID from token (would be stored in JWT)
+            var sessionId = Guid.NewGuid().ToString();
+
+            return new AdminRegistrationResponse(
+                Token: tempToken,
+                SessionId: sessionId,
+                RequiresTwoFactorSetup: true,
+                Message: "Admin account created. You must set up 2FA to complete registration."
+            );
+        }
+        catch (InvalidOperationException ex)
+        {
+            await LogRegistrationAsync(invitationId, null, null,
+                AdminRegistrationAction.RegistrationFailed, AdminRegistrationLogStatus.Failed,
+                ex.Message, ipAddress, userAgent, cancellationToken);
+            _logger.LogWarning(ex, "Admin registration failed");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await LogRegistrationAsync(invitationId, null, null,
+                AdminRegistrationAction.RegistrationFailed, AdminRegistrationLogStatus.Failed,
+                ex.Message, ipAddress, userAgent, cancellationToken);
+            _logger.LogError(ex, "Admin registration error");
+            throw new InvalidOperationException("Registration failed", ex);
+        }
+    }
+
+    /// <summary>
+    /// Generate 2FA secret (QR code) for admin during registration
+    /// Secret is NOT saved to DB yet - only after verification
+    /// </summary>
+    public async Task<AdminTwoFactorSetupResponse> SetupTwoFactorGenerateAsync(
+        Guid adminId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var secret = _twoFactorService.GenerateSecret();
+            var sessionId = Guid.NewGuid().ToString();
+
+            // In a real implementation, you'd store this in Redis with 5 min expiry
+            // For now, it will be stored in JWT claims
+
+            _logger.LogInformation("2FA setup started for admin {AdminId}", adminId);
+
+            return new AdminTwoFactorSetupResponse(
+                QrCodeDataUrl: secret.QrCodeDataUrl,
+                ManualKey: secret.Secret,
+                SessionId: sessionId,
+                Message: "Scan QR code with Google Authenticator or similar app"
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate 2FA setup for admin {AdminId}", adminId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Enable 2FA for admin (after verifying the code)
+    /// Generates backup codes
+    /// IMPORTANT: 2FA becomes mandatory after this
+    /// </summary>
+    public async Task<AdminTwoFactorCompleteResponse> SetupTwoFactorEnableAsync(
+        Guid adminId,
+        string code,
+        string totpSecret,
+        string? ipAddress = null,
+        string? userAgent = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            throw new ArgumentException("Code is required", nameof(code));
+        if (string.IsNullOrWhiteSpace(totpSecret))
+            throw new ArgumentException("TOTP secret is required", nameof(totpSecret));
+
+        try
+        {
+            // Verify TOTP code is correct
+            if (!_twoFactorService.VerifyCode(totpSecret, code))
+            {
+                _logger.LogWarning("Invalid 2FA code during setup for admin {AdminId}", adminId);
+                throw new InvalidOperationException("Invalid 2FA code");
+            }
+
+            // Get admin user
+            var admin = await _authRepository.GetAdminByIdAsync(adminId, cancellationToken);
+            if (admin == null)
+                throw new InvalidOperationException("Admin not found");
+
+            // Encrypt TOTP secret
+            var encryptedSecret = _encryptionService.Encrypt(totpSecret);
+
+            // Generate backup codes
+            var backupCodes = _twoFactorService.GenerateBackupCodes();
+            var hashedBackupCodes = backupCodes.Select(code => _twoFactorService.HashBackupCode(code)).ToArray();
+            var backupCodesJson = System.Text.Json.JsonSerializer.Serialize(hashedBackupCodes);
+
+            // Update admin with 2FA enabled
+            await _authRepository.UpdateAdminTwoFactorAsync(adminId, encryptedSecret, 
+                backupCodesJson, true, cancellationToken);
+
+            // Log 2FA setup completion
+            await LogRegistrationAsync(null, adminId, admin.Email,
+                AdminRegistrationAction.TwoFactorSetupCompleted, AdminRegistrationLogStatus.Success,
+                "2FA enabled and backup codes generated", ipAddress, userAgent, cancellationToken);
+
+            await LogAuditAsync(adminId, AdminAuditAction.TwoFactorEnabled, ipAddress, userAgent,
+                "2FA setup completed", cancellationToken);
+
+            _logger.LogInformation("2FA enabled for admin {AdminId}", adminId);
+
+            return new AdminTwoFactorCompleteResponse(
+                BackupCodes: backupCodes,
+                Success: true,
+                Message: "2FA enabled successfully. Save these backup codes somewhere safe!"
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to enable 2FA for admin {AdminId}", adminId);
+            throw new InvalidOperationException("Failed to enable 2FA", ex);
+        }
+    }
+
+    /// <summary>
+    /// Admin login (first step - password only)
+    /// Returns temporary token if 2FA is enabled (MANDATORY for admins)
+    /// </summary>
+    public async Task<AdminLoginResponse> AdminLoginAsync(
+        string usernameOrEmail,
+        string password,
+        string? ipAddress = null,
+        string? userAgent = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(usernameOrEmail))
+            throw new ArgumentException("Username or email is required", nameof(usernameOrEmail));
+        if (string.IsNullOrWhiteSpace(password))
+            throw new ArgumentException("Password is required", nameof(password));
+
+        try
+        {
+            // Get admin with password hash
+            var (admin, passwordHash) = await _authRepository.GetAdminWithPasswordHashAsync(
+                usernameOrEmail, cancellationToken);
+
+            if (admin == null || string.IsNullOrWhiteSpace(passwordHash))
+            {
+                await LogAuditAsync(null, AdminAuditAction.LoginFailed, ipAddress, userAgent,
+                    "Invalid credentials", cancellationToken);
+                throw new UnauthorizedAccessException("Invalid credentials");
+            }
+
+            // Verify password
+            var verifyResult = _passwordHasher.VerifyHashedPassword(admin, passwordHash, password);
+            if (verifyResult == PasswordVerificationResult.Failed)
+            {
+                await LogAuditAsync(admin.Id, AdminAuditAction.LoginFailed, ipAddress, userAgent,
+                    "Invalid password", cancellationToken);
+                throw new UnauthorizedAccessException("Invalid credentials");
+            }
+
+            // CHECK: 2FA MUST be enabled for admins
+            if (!admin.TwoFactorEnabled)
+            {
+                await LogAuditAsync(admin.Id, AdminAuditAction.LoginFailed, ipAddress, userAgent,
+                    "2FA not enabled", cancellationToken);
+                _logger.LogWarning("Admin {AdminId} attempted login without 2FA enabled", admin.Id);
+                throw new UnauthorizedAccessException("2FA is required for admin accounts");
+            }
+
+            // Generate temporary session token (5 min)
+            var sessionId = Guid.NewGuid().ToString();
+            var tempToken = _jwtTokenGenerator.GenerateToken(admin, isTempToken: true,
+                context: new TokenContext { SessionId = sessionId, TwoFactorRequired = true });
+
+            // Update last login attempt timestamp
+            await _authRepository.UpdateLastLoginAttemptAsync(admin.Id, cancellationToken);
+
+            _logger.LogInformation("Admin {AdminId} initiated login (awaiting 2FA)", admin.Id);
+
+            return new AdminLoginResponse(
+                Token: tempToken,
+                SessionId: sessionId,
+                RequiresTwoFactor: true,
+                Username: admin.UserName
+            );
+        }
+        catch (UnauthorizedAccessException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Admin login error");
+            throw new InvalidOperationException("Login failed", ex);
+        }
+    }
+
+    /// <summary>
+    /// Verify 2FA code and issue final JWT token (second step of login)
+    /// </summary>
+    public async Task<AdminAuthSuccessResponse> VerifyAdminTwoFactorAsync(
+        Guid adminId,
+        string sessionId,
+        string code,
+        string? ipAddress = null,
+        string? userAgent = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new ArgumentException("Session ID is required", nameof(sessionId));
+        if (string.IsNullOrWhiteSpace(code))
+            throw new ArgumentException("Code is required", nameof(code));
+
+        try
+        {
+            // Get admin
+            var admin = await _authRepository.GetAdminByIdAsync(adminId, cancellationToken);
+            if (admin == null)
+                throw new UnauthorizedAccessException("Admin not found");
+
+            // Check if 2FA is enabled
+            if (!admin.TwoFactorEnabled || string.IsNullOrWhiteSpace(admin.TwoFactorSecret))
+                throw new UnauthorizedAccessException("2FA not enabled for this account");
+
+            // Decrypt TOTP secret
+            string decryptedSecret;
+            try
+            {
+                decryptedSecret = _encryptionService.Decrypt(admin.TwoFactorSecret);
+            }
+            catch
+            {
+                _logger.LogError("Failed to decrypt 2FA secret for admin {AdminId}", adminId);
+                throw new UnauthorizedAccessException("2FA secret corruption detected");
+            }
+
+            // First, try standard TOTP code
+            bool isCodeValid = _twoFactorService.VerifyCode(decryptedSecret, code);
+
+            // If not valid, try backup codes
+            if (!isCodeValid && !string.IsNullOrWhiteSpace(admin.BackupCodes))
+            {
+                var hashedBackupCodes = System.Text.Json.JsonSerializer.Deserialize<string[]>(admin.BackupCodes) ?? [];
+                var (isBackupCodeValid, matchedIndex) = _twoFactorService.VerifyBackupCode(code, hashedBackupCodes);
+                
+                if (isBackupCodeValid && matchedIndex.HasValue)
+                {
+                    // Remove used backup code
+                    var updatedBackupCodes = hashedBackupCodes.Where((_, i) => i != matchedIndex.Value).ToArray();
+                    var updatedJson = System.Text.Json.JsonSerializer.Serialize(updatedBackupCodes);
+                    await _authRepository.UpdateAdminBackupCodesAsync(adminId, updatedJson, cancellationToken);
+
+                    await LogAuditAsync(adminId, AdminAuditAction.BackupCodeUsed, ipAddress, userAgent,
+                        $"Backup code used, {updatedBackupCodes.Length} remaining", cancellationToken);
+                    
+                    isCodeValid = true;
+                }
+            }
+
+            if (!isCodeValid)
+            {
+                await LogAuditAsync(adminId, AdminAuditAction.TwoFactorVerifyFailed, ipAddress, userAgent,
+                    "Invalid 2FA code", cancellationToken);
+                throw new UnauthorizedAccessException("Invalid 2FA code");
+            }
+
+            // Generate final JWT token (60 min)
+            var finalToken = _jwtTokenGenerator.GenerateToken(admin, isTempToken: false);
+            var expiresAt = DateTimeOffset.UtcNow.AddMinutes(60).ToUnixTimeSeconds();
+
+            // Log successful 2FA
+            await LogAuditAsync(adminId, AdminAuditAction.TwoFactorVerifySuccess, ipAddress, userAgent,
+                "2FA verification successful", cancellationToken);
+
+            _logger.LogInformation("Admin {AdminId} successfully verified 2FA", adminId);
+
+            return new AdminAuthSuccessResponse(
+                Token: finalToken,
+                Role: "Admin",
+                AdminId: admin.Id,
+                Username: admin.UserName,
+                ExpiresAt: expiresAt
+            );
+        }
+        catch (UnauthorizedAccessException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "2FA verification error for admin {AdminId}", adminId);
+            throw new InvalidOperationException("2FA verification failed", ex);
+        }
+    }
+
+    /// <summary>
+    /// Disable 2FA for admin (requires current 2FA code as security check)
+    /// WARNING: Admin won't be able to login until re-enabling 2FA
+    /// </summary>
+    public async Task<bool> DisableTwoFactorAsync(
+        Guid adminId,
+        string code,
+        string? ipAddress = null,
+        string? userAgent = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            throw new ArgumentException("Code is required", nameof(code));
+
+        try
+        {
+            var admin = await _authRepository.GetAdminByIdAsync(adminId, cancellationToken);
+            if (admin == null)
+                throw new UnauthorizedAccessException("Admin not found");
+
+            if (!admin.TwoFactorEnabled)
+                throw new InvalidOperationException("2FA is not enabled");
+
+            // Verify code before disabling
+            var decryptedSecret = _encryptionService.Decrypt(admin.TwoFactorSecret!);
+            if (!_twoFactorService.VerifyCode(decryptedSecret, code))
+                throw new UnauthorizedAccessException("Invalid 2FA code");
+
+            // Disable 2FA
+            await _authRepository.ClearAdminTwoFactorAsync(adminId, cancellationToken);
+
+            await LogAuditAsync(adminId, AdminAuditAction.TwoFactorDisabled, ipAddress, userAgent,
+                "2FA disabled", cancellationToken);
+
+            _logger.LogWarning("2FA disabled for admin {AdminId}", adminId);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to disable 2FA for admin {AdminId}", adminId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Regenerate backup codes (requires current 2FA code as security check)
+    /// </summary>
+    public async Task<string[]> RegenerateBackupCodesAsync(
+        Guid adminId,
+        string code,
+        string? ipAddress = null,
+        string? userAgent = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            throw new ArgumentException("Code is required", nameof(code));
+
+        try
+        {
+            var admin = await _authRepository.GetAdminByIdAsync(adminId, cancellationToken);
+            if (admin == null)
+                throw new UnauthorizedAccessException("Admin not found");
+
+            // Verify code
+            var decryptedSecret = _encryptionService.Decrypt(admin.TwoFactorSecret!);
+            if (!_twoFactorService.VerifyCode(decryptedSecret, code))
+                throw new UnauthorizedAccessException("Invalid 2FA code");
+
+            // Generate new backup codes
+            var backupCodes = _twoFactorService.GenerateBackupCodes();
+            var hashedBackupCodes = backupCodes.Select(c => _twoFactorService.HashBackupCode(c)).ToArray();
+            var backupCodesJson = System.Text.Json.JsonSerializer.Serialize(hashedBackupCodes);
+
+            await _authRepository.UpdateAdminBackupCodesAsync(adminId, backupCodesJson, cancellationToken);
+
+            await LogAuditAsync(adminId, AdminAuditAction.BackupCodesRegenerated, ipAddress, userAgent,
+                "Backup codes regenerated", cancellationToken);
+
+            _logger.LogInformation("Backup codes regenerated for admin {AdminId}", adminId);
+
+            return backupCodes;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to regenerate backup codes for admin {AdminId}", adminId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Log to admin audit log
+    /// </summary>
+    private async Task LogAuditAsync(
+        Guid? adminId,
+        AdminAuditAction action,
+        string? ipAddress,
+        string? userAgent,
+        string? details,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!adminId.HasValue)
+                return;
+
+            var log = new AdminAuditLogEntity
+            {
+                Id = Guid.NewGuid(),
+                AdminId = adminId.Value,
+                Action = action,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                CreatedAt = DateTimeOffset.UtcNow,
+                Details = details
+            };
+
+            await _auditLogRepository.AddAsync(log, cancellationToken);
+            await _auditLogRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to log audit entry");
+        }
+    }
+
+    /// <summary>
+    /// Log to admin registration log
+    /// </summary>
+    private async Task LogRegistrationAsync(
+        Guid? invitationId,
+        Guid? adminId,
+        string? email,
+        AdminRegistrationAction action,
+        AdminRegistrationLogStatus status,
+        string? errorMessage,
+        string? ipAddress,
+        string? userAgent,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!invitationId.HasValue && string.IsNullOrEmpty(email))
+                return;
+
+            var log = new AdminRegistrationLogEntity
+            {
+                Id = Guid.NewGuid(),
+                InvitationId = invitationId ?? Guid.Empty,
+                AdminId = adminId,
+                Email = email ?? string.Empty,
+                Action = action,
+                Status = status,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                ErrorMessage = errorMessage,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            await _registrationLogRepository.AddAsync(log, cancellationToken);
+            await _registrationLogRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to log registration entry");
+        }
+    }
+
+    /// <summary>
+    /// One-time bootstrap endpoint to create first Super Admin
+    /// Can only be called once (if admin exists in DB, returns 403)
+    /// </summary>
+    public async Task<AdminRegistrationResponse> BootstrapSuperAdminAsync(
+        string username,
+        string email,
+        string password,
+        string? ipAddress = null,
+        string? userAgent = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            throw new ArgumentException("Username is required", nameof(username));
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ArgumentException("Email is required", nameof(email));
+        if (string.IsNullOrWhiteSpace(password))
+            throw new ArgumentException("Password is required", nameof(password));
+
+        try
+        {
+            // Check if any admin already exists
+            var existingAdmin = await _authRepository.GetAdminByUserNameAsync("*", cancellationToken);
+            if (existingAdmin != null)
+            {
+                _logger.LogWarning("Bootstrap attempted but admin already exists. IP: {IpAddress}", ipAddress);
+                throw new InvalidOperationException("Super Admin already exists. Bootstrap is disabled.");
+            }
+
+            // Create super admin (no invitation needed for bootstrap)
+            var adminId = Guid.NewGuid();
+            var user = new User(adminId, username.Trim(), email.ToLower().Trim(), "Super", "Admin",
+                UserRole.Admin, true, false, string.Empty, string.Empty, UserStatus.Active, "PLN", DateTimeOffset.UtcNow);
+
+            var passwordHash = _passwordHasher.HashPassword(user, password);
+            await _authRepository.CreateAdminAsync(user, passwordHash, cancellationToken);
+
+            // Log bootstrap
+            await LogRegistrationAsync(null, adminId, email,
+                AdminRegistrationAction.RegistrationCompleted, AdminRegistrationLogStatus.Success,
+                "Super Admin bootstrapped", ipAddress, userAgent, cancellationToken);
+
+            _logger.LogInformation("Super Admin bootstrapped: {AdminId}", adminId);
+
+            // Generate temporary token for 2FA setup
+            var tempToken = _jwtTokenGenerator.GenerateToken(user, isTempToken: true,
+                context: new TokenContext { AdminRegistrationStep = "pending_2fa" });
+
+            var sessionId = Guid.NewGuid().ToString();
+
+            return new AdminRegistrationResponse(
+                Token: tempToken,
+                SessionId: sessionId,
+                RequiresTwoFactorSetup: true,
+                Message: "Super Admin created successfully. You must set up 2FA to complete setup."
+            );
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Bootstrap failed: {Message}", ex.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Bootstrap error");
+            throw new InvalidOperationException("Super Admin bootstrap failed", ex);
+        }
+    }
+
+    /// <summary>
+    /// Super Admin invites a new admin via email token
+    /// </summary>
+    public async Task<AdminInvitationResponse> InviteAdminAsync(
+        Guid superAdminId,
+        string email,
+        string firstName,
+        string lastName,
+        string[]? permissions = null,
+        string? ipAddress = null,
+        string? userAgent = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ArgumentException("Email is required", nameof(email));
+        if (string.IsNullOrWhiteSpace(firstName))
+            throw new ArgumentException("First name is required", nameof(firstName));
+        if (string.IsNullOrWhiteSpace(lastName))
+            throw new ArgumentException("Last name is required", nameof(lastName));
+
+        try
+        {
+            // Verify super admin exists
+            var superAdmin = await _authRepository.GetAdminByIdAsync(superAdminId, cancellationToken);
+            if (superAdmin == null)
+                throw new UnauthorizedAccessException("Super Admin not found");
+
+            // Generate invitation token
+            var token = await _invitationService.GenerateInvitationAsync(
+                email, firstName, lastName, superAdminId,
+                expiryHours: 48,
+                cancellationToken: cancellationToken);
+
+            // Log invitation
+            await LogRegistrationAsync(null, superAdminId, email,
+                AdminRegistrationAction.InvitationGenerated, AdminRegistrationLogStatus.Success,
+                $"Admin invited with permissions: {string.Join(",", permissions ?? [])}",
+                ipAddress, userAgent, cancellationToken);
+
+            _logger.LogInformation("Admin invitation created for {Email} by {SuperAdminId}", email, superAdminId);
+
+            // TODO: Send email with invitation link (implement email service later)
+            // For now, return URL that can be used for testing
+            var invitationUrl = $"https://yourapp.com/admin/register?token={token}";
+
+            return new AdminInvitationResponse(
+                Token: token,
+                Email: email,
+                ExpiresAt: DateTimeOffset.UtcNow.AddHours(48).ToString("O"),
+                InvitationUrl: invitationUrl
+            );
+        }
+        catch (UnauthorizedAccessException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Admin invitation failed");
+            throw new InvalidOperationException("Failed to create admin invitation", ex);
+        }
+    }
+}
+
+/// <summary>
+/// Interface for admin auth service
+/// </summary>
+public interface IAdminAuthService
+{
+    Task<AdminRegistrationResponse> RegisterAdminViaInviteAsync(
+        string token, string username, string password,
+        string? ipAddress = null, string? userAgent = null,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminTwoFactorSetupResponse> SetupTwoFactorGenerateAsync(
+        Guid adminId, CancellationToken cancellationToken = default);
+
+    Task<AdminTwoFactorCompleteResponse> SetupTwoFactorEnableAsync(
+        Guid adminId, string code, string totpSecret,
+        string? ipAddress = null, string? userAgent = null,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminLoginResponse> AdminLoginAsync(
+        string usernameOrEmail, string password,
+        string? ipAddress = null, string? userAgent = null,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminAuthSuccessResponse> VerifyAdminTwoFactorAsync(
+        Guid adminId, string sessionId, string code,
+        string? ipAddress = null, string? userAgent = null,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> DisableTwoFactorAsync(
+        Guid adminId, string code,
+        string? ipAddress = null, string? userAgent = null,
+        CancellationToken cancellationToken = default);
+
+    Task<string[]> RegenerateBackupCodesAsync(
+        Guid adminId, string code,
+        string? ipAddress = null, string? userAgent = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>One-time bootstrap endpoint to create Super Admin</summary>
+    Task<AdminRegistrationResponse> BootstrapSuperAdminAsync(
+        string username, string email, string password,
+        string? ipAddress = null, string? userAgent = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Super Admin invites new admin</summary>
+    Task<AdminInvitationResponse> InviteAdminAsync(
+        Guid superAdminId, string email, string firstName, string lastName, string[]? permissions = null,
+        string? ipAddress = null, string? userAgent = null,
+        CancellationToken cancellationToken = default);
+}

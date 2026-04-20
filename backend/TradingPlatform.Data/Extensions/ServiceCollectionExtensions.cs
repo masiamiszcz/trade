@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TradingPlatform.Core.Interfaces;
+using TradingPlatform.Core.Models;
 using TradingPlatform.Core.Services;
 using TradingPlatform.Data.Context;
 using TradingPlatform.Data.Repositories;
@@ -25,8 +26,32 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserRepository, SqlUserRepository>();
         services.AddScoped<IAccountRepository, SqlAccountRepository>();
         services.AddScoped<IAccountService, AccountService>();
-        services.AddScoped<IUserService, UserService>();
+        // TODO: UserService registration - check if needed
+        // services.AddScoped<IUserService, TradingPlatform.Core.Services.UserService>();
         services.AddScoped<IHealthService, HealthService>();
+
+        // Configure settings
+        services.Configure<TwoFactorSettings>(c => 
+        {
+            var section = configuration.GetSection("TwoFactor");
+            c.Issuer = section["Issuer"] ?? "TradingPlatform";
+            c.QrCodeSize = int.Parse(section["QrCodeSize"] ?? "10");
+        });
+        
+        services.Configure<EncryptionSettings>(c =>
+        {
+            var section = configuration.GetSection("Encryption");
+            c.MasterKey = section["MasterKey"] ?? "";
+        });
+
+        // Register two-factor and encryption services (used by admin auth)
+        services.AddScoped<ITwoFactorService, TwoFactorService>();
+        services.AddScoped<IEncryptionService, EncryptionService>();
+        
+        // TODO: Register admin auth services (requires IAdminInvitationService interface and repository)
+        // services.AddScoped<IAdminAuthRepository, AdminAuthRepository>();
+        // services.AddScoped<AdminAuthService>();
+        // services.AddScoped<AdminInvitationService>();
 
         return services;
     }

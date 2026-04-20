@@ -1,21 +1,28 @@
 services:
+  # Database Layer - accessible only to backend
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: trading-sql
     environment:
       SA_PASSWORD: "YourStrong!Passw0rd"
       ACCEPT_EULA: "Y"
-    ports:
-      - "1433:1433"
+    # NO PORT EXPOSURE - only internal network
     networks:
-      - trading-net
+      - backend-sql
     healthcheck:
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -No -Q 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 40s
+    restart: on-failure
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # Application Backend - accessible only to nginx, communicates with SQL
   backend:
     build:
       context: ../backend
@@ -29,26 +36,37 @@ services:
       Jwt__Audience: "TradingPlatformUsers"
       Jwt__Key: "ThisIsAVerySecureSecretKeyForJwtTokenGenerationMinimum32Characters!"
       Jwt__ExpiryMinutes: "60"
+    # NO PORT EXPOSURE - only internal networks
     depends_on:
       sqlserver:
         condition: service_healthy
-    ports:
-      - "5001:5001"
     networks:
-      - trading-net
+      - backend-sql
+      - backend-nginx
     restart: on-failure
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # Frontend Web Application - accessible only to nginx
   frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
     container_name: trading-frontend
-    ports:
-      - "3000:80"
+    # NO PORT EXPOSURE - only internal network
     networks:
-      - trading-net
+      - frontend-nginx
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # Reverse Proxy - ONLY exposed port (80)
   nginx:
     image: nginx:alpine
     container_name: trading-nginx
@@ -56,12 +74,38 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    networks:
-      - trading-net
     depends_on:
       - backend
+      - frontend
+    networks:
+      - frontend-nginx
+      - backend-nginx
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+# Three separate networks for security isolation
 networks:
-  trading-net:
+  # Frontend communicates with Nginx only
+  frontend-nginx:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+  # Backend communicates with Nginx only
+  backend-nginx:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+  # Backend communicates with SQL only
+  backend-sql:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16

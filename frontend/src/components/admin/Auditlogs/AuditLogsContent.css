@@ -1,0 +1,158 @@
+/* AuditLogsContent Styles */
+
+.audit-logs-content {
+  padding: 30px;
+  background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
+  min-height: 100vh;
+}
+
+.audit-logs-content h2 {
+  color: #00d4ff;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 24px 0;
+  letter-spacing: 0.5px;
+}
+
+.error-banner {
+  padding: 12px 16px;
+  background-color: rgba(255, 71, 87, 0.1);
+  border: 1px solid #ff4757;
+  border-radius: 8px;
+  color: #ff4757;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.logs-info {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.logs-info p {
+  margin: 0;
+  color: #00d4ff;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.action-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+  color: #00d4ff;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.entity-id {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #a4b5d6;
+  font-weight: 600;
+}
+
+.ip-address {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #4caf50;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .audit-logs-content {
+    padding: 16px;
+  }
+
+  .audit-logs-content h2 {
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+}
+/* AuditLogsContent Styles */
+
+.audit-logs-content {
+  padding: 30px;
+  background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
+  min-height: 100vh;
+}
+
+.audit-logs-content h2 {
+  color: #00d4ff;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 24px 0;
+  letter-spacing: 0.5px;
+}
+
+.error-banner {
+  padding: 12px 16px;
+  background-color: rgba(255, 71, 87, 0.1);
+  border: 1px solid #ff4757;
+  border-radius: 8px;
+  color: #ff4757;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.logs-info {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.logs-info p {
+  margin: 0;
+  color: #00d4ff;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.action-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+  color: #00d4ff;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.entity-id {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #a4b5d6;
+  font-weight: 600;
+}
+
+.ip-address {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #4caf50;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .audit-logs-content {
+    padding: 16px;
+  }
+
+  .audit-logs-content h2 {
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+}

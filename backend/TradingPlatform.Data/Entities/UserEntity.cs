@@ -13,12 +13,14 @@ public sealed class UserEntity
     public bool EmailConfirmed { get; set; }
     public bool TwoFactorEnabled { get; set; }
     public string? TwoFactorSecret { get; set; }
+    public string? BackupCodes { get; set; }
     public string SecurityStamp { get; set; } = Guid.NewGuid().ToString("N");
     public UserStatus Status { get; set; } = UserStatus.PendingEmailConfirmation;
     public UserRole Role { get; set; } = UserRole.User;
     public string BaseCurrency { get; set; } = "PLN";
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public DateTimeOffset? LastLoginAttempt { get; set; }
 
     public ICollection<AccountEntity> Accounts { get; set; } = [];
 }

@@ -1,0 +1,182 @@
+/* AdminHeader Styles */
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  background: linear-gradient(90deg, #0f1419 0%, #1a2332 100%);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.header-left h1 {
+  margin: 0;
+  color: #00d4ff;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.time-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+}
+
+.time-label {
+  font-size: 16px;
+}
+
+.time-value {
+  color: #00d4ff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+}
+
+.user-icon {
+  font-size: 16px;
+}
+
+.username {
+  color: #a4b5d6;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  .header-left h1 {
+    font-size: 22px;
+  }
+
+  .header-right {
+    width: 100%;
+    gap: 15px;
+  }
+
+  .time-display,
+  .user-info {
+    flex: 1;
+    justify-content: center;
+  }
+}
+/* AdminHeader Styles */
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  background: linear-gradient(90deg, #0f1419 0%, #1a2332 100%);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.header-left h1 {
+  margin: 0;
+  color: #00d4ff;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.time-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+}
+
+.time-label {
+  font-size: 16px;
+}
+
+.time-value {
+  color: #00d4ff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+}
+
+.user-icon {
+  font-size: 16px;
+}
+
+.username {
+  color: #a4b5d6;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  .header-left h1 {
+    font-size: 22px;
+  }
+
+  .header-right {
+    width: 100%;
+    gap: 15px;
+  }
+
+  .time-display,
+  .user-info {
+    flex: 1;
+    justify-content: center;
+  }
+}
