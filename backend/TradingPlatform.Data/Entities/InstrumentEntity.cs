@@ -12,6 +12,7 @@ public sealed class InstrumentEntity
     public string BaseCurrency { get; set; } = "USD";
     public string QuoteCurrency { get; set; } = "USD";
     public bool IsActive { get; set; } = true;
+    public bool IsBlocked { get; set; } = false;
     public DateTimeOffset CreatedAtUtc { get; set; }
 
     public ICollection<PositionEntity> Positions { get; set; } = [];

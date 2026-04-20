@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "pDkjfzxNR9k=",
+  "dgSpecHash": "OzcIlsRUiAQ=",
   "success": true,
-  "projectFilePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
+  "projectFilePath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\kubac\\.nuget\\packages\\automapper\\12.0.1\\automapper.12.0.1.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\fluentvalidation\\12.1.1\\fluentvalidation.12.1.1.nupkg.sha512",
@@ -43,6 +43,7 @@
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.net.http.headers\\2.3.0\\microsoft.net.http.headers.2.3.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.netcore.platforms\\2.0.0\\microsoft.netcore.platforms.2.0.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.win32.registry\\4.5.0\\microsoft.win32.registry.4.5.0.nupkg.sha512",
+    "C:\\Users\\kubac\\.nuget\\packages\\qrcoder\\1.4.3\\qrcoder.1.4.3.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\system.buffers\\4.6.0\\system.buffers.4.6.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\system.componentmodel.annotations\\5.0.0\\system.componentmodel.annotations.5.0.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\system.identitymodel.tokens.jwt\\7.0.0\\system.identitymodel.tokens.jwt.7.0.0.nupkg.sha512",
@@ -56,10 +57,10 @@
     {
       "code": "NU1603",
       "level": "Warning",
-      "message": "Wersja TradingPlatform.Core jest zależna od Microsoft.IdentityModel.Tokens (>= 6.40.0), ale nie znaleziono Microsoft.IdentityModel.Tokens 6.40.0. Zamiast tego rozwiązano Microsoft.IdentityModel.Tokens 7.0.0.",
-      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
+      "message": "TradingPlatform.Core depends on Microsoft.IdentityModel.Tokens (>= 6.40.0) but Microsoft.IdentityModel.Tokens 6.40.0 was not found. Microsoft.IdentityModel.Tokens 7.0.0 was resolved instead.",
+      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
+      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "libraryId": "Microsoft.IdentityModel.Tokens",
       "targetGraphs": [
         "net9.0"
@@ -68,10 +69,10 @@
     {
       "code": "NU1603",
       "level": "Warning",
-      "message": "Wersja TradingPlatform.Core jest zależna od System.IdentityModel.Tokens.Jwt (>= 6.40.0), ale nie znaleziono System.IdentityModel.Tokens.Jwt 6.40.0. Zamiast tego rozwiązano System.IdentityModel.Tokens.Jwt 7.0.0.",
-      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
+      "message": "TradingPlatform.Core depends on System.IdentityModel.Tokens.Jwt (>= 6.40.0) but System.IdentityModel.Tokens.Jwt 6.40.0 was not found. System.IdentityModel.Tokens.Jwt 7.0.0 was resolved instead.",
+      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
+      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net9.0"
@@ -80,10 +81,10 @@
     {
       "code": "NU1903",
       "level": "Warning",
-      "message": "Pakiet „AutoMapper” 12.0.1 ma znane wysoka luki w zabezpieczeniach o ważności, https://github.com/advisories/GHSA-rvv3-g6hj-g44x",
-      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
+      "message": "Package 'AutoMapper' 12.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x",
+      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
+      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "libraryId": "AutoMapper",
       "targetGraphs": [
         "net9.0"
@@ -92,10 +93,10 @@
     {
       "code": "NU1902",
       "level": "Warning",
-      "message": "Pakiet „System.IdentityModel.Tokens.Jwt” 7.0.0 ma znane umiarkowana luki w zabezpieczeniach o ważności, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
-      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
+      "message": "Package 'System.IdentityModel.Tokens.Jwt' 7.0.0 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
+      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
+      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net9.0"

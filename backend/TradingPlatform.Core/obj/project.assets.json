@@ -676,6 +676,15 @@
           }
         }
       },
+      "QRCoder/1.4.3": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/QRCoder.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/QRCoder.dll": {}
+        }
+      },
       "System.Buffers/4.6.0": {
         "type": "package",
         "compile": {
@@ -1704,6 +1713,27 @@
         "version.txt"
       ]
     },
+    "QRCoder/1.4.3": {
+      "sha512": "fWuFqjm8GTlEb2GqBl3Hi8HZZeZQwBSHxvRPtPjyNbT82H0ff0JwavKRBmMaXCno1Av6McPC8aJzri0Mj2w9Jw==",
+      "type": "package",
+      "path": "qrcoder/1.4.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/net35/QRCoder.dll",
+        "lib/net40/QRCoder.dll",
+        "lib/net5.0-windows7.0/QRCoder.dll",
+        "lib/net5.0/QRCoder.dll",
+        "lib/net6.0-windows7.0/QRCoder.dll",
+        "lib/net6.0/QRCoder.dll",
+        "lib/netstandard1.3/QRCoder.dll",
+        "lib/netstandard2.0/QRCoder.dll",
+        "nuget-icon.png",
+        "nuget-readme.md",
+        "qrcoder.1.4.3.nupkg.sha512",
+        "qrcoder.nuspec"
+      ]
+    },
     "System.Buffers/4.6.0": {
       "sha512": "lN6tZi7Q46zFzAbRYXTIvfXcyvQQgxnY7Xm6C6xQ9784dEL1amjM6S6Iw4ZpsvesAKnRVsM4scrDQaDqSClkjA==",
       "type": "package",
@@ -2044,6 +2074,7 @@
       "Microsoft.Extensions.DependencyInjection.Abstractions >= 9.0.5",
       "Microsoft.Extensions.Options >= 9.0.5",
       "Microsoft.IdentityModel.Tokens >= 6.40.0",
+      "QRCoder >= 1.4.3",
       "System.IdentityModel.Tokens.Jwt >= 6.40.0"
     ]
   },
@@ -2054,11 +2085,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
+      "projectUniqueName": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "projectName": "TradingPlatform.Core",
-      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
+      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\TradingPlatform.Core.csproj",
       "packagesPath": "C:\\Users\\kubac\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Core\\obj\\",
+      "outputPath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Core\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -2122,6 +2153,10 @@
             "target": "Package",
             "version": "[6.40.0, )"
           },
+          "QRCoder": {
+            "target": "Package",
+            "version": "[1.4.3, )"
+          },
           "System.IdentityModel.Tokens.Jwt": {
             "target": "Package",
             "version": "[6.40.0, )"
@@ -2152,7 +2187,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "Wersja TradingPlatform.Core jest zależna od Microsoft.IdentityModel.Tokens (>= 6.40.0), ale nie znaleziono Microsoft.IdentityModel.Tokens 6.40.0. Zamiast tego rozwiązano Microsoft.IdentityModel.Tokens 7.0.0.",
+      "message": "TradingPlatform.Core depends on Microsoft.IdentityModel.Tokens (>= 6.40.0) but Microsoft.IdentityModel.Tokens 6.40.0 was not found. Microsoft.IdentityModel.Tokens 7.0.0 was resolved instead.",
       "libraryId": "Microsoft.IdentityModel.Tokens",
       "targetGraphs": [
         "net9.0"
@@ -2162,7 +2197,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "Wersja TradingPlatform.Core jest zależna od System.IdentityModel.Tokens.Jwt (>= 6.40.0), ale nie znaleziono System.IdentityModel.Tokens.Jwt 6.40.0. Zamiast tego rozwiązano System.IdentityModel.Tokens.Jwt 7.0.0.",
+      "message": "TradingPlatform.Core depends on System.IdentityModel.Tokens.Jwt (>= 6.40.0) but System.IdentityModel.Tokens.Jwt 6.40.0 was not found. System.IdentityModel.Tokens.Jwt 7.0.0 was resolved instead.",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net9.0"
@@ -2172,7 +2207,7 @@
       "code": "NU1903",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "Pakiet „AutoMapper” 12.0.1 ma znane wysoka luki w zabezpieczeniach o ważności, https://github.com/advisories/GHSA-rvv3-g6hj-g44x",
+      "message": "Package 'AutoMapper' 12.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x",
       "libraryId": "AutoMapper",
       "targetGraphs": [
         "net9.0"
@@ -2182,7 +2217,7 @@
       "code": "NU1902",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "Pakiet „System.IdentityModel.Tokens.Jwt” 7.0.0 ma znane umiarkowana luki w zabezpieczeniach o ważności, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
+      "message": "Package 'System.IdentityModel.Tokens.Jwt' 7.0.0 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net9.0"

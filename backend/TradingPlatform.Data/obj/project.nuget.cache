@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "/NZq3TMc3dw=",
+  "dgSpecHash": "KQPa7wzyfgM=",
   "success": true,
-  "projectFilePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
+  "projectFilePath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\kubac\\.nuget\\packages\\automapper\\12.0.1\\automapper.12.0.1.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
@@ -78,6 +78,7 @@
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.win32.registry\\4.5.0\\microsoft.win32.registry.4.5.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\microsoft.win32.systemevents\\6.0.0\\microsoft.win32.systemevents.6.0.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\mono.texttemplating\\3.0.0\\mono.texttemplating.3.0.0.nupkg.sha512",
+    "C:\\Users\\kubac\\.nuget\\packages\\qrcoder\\1.4.3\\qrcoder.1.4.3.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\system.buffers\\4.6.0\\system.buffers.4.6.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\system.clientmodel\\1.0.0\\system.clientmodel.1.0.0.nupkg.sha512",
     "C:\\Users\\kubac\\.nuget\\packages\\system.codedom\\6.0.0\\system.codedom.6.0.0.nupkg.sha512",
@@ -120,9 +121,9 @@
       "code": "NU1603",
       "level": "Warning",
       "message": "TradingPlatform.Core depends on Microsoft.IdentityModel.Tokens (>= 6.40.0) but Microsoft.IdentityModel.Tokens 6.40.0 was not found. Microsoft.IdentityModel.Tokens 7.0.0 was resolved instead.",
-      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
+      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
+      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
       "libraryId": "Microsoft.IdentityModel.Tokens",
       "targetGraphs": [
         "net9.0"
@@ -132,9 +133,9 @@
       "code": "NU1603",
       "level": "Warning",
       "message": "TradingPlatform.Core depends on System.IdentityModel.Tokens.Jwt (>= 6.40.0) but System.IdentityModel.Tokens.Jwt 6.40.0 was not found. System.IdentityModel.Tokens.Jwt 7.0.0 was resolved instead.",
-      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
+      "projectPath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\P1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
+      "filePath": "C:\\Users\\kubac\\Desktop\\Studia\\p1\\trading_project\\backend\\TradingPlatform.Data\\TradingPlatform.Data.csproj",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net9.0"

@@ -11,4 +11,5 @@ public sealed record Instrument(
     string BaseCurrency,
     string QuoteCurrency,
     bool IsActive,
+    bool IsBlocked,
     DateTimeOffset CreatedAtUtc);
