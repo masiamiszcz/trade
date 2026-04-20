@@ -18,4 +18,12 @@ public interface IJwtTokenGenerator
     /// <param name="context">Custom claims context (session_id, totp_secret, registration_step, etc.)</param>
     /// <returns>JWT token</returns>
     string GenerateToken(User user, bool isTempToken, TradingPlatform.Core.Models.TokenContext? context = null);
+
+    /// <summary>
+    /// Validate JWT token and extract all claims
+    /// Used for 2FA verification flows where temp token contains TOTP secret in claims
+    /// </summary>
+    /// <param name="token">JWT token to validate</param>
+    /// <returns>Dictionary of claim names to values, or null if validation fails</returns>
+    System.Collections.Generic.Dictionary<string, string>? ValidateTokenAndGetClaims(string token);
 }

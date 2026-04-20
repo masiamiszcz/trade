@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAccountRepository, SqlAccountRepository>();
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IUserAuthService, UserAuthService>();
         services.AddScoped<IHealthService, HealthService>();
 
         // Configure settings

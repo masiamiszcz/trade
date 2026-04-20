@@ -97,4 +97,48 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    /// <summary>
+    /// Validate JWT token and extract all claims
+    /// Used for 2FA verification flows where temp token contains TOTP secret in claims
+    /// </summary>
+    public Dictionary<string, string>? ValidateTokenAndGetClaims(string token)
+    {
+        try
+        {
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            // Validate token signature and expiry
+            var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = key,
+                ValidateIssuer = true,
+                ValidIssuer = _jwtSettings.Issuer,
+                ValidateAudience = true,
+                ValidAudience = _jwtSettings.Audience,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            }, out SecurityToken validatedToken);
+
+            // Extract claims into dictionary
+            var claims = new Dictionary<string, string>();
+            foreach (var claim in principal.Claims)
+            {
+                // Skip adding duplicate keys, keep first value
+                if (!claims.ContainsKey(claim.Type))
+                {
+                    claims[claim.Type] = claim.Value;
+                }
+            }
+
+            return claims;
+        }
+        catch (Exception)
+        {
+            // Token is invalid (expired, tampered, invalid signature, etc.)
+            return null;
+        }
+    }
 }
