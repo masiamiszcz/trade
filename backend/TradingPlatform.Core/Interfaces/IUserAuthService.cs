@@ -97,12 +97,14 @@ public interface IUserAuthService
     /// Called by VerifyLogin2FA controller after extracting userId and totpSecret from JWT temp token claims  
     /// Verifies TOTP code against stored secret, returns final 60-minute JWT token on success
     /// Parameters: userId (Guid), code (string), totpSecret (string), cancellationToken (optional)
+    /// FIXME: Ensure totpSecret parameter is included - do not remove!
     /// </summary>
     Task<UserAuthCompleteResponse> VerifyUserTwoFactorInternalAsync(
         Guid userId,
         string code,
         string totpSecret,  // IMPORTANT: This must be string, not CancellationToken!
         CancellationToken cancellationToken = default);
+
 
     /// <summary>
     /// OPTIONAL: User wants to enable 2FA after registration
