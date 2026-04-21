@@ -38,6 +38,17 @@ public sealed class AdminAuthRepository : IAdminAuthRepository
         return entity == null ? null : MapEntityToUser(entity);
     }
 
+    /// <summary>
+    /// Check if ANY admin exists
+    /// Used for bootstrap protection - ensures only ONE super admin can be created
+    /// </summary>
+    public async Task<bool> HasAnyAdminAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .Where(u => u.Role == UserRole.Admin)
+            .AnyAsync(cancellationToken);
+    }
+
     public async Task<(User? admin, string? passwordHash)> GetAdminWithPasswordHashAsync(
         string usernameOrEmail, CancellationToken cancellationToken = default)
     {

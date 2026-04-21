@@ -24,12 +24,12 @@ namespace TradingPlatform.Api.Controllers;
 [Route("api/auth")]
 public sealed class AdminAuthController : ControllerBase
 {
-    private readonly AdminAuthService _authService;
+    private readonly IAdminAuthService _authService;
     private readonly ILogger<AdminAuthController> _logger;
     private readonly JwtSettings _jwtSettings;
 
     public AdminAuthController(
-        AdminAuthService authService, 
+        IAdminAuthService authService, 
         ILogger<AdminAuthController> logger,
         IOptions<JwtSettings> jwtSettings)
     {
@@ -58,7 +58,7 @@ public sealed class AdminAuthController : ControllerBase
     /// }
     /// </summary>
     [HttpGet("admin/setup-2fa/generate")]
-    [Authorize]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AdminTwoFactorSetupResponse>> GenerateTwoFactorSetup(
@@ -66,24 +66,96 @@ public sealed class AdminAuthController : ControllerBase
     {
         try
         {
-            // Extract admin ID from JWT claims
-            var adminIdClaim = User.FindFirst("sub");
-            if (adminIdClaim == null || !Guid.TryParse(adminIdClaim.Value, out var adminId))
-                return Unauthorized();
+            _logger.LogInformation("=== GenerateTwoFactorSetup: START ===");
+            
+            // Extract Authorization header
+            var authHeader = Request.Headers["Authorization"].ToString();
+            _logger.LogInformation("Auth Header Present: {Present}", !string.IsNullOrEmpty(authHeader));
+            
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                _logger.LogWarning("❌ No Bearer token in header");
+                return Unauthorized(new AdminAuthErrorResponse(401, "Missing or invalid Authorization header. Expected: Bearer <token>", "MISSING_TOKEN"));
+            }
 
-            // Verify this is a registration temp token
-            var registrationStepClaim = User.FindFirst("registration_step");
-            if (registrationStepClaim?.Value != "pending_2fa")
-                return Unauthorized(new AdminAuthErrorResponse(401, "Invalid token for 2FA setup", "INVALID_TOKEN_TYPE"));
+            var token = authHeader.Substring("Bearer ".Length).Trim();
+            _logger.LogInformation("Token length: {Length}", token.Length);
 
-            var response = await _authService.SetupTwoFactorGenerateAsync(adminId, cancellationToken);
+            // Manually validate JWT
+            var tokenHandler = new JwtSecurityTokenHandler();
+            tokenHandler.MapInboundClaims = false;  // ✅ Keep original claim names (sub, registration_step)
+            var key = Encoding.UTF8.GetBytes(_jwtSettings.Key);
 
-            return Ok(response);
+            try
+            {
+                var principal = tokenHandler.ValidateToken(token,
+                    new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ValidateIssuer = true,
+                        ValidIssuer = _jwtSettings.Issuer,
+                        ValidateAudience = true,
+                        ValidAudience = _jwtSettings.Audience,
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.FromMinutes(1)
+                    }, out SecurityToken validatedToken);
+
+                _logger.LogInformation("✅ Token validated successfully");
+
+                // Extract admin ID from 'sub' claim
+                var adminIdClaim = principal.FindFirst("sub");
+                if (adminIdClaim == null)
+                {
+                    _logger.LogWarning("❌ Missing 'sub' claim in JWT");
+                    // Log all claims for debugging
+                    var allClaims = string.Join(", ", principal.Claims.Select(c => $"{c.Type}={c.Value}"));
+                    _logger.LogWarning("Available claims: {Claims}", allClaims);
+                    return Unauthorized(new AdminAuthErrorResponse(401, "Missing 'sub' (admin ID) claim in JWT token", "MISSING_SUB_CLAIM"));
+                }
+
+                if (!Guid.TryParse(adminIdClaim.Value, out var adminId))
+                {
+                    _logger.LogWarning("❌ Invalid admin ID format: {Value}", adminIdClaim.Value);
+                    return Unauthorized(new AdminAuthErrorResponse(401, $"Invalid admin ID format in 'sub' claim: {adminIdClaim.Value}", "INVALID_ADMIN_ID"));
+                }
+
+                // Verify this is a registration temp token by checking 'registration_step' claim
+                var registrationStepClaim = principal.FindFirst("registration_step");
+                if (registrationStepClaim == null)
+                {
+                    _logger.LogWarning("⚠️ Missing 'registration_step' claim in JWT");
+                    return Unauthorized(new AdminAuthErrorResponse(401, "Missing 'registration_step' claim. Token must be from bootstrap/register endpoint.", "MISSING_REGISTRATION_STEP"));
+                }
+
+                if (registrationStepClaim.Value != "pending_2fa")
+                {
+                    _logger.LogWarning("❌ Invalid registration_step: {Value}", registrationStepClaim.Value);
+                    return Unauthorized(new AdminAuthErrorResponse(401, $"Invalid registration step: {registrationStepClaim.Value}. Expected: pending_2fa", "INVALID_REGISTRATION_STEP"));
+                }
+
+                _logger.LogInformation("✅ All validations passed. Generating 2FA setup for admin {AdminId}", adminId);
+
+                var response = await _authService.SetupTwoFactorGenerateAsync(adminId, cancellationToken);
+
+                _logger.LogInformation("✅ 2FA setup generated successfully");
+                return Ok(response);
+            }
+            catch (SecurityTokenException ex)
+            {
+                _logger.LogWarning(ex, "❌ JWT validation failed");
+                return Unauthorized(new AdminAuthErrorResponse(401, $"Token validation failed: {ex.Message}", "TOKEN_VALIDATION_FAILED"));
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "❌ JWT parsing error");
+                return Unauthorized(new AdminAuthErrorResponse(401, $"Token parsing error: {ex.Message}", "TOKEN_PARSE_ERROR"));
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate 2FA setup");
-            return StatusCode(500, new AdminAuthErrorResponse(500, "Setup generation failed", "INTERNAL_ERROR"));
+            _logger.LogError(ex, "❌ Failed to generate 2FA setup: {Message}", ex.Message);
+            return StatusCode(500, new AdminAuthErrorResponse(500, $"Setup generation failed: {ex.Message}", "INTERNAL_ERROR"));
         }
     }
 
@@ -92,9 +164,13 @@ public sealed class AdminAuthController : ControllerBase
     /// POST /api/auth/admin/setup-2fa/enable
     /// 
     /// Called after admin scans QR code and enters 6-digit code from authenticator.
-    /// Must match the code generated by the secret.
+    /// Must match the code generated by the secret stored in Redis.
     /// On success, returns 8 backup codes (MUST be saved by admin).
     /// After this, admin is fully registered and can login.
+    /// 
+    /// 🔐 SECURITY: Retrieves TOTP secret from Redis (NOT JWT!)
+    /// Uses sessionId from JWT to lookup secret in Redis
+    /// Deletes session from Redis after verification (cleanup)
     /// 
     /// Authorization: Temporary JWT token (from bootstrap or register endpoints)
     /// 
@@ -181,27 +257,29 @@ public sealed class AdminAuthController : ControllerBase
                     return Unauthorized(new AdminAuthErrorResponse(401, "Not a 2FA setup token", "WRONG_TOKEN_TYPE"));
                 }
 
-                var secretClaim = principal.FindFirst("totp_secret");
-                if (secretClaim == null)
+                // 🔐 SECURITY: Extract sessionId from REQUEST BODY (generated in /generate)
+                if (string.IsNullOrWhiteSpace(request.SessionId))
                 {
-                    _logger.LogWarning("❌ No totp_secret in token");
-                    return BadRequest(new AdminAuthErrorResponse(400, "No TOTP secret", "NO_SECRET"));
+                    _logger.LogWarning("❌ No SessionId in request body");
+                    return BadRequest(new AdminAuthErrorResponse(400, "Missing SessionId in request body. Must call /generate first to get sessionId.", "NO_SESSION"));
                 }
 
-                _logger.LogInformation("✅ All validations passed for admin {AdminId}", adminId);
+                var sessionId = request.SessionId;
+                _logger.LogInformation("✅ All validations passed for admin {AdminId}, sessionId={SessionId}", adminId, sessionId);
 
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
                 var userAgent = Request.Headers["User-Agent"].ToString();
 
+                // 🔐 SECURITY: Pass sessionId (Redis will fetch secret)
                 var response = await _authService.SetupTwoFactorEnableAsync(
                     adminId,
                     request.Code,
-                    secretClaim.Value,
+                    sessionId,  // ← Backend will fetch secret from Redis using this
                     ipAddress,
                     userAgent,
                     cancellationToken);
 
-                _logger.LogInformation("✅ 2FA enabled for admin {AdminId}", adminId);
+                _logger.LogInformation("✅ 2FA enabled for admin {AdminId}, Redis session cleaned up", adminId);
                 return Ok(response);
             }
             catch (SecurityTokenException ex)
@@ -590,6 +668,86 @@ public sealed class AdminAuthController : ControllerBase
     /// }
     /// 
     /// Response (201):
+    /// <summary>
+    /// Register admin via invitation token
+    /// POST /api/auth/admin/register
+    /// 
+    /// Called by invited admin to complete registration.
+    /// Frontend receives invitation link: https://app.com/admin/register?token=ABC123
+    /// Admin submits form with username, password, and token.
+    /// On success: Returns temp token for 2FA setup.
+    /// 
+    /// Authorization: None (public endpoint, token validates the request)
+    /// 
+    /// Request body:
+    /// {
+    ///   "token": "48h invitation token from email",
+    ///   "username": "john.doe",
+    ///   "password": "SecurePassword123!"
+    /// }
+    /// 
+    /// Response (201):
+    /// {
+    ///   "token": "temporary JWT (5 min, for 2FA setup)",
+    ///   "sessionId": "unique session id",
+    ///   "requiresTwoFactorSetup": true,
+    ///   "message": "Admin registered. You must set up 2FA..."
+    /// }
+    /// 
+    /// Response (400):
+    /// {
+    ///   "statusCode": 400,
+    ///   "message": "Invalid or expired token / Username already taken",
+    ///   "errorCode": "INVALID_TOKEN" / "USERNAME_TAKEN"
+    /// }
+    /// </summary>
+    [HttpPost("admin/register")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<AdminRegistrationResponse>> RegisterAdminViaInvitation(
+        [FromBody] AdminRegisterViaInviteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = Request.Headers["User-Agent"].ToString();
+
+            var response = await _authService.RegisterAdminViaInviteAsync(
+                request.Token,
+                request.Username,
+                request.Password,
+                ipAddress,
+                userAgent,
+                cancellationToken);
+
+            _logger.LogInformation("Admin registered via invitation successfully");
+
+            return CreatedAtAction(nameof(RegisterAdminViaInvitation), response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Registration failed: {Message}", ex.Message);
+
+            if (ex.Message.Contains("Username"))
+                return BadRequest(new AdminAuthErrorResponse(400, ex.Message, "USERNAME_TAKEN"));
+
+            if (ex.Message.Contains("Token") || ex.Message.Contains("expired") || ex.Message.Contains("invalid"))
+                return BadRequest(new AdminAuthErrorResponse(400, "Invalid or expired invitation token", "INVALID_TOKEN"));
+
+            return BadRequest(new AdminAuthErrorResponse(400, ex.Message, "REGISTRATION_FAILED"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Registration error");
+            return StatusCode(500, new AdminAuthErrorResponse(500, "Registration failed", "INTERNAL_ERROR"));
+        }
+    }
+
     /// {
     ///   "token": "temporary JWT (5 min, for 2FA setup)",
     ///   "sessionId": "unique session id",

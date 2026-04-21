@@ -16,6 +16,9 @@ public interface IAdminAuthRepository
     /// <summary>Get admin by username</summary>
     Task<User?> GetAdminByUserNameAsync(string username, CancellationToken cancellationToken = default);
 
+    /// <summary>Check if any admin exists (for bootstrap protection - ensures only ONE super admin)</summary>
+    Task<bool> HasAnyAdminAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Get admin with password hash (for login verification)</summary>
     Task<(User? admin, string? passwordHash)> GetAdminWithPasswordHashAsync(
         string usernameOrEmail, CancellationToken cancellationToken = default);

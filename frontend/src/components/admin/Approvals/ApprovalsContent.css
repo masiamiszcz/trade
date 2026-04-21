@@ -58,7 +58,7 @@
 }
 
 .approval-type {
-  color: #00d4ff;
+  color: #10b981;
   font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
@@ -209,7 +209,7 @@
 }
 
 .btn-confirm:hover {
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
   transform: translateY(-2px);
 }
 

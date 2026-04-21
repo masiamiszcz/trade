@@ -1,5 +1,5 @@
-import React from 'react';
-import React, { useState } from 'react';
+
+import { useState } from 'react';
 import { useAdminUsers } from '../../../hooks/admin/useAdminUsers';
 import { AdminUser } from '../../../types/admin';
 import './UsersContent.css';

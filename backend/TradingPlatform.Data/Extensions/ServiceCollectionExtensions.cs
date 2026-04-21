@@ -48,10 +48,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITwoFactorService, TwoFactorService>();
         services.AddScoped<IEncryptionService, EncryptionService>();
         
-        // TODO: Register admin auth services (requires IAdminInvitationService interface and repository)
-        // services.AddScoped<IAdminAuthRepository, AdminAuthRepository>();
-        // services.AddScoped<AdminAuthService>();
-        // services.AddScoped<AdminInvitationService>();
+        // Register admin auth services and repositories
+        services.AddScoped<IAdminAuthRepository, AdminAuthRepository>();
+        services.AddScoped<IAdminInvitationRepository, AdminInvitationRepository>();
+        services.AddScoped<IAdminAuditLogRepository, AdminAuditLogRepository>();
+        services.AddScoped<IAdminRegistrationLogRepository, AdminRegistrationLogRepository>();
+        services.AddScoped<IAdminInvitationService, AdminInvitationService>();
+        services.AddScoped<IAdminAuthService, AdminAuthService>();
 
         return services;
     }

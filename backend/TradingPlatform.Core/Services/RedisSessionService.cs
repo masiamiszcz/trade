@@ -381,4 +381,93 @@ public sealed class RedisSessionService : IRedisSessionService
             throw;
         }
     }
+
+    /// <summary>
+    /// Increment counter for rate limiting (login attempts, etc)
+    /// Atomic operation using Redis INCR
+    /// </summary>
+    public async Task<int> IncrementCounterAsync(
+        string key,
+        int ttlSeconds = 600,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            throw new ArgumentException("Counter key is required", nameof(key));
+
+        try
+        {
+            var db = _redis.GetDatabase();
+            var newCount = await db.StringIncrementAsync(key);
+            
+            // Set TTL on first increment
+            if (newCount == 1)
+            {
+                await db.KeyExpireAsync(key, TimeSpan.FromSeconds(ttlSeconds));
+            }
+
+            _logger.LogDebug("Redis: Incremented counter {Key}: {Count}", key, newCount);
+            return (int)newCount;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Redis: Error incrementing counter {Key}", key);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Get counter value for rate limit checks
+    /// </summary>
+    public async Task<int> GetCounterAsync(
+        string key,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return 0;
+
+        try
+        {
+            var db = _redis.GetDatabase();
+            var value = await db.StringGetAsync(key);
+
+            if (value.IsNull)
+                return 0;
+
+            if (int.TryParse(value.ToString(), out int count))
+                return count;
+
+            _logger.LogWarning("Redis: Invalid counter value for {Key}: {Value}", key, value);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Redis: Error getting counter {Key}", key);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Reset counter to 0 (on successful login)
+    /// </summary>
+    public async Task<bool> ResetCounterAsync(
+        string key,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return false;
+
+        try
+        {
+            var db = _redis.GetDatabase();
+            var deleted = await db.KeyDeleteAsync(key);
+
+            _logger.LogDebug("Redis: Reset counter {Key}", key);
+            return deleted;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Redis: Error resetting counter {Key}", key);
+            throw;
+        }
+    }
 }

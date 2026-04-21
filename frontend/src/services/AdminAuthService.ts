@@ -52,8 +52,26 @@ class AdminAuthService {
       }
 
       if (!response.ok) {
+        let message = parsedBody?.message || `HTTP error ${response.status}`;
+
+        // Status-specific error messages
+        if (response.status === 429) {
+          message =
+            'Zbyt wiele prób logowania. Spróbuj ponownie za około 5 minut.';
+        } else if (response.status === 423) {
+          message =
+            'Sesja zablokowana ze względu na zbyt wiele nieudanych prób weryfikacji 2FA. Zaloguj się ponownie za około 10 minut.';
+        } else if (response.status === 401 || response.status === 403) {
+          message = 'Nieautoryzowane. Sprawdź swoje dane.';
+        } else if (response.status === 400) {
+          message = parsedBody?.message || 'Błęd żądania. Sprawdź wprowadzone dane.';
+        } else if (response.status >= 500) {
+          message =
+            'Błąd serwera. Spróbuj ponownie za chwilę.';
+        }
+
         const apiError: ApiError = {
-          message: parsedBody?.message || `HTTP error ${response.status}`,
+          message,
           status: response.status,
         };
         return { error: apiError };

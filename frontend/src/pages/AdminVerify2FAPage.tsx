@@ -14,7 +14,7 @@ interface LocationState {
 export const AdminVerify2FAPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { session, setSession, isAuthenticated } = useAdminAuth();
+  const { token, isTempToken, setSession, clearSession, isAuthenticated } = useAdminAuth();
   const state = location.state as LocationState | null;
 
   const [loading, setLoading] = useState(false);
@@ -28,7 +28,8 @@ export const AdminVerify2FAPage: React.FC = () => {
     }
   }, [isAuthenticated, loading, navigate]);
 
-  if (!session.token || !session.isTempToken || !state) {
+  // Protect this page - must have temp token and sessionId
+  if (!token || !isTempToken || !state) {
     navigate('/admin/login');
     return null;
   }
@@ -43,7 +44,7 @@ export const AdminVerify2FAPage: React.FC = () => {
         code,
       };
 
-      const result = await adminAuthService.adminVerify2FA(request, session.token!);
+      const result = await adminAuthService.adminVerify2FA(request, token!);
 
       if (result.error) {
         const newAttempts = attempts + 1;
@@ -52,7 +53,7 @@ export const AdminVerify2FAPage: React.FC = () => {
         if (newAttempts >= 3) {
           setError('Zbyt wiele nieudanych prób. Zaloguj się ponownie.');
           setTimeout(() => {
-            setSession({ token: null, isTempToken: false });
+            clearSession();
             navigate('/admin/login');
           }, 2000);
         } else {
@@ -131,7 +132,7 @@ export const AdminVerify2FAPage: React.FC = () => {
           type="button"
           className="btn-link"
           onClick={() => {
-            setSession({ token: null, isTempToken: false });
+            clearSession();
             navigate('/admin/login');
           }}
         >

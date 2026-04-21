@@ -96,13 +96,8 @@ export const AdminRegisterPage: React.FC = () => {
         username: formData.username,
       });
 
-      // Redirect do setup 2FA
-      navigate('/admin/setup-2fa', {
-        state: {
-          manualKey: result.data.manualKey,
-          backupCodes: result.data.backupCodes,
-        },
-      });
+      // Redirect do setup 2FA - bez location state
+      navigate('/admin/setup-2fa');
     } catch (err) {
       setError('Nieznany błąd - sprawdź konsolę');
       console.error('Bootstrap error:', err);

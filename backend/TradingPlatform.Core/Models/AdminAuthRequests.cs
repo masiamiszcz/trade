@@ -41,7 +41,9 @@ public sealed record AdminVerifyTwoFactorRequest(
 /// </summary>
 public sealed record AdminSetupTwoFactorRequest(
     /// <summary>6-digit code from Google Authenticator (proves possession)</summary>
-    string Code
+    string Code,
+    /// <summary>Session ID from /generate endpoint (Redis lookup)</summary>
+    string SessionId
 );
 
 /// <summary>

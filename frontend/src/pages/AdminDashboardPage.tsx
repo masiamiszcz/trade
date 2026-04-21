@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/admin/useAdminAuth';
-import { isTokenExpired } from '../services/adminService';
 import { AdminSidebar } from '../components/admin/AdminSidebar';
 import { AdminNavbar } from '../components/admin/AdminNavbar';
+import { AdminHeader } from '../components/admin/AdminHeader';
 import { DashboardContent } from '../components/admin/Dashboard/DashboardContent';
 import { ApprovalsContent } from '../components/admin/Approvals/ApprovalsContent';
 import { InstrumentsContent } from '../components/admin/Instruments/InstrumentsContent';
@@ -16,23 +16,24 @@ type TabType = 'dashboard' | 'approvals' | 'instruments' | 'audit-logs' | 'users
 
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { session, clearSession } = useAdminAuth();
+  const { token, isTempToken, clearSession, isTokenExpired } = useAdminAuth();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
 
   // Protected route - check admin authentication and token expiration
   useEffect(() => {
-    if (!session.token || session.isTempToken) {
+    // Check if not authenticated or has temp token (not final JWT)
+    if (!token || isTempToken) {
       clearSession();
       navigate('/admin/login', { replace: true });
       return;
     }
 
     // Check if token is expired
-    if (isTokenExpired(session.token)) {
+    if (isTokenExpired()) {
       clearSession();
       navigate('/admin/login', { replace: true });
     }
-  }, [session.token, session.isTempToken, navigate, clearSession]);
+  }, [token, isTempToken, navigate, clearSession, isTokenExpired]);
 
   const handleLogout = () => {
     clearSession();
@@ -62,6 +63,7 @@ export const AdminDashboardPage: React.FC = () => {
       <div className="admin-layout">
         <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />
         <div className="admin-main">
+          <AdminHeader title={`${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Panel`} />
           <div className="admin-content">
             {renderContent()}
           </div>

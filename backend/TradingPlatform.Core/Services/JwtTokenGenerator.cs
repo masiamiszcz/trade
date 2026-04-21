@@ -80,6 +80,10 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             if (context.TwoFactorRequired)
                 claims.Add(new Claim("requires_2fa", "true"));
 
+            // Add admin registration step (for bootstrap/invite flow)
+            if (!string.IsNullOrWhiteSpace(context.AdminRegistrationStep))
+                claims.Add(new Claim("registration_step", context.AdminRegistrationStep));
+
             // ✅ SECURITY: NEVER add TotpSecret to JWT claims
             // TOTP secret is stored in Redis indexed by sessionId
             // Client sends back sessionId, backend looks up secret from Redis

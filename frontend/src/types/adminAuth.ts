@@ -23,6 +23,7 @@ export interface AdminVerify2FARequest {
 // Setup 2FA Request
 export interface AdminSetup2FARequest {
   code: string;
+  sessionId: string;  // ← From /generate response
 }
 
 // Register via Invitation Request

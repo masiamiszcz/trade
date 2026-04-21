@@ -7,6 +7,16 @@ import { UserSetup2FAPage } from './pages/UserSetup2FAPage';
 import { UserVerify2FAPage } from './pages/UserVerify2FAPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { useAuth } from './hooks/useAuth';
+
+// ===== ADMIN AUTH SYSTEM =====
+import { AdminAuthProvider } from './hooks/admin/AdminAuthContext';
+import { AdminLoginPage } from './pages/AdminLoginPage';
+import { AdminRegisterPage } from './pages/AdminRegisterPage';
+import { AdminRegisterViaInvitePage } from './pages/AdminRegisterViaInvitePage';
+import { AdminSetup2FAPage } from './pages/AdminSetup2FAPage';
+import { AdminVerify2FAPage } from './pages/AdminVerify2FAPage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
+
 import './App.css';
 
 const App: React.FC = () => {
@@ -16,7 +26,7 @@ const App: React.FC = () => {
   const isDashboard = location.pathname === '/dashboard';
 
   return (
-    <MainLayout isDashboard={isDashboard}>
+    <AdminAuthProvider>
       <Routes>
         <Route
           path="/"
@@ -40,12 +50,71 @@ const App: React.FC = () => {
         <Route path="/user/verify-2fa" element={<UserVerify2FAPage />} />
 
         {/* Dashboard */}
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <MainLayout isDashboard={isDashboard}>
+              <DashboardPage />
+            </MainLayout>
+          }
+        />
+
+        {/* ===== ADMIN AUTH ROUTES ===== */}
+        {/* Bootstrap super admin (one-time registration) */}
+        <Route
+          path="/admin/register"
+          element={
+            <MainLayout>
+              <AdminRegisterPage />
+            </MainLayout>
+          }
+        />
+
+        {/* Admin login + 2FA flow */}
+        <Route
+          path="/admin/login"
+          element={
+            <MainLayout>
+              <AdminLoginPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/admin/verify-2fa"
+          element={
+            <MainLayout>
+              <AdminVerify2FAPage />
+            </MainLayout>
+          }
+        />
+
+        {/* 2FA setup (after bootstrap/register) */}
+        <Route
+          path="/admin/setup-2fa"
+          element={
+            <MainLayout>
+              <AdminSetup2FAPage />
+            </MainLayout>
+          }
+        />
+
+        {/* Invite-based admin registration */}
+        <Route
+          path="/admin/register-invite"
+          element={
+            <MainLayout>
+              <AdminRegisterViaInvitePage />
+            </MainLayout>
+          }
+        />
+
+        {/* Admin dashboard (protected - NO MainLayout, standalone) */}
+        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </MainLayout>
+    </AdminAuthProvider>
   );
 };
 

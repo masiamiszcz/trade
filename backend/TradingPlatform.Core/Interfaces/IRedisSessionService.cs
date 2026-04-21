@@ -96,6 +96,32 @@ public interface IRedisSessionService
     Task<bool> DeleteSessionAsync(
         string sessionId,
         CancellationToken ct = default);
+
+    /// <summary>Increment login attempt counter (rate limiting, per IP)</summary>
+    /// <param name="key">Counter key (e.g., "auth:login:attempts:{ipAddress}")</param>
+    /// <param name="ttlSeconds">TTL for counter (5 min = 300, 10 min = 600)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>New counter value after increment</returns>
+    Task<int> IncrementCounterAsync(
+        string key,
+        int ttlSeconds = 600,
+        CancellationToken ct = default);
+
+    /// <summary>Get counter value (for rate limit checks)</summary>
+    /// <param name="key">Counter key</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Current counter value, 0 if key doesn't exist</returns>
+    Task<int> GetCounterAsync(
+        string key,
+        CancellationToken ct = default);
+
+    /// <summary>Reset counter to 0 (on successful login)</summary>
+    /// <param name="key">Counter key</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>True if reset successfully</returns>
+    Task<bool> ResetCounterAsync(
+        string key,
+        CancellationToken ct = default);
 }
 
 /// <summary>

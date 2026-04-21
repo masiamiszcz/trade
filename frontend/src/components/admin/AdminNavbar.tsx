@@ -10,7 +10,7 @@ interface AdminNavbarProps {
 
 export const AdminNavbar: React.FC<AdminNavbarProps> = ({ onLogout }) => {
   const navigate = useNavigate();
-  const { session, clearSession } = useAdminAuth();
+  const { username, clearSession } = useAdminAuth();
   const [currentTime, setCurrentTime] = useState<string>('');
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export const AdminNavbar: React.FC<AdminNavbarProps> = ({ onLogout }) => {
       <div className="admin-nav-right">
         <div className="user-info">
           <span className="user-icon">👤</span>
-          <span className="username">{session.username || 'Admin'}</span>
+          <span className="username">{username || 'Admin'}</span>
         </div>
 
         <button 

@@ -10,129 +10,6 @@
   color: #00d4ff;
   font-size: 28px;
   font-weight: 700;
-  margin: 0 0 24px 0;
-  letter-spacing: 0.5px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.stat-card {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(0, 132, 255, 0.1) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: 12px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 132, 255, 0.15) 100%);
-  border-color: rgba(0, 212, 255, 0.4);
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
-}
-
-.stat-label {
-  color: #a4b5d6;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.stat-value {
-  color: #00d4ff;
-  font-size: 32px;
-  font-weight: 700;
-}
-
-.stat-change {
-  color: #4caf50;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.stat-change.negative {
-  color: #f44336;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #a4b5d6;
-  font-size: 16px;
-}
-
-.error-banner {
-  padding: 12px 16px;
-  background-color: rgba(255, 71, 87, 0.1);
-  border: 1px solid #ff4757;
-  border-radius: 8px;
-  color: #ff4757;
-  margin-bottom: 16px;
-  font-weight: 500;
-}
-
-.dashboard-section {
-  background: rgba(26, 35, 50, 0.8);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 20px;
-}
-
-.section-title {
-  color: #00d4ff;
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0 0 16px 0;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
-}
-
-.section-content {
-  color: #a4b5d6;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-@media (max-width: 768px) {
-  .dashboard-content {
-    padding: 16px;
-  }
-
-  .dashboard-content h2 {
-    font-size: 22px;
-    margin-bottom: 16px;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .stat-value {
-    font-size: 24px;
-  }
-}
-/* DashboardContent Styles */
-
-.dashboard-content {
-  padding: 30px;
-  background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
-  min-height: 100vh;
-}
-
-.dashboard-content h2 {
-  color: #00d4ff;
-  font-size: 28px;
-  font-weight: 700;
   margin: 0 0 30px 0;
   letter-spacing: 0.5px;
 }
@@ -145,7 +22,7 @@
 
 .widget {
   background: linear-gradient(135deg, rgba(26, 35, 50, 0.8) 0%, rgba(15, 20, 25, 0.8) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.1);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -153,20 +30,20 @@
 }
 
 .widget:hover {
-  border-color: rgba(0, 212, 255, 0.3);
-  box-shadow: 0 15px 40px rgba(0, 212, 255, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 15px 40px rgba(16, 185, 129, 0.1);
   transform: translateY(-4px);
 }
 
 .widget-header {
   padding: 20px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
-  background: rgba(0, 212, 255, 0.05);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+  background: rgba(16, 185, 129, 0.05);
 }
 
 .widget-header h3 {
   margin: 0;
-  color: #00d4ff;
+  color: #10b981;
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -220,7 +97,7 @@
 }
 
 .health-info strong {
-  color: #00d4ff;
+  color: #10b981;
 }
 
 .health-message {
@@ -231,7 +108,50 @@
   border-top: 1px solid rgba(255, 193, 7, 0.2);
 }
 
-/* Requests Widget */
+/* Health Widget */
+
+.health-widget .health-status {
+  font-size: 18px;
+  font-weight: 700;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.health-widget .health-status.healthy,
+.health-widget .health-status.ok {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.health-widget .health-status.unavailable {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.health-message {
+  color: #a4b5d6;
+  font-size: 13px;
+  margin: 8px 0;
+  line-height: 1.6;
+  padding: 8px;
+  border-left: 2px solid rgba(16, 185, 129, 0.2);
+  padding-left: 12px;
+}
+
+.health-info {
+  color: #a4b5d6;
+  font-size: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+.health-info strong {
+  color: #10b981;
+}
 
 .stats-grid {
   display: grid;
@@ -243,20 +163,20 @@
   padding: 16px;
   border-radius: 8px;
   text-align: center;
-  background: rgba(0, 212, 255, 0.1);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   transition: all 0.3s;
 }
 
 .stat:hover {
-  border-color: rgba(0, 212, 255, 0.4);
-  background: rgba(0, 212, 255, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.15);
 }
 
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #00d4ff;
+  color: #10b981;
   margin-bottom: 8px;
 }
 
@@ -297,10 +217,10 @@
 
 .quick-link {
   padding: 12px;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(0, 132, 255, 0.1) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: 6px;
-  color: #00d4ff;
+  color: #10b981;
   text-decoration: none;
   font-weight: 600;
   text-align: center;
@@ -309,9 +229,9 @@
 }
 
 .quick-link:hover {
-  border-color: #00d4ff;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(0, 132, 255, 0.2) 100%);
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+  border-color: #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
 }
 
 /* Info Widget */
@@ -329,7 +249,7 @@
   color: #a4b5d6;
   font-size: 13px;
   padding: 8px;
-  border-left: 2px solid rgba(0, 212, 255, 0.2);
+  border-left: 2px solid rgba(16, 185, 129, 0.2);
   padding-left: 12px;
   line-height: 1.6;
 }
