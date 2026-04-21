@@ -39,6 +39,12 @@ public interface IAdminAuthRepository
 
     /// <summary>Update last login attempt timestamp</summary>
     Task UpdateLastLoginAttemptAsync(Guid adminId, CancellationToken cancellationToken = default);
+
+    /// <summary>Check if admin is super admin (used for invite privilege check)</summary>
+    Task<bool> IsUserSuperAdminAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Create admin entity with SuperAdmin flag (must call after CreateAdminAsync)</summary>
+    Task CreateAdminEntityAsync(Guid userId, bool isSuperAdmin, CancellationToken cancellationToken = default);
 }
     /// <summary>
     /// Repository for admin invitation management

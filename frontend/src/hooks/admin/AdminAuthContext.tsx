@@ -19,6 +19,7 @@ export interface AdminAuthContextState {
   adminId: string | null;             // Admin UUID
   username: string | null;            // Admin username
   email: string | null;               // Admin email (optional)
+  isSuperAdmin: boolean;              // ✨ Is this user a super admin? (from JWT claim)
 
   // ===== FLOW FLAGS =====
   isTempToken: boolean;               // Is this 5-min temp token?
@@ -50,6 +51,7 @@ export interface AdminSessionData {
   email?: string;
   isTempToken?: boolean;
   requiresTwoFactor?: boolean;
+  isSuperAdmin?: boolean;  // ✨ Will be parsed from JWT is_super_admin claim
 }
 
 // ===== CONTEXT CREATION =====
@@ -119,6 +121,17 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return parsed.email || null;
     } catch {
       return null;
+    }
+  });
+
+  const [isSuperAdmin, setIsSuperAdminState] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return false;
+      const parsed = JSON.parse(stored);
+      return parsed.isSuperAdmin === true;
+    } catch {
+      return false;
     }
   });
 
@@ -212,6 +225,15 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // ===== CALLBACK: Save session to state + localStorage =====
   const setSession = useCallback((sessionData: AdminSessionData) => {
+    // Parse JWT to extract is_super_admin claim
+    let parsedIsSuperAdmin = sessionData.isSuperAdmin ?? false;
+    if (sessionData.token) {
+      const payload = decodeJwtPayload(sessionData.token);
+      if (payload?.is_super_admin === 'true' || payload?.is_super_admin === true) {
+        parsedIsSuperAdmin = true;
+      }
+    }
+
     const newSessionState = {
       token: sessionData.token,
       sessionId: sessionData.sessionId ?? sessionId,
@@ -220,6 +242,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       email: sessionData.email ?? email,
       isTempToken: sessionData.isTempToken ?? isTempToken,
       requiresTwoFactor: sessionData.requiresTwoFactor ?? requiresTwoFactor,
+      isSuperAdmin: parsedIsSuperAdmin,
     };
 
     // Update state
@@ -230,6 +253,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setEmailState(newSessionState.email);
     setIsTempTokenState(newSessionState.isTempToken);
     setRequiresTwoFactorState(newSessionState.requiresTwoFactor);
+    setIsSuperAdminState(parsedIsSuperAdmin);
 
     // Persist to localStorage
     try {
@@ -238,12 +262,13 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         token: '***',
         sessionId: newSessionState.sessionId?.substring(0, 8),
         username: newSessionState.username,
+        isSuperAdmin: parsedIsSuperAdmin,
         isTempToken: newSessionState.isTempToken,
       });
     } catch (error) {
       console.error('[AdminAuth] Failed to persist session:', error);
     }
-  }, [sessionId, adminId, username, email, isTempToken, requiresTwoFactor]);
+  }, [sessionId, adminId, username, email, isTempToken, requiresTwoFactor, decodeJwtPayload]);
 
   // ===== CALLBACK: Clear session from state + localStorage =====
   const clearSession = useCallback(() => {
@@ -254,6 +279,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setEmailState(null);
     setIsTempTokenState(false);
     setRequiresTwoFactorState(false);
+    setIsSuperAdminState(false);
 
     try {
       localStorage.removeItem(STORAGE_KEY);
@@ -276,6 +302,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       adminId,
       username,
       email,
+      isSuperAdmin,
       isTempToken,
       requiresTwoFactor,
       isAuthenticated: token !== null && !isTempToken && !isTokenExpired(),
@@ -286,7 +313,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       getTokenExpiry,
       STORAGE_KEY,
     }),
-    [token, sessionId, adminId, username, email, isTempToken, requiresTwoFactor, setSession, clearSession, logout, isTokenExpired, getTokenExpiry]
+    [token, sessionId, adminId, username, email, isSuperAdmin, isTempToken, requiresTwoFactor, setSession, clearSession, logout, isTokenExpired, getTokenExpiry]
   );
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;

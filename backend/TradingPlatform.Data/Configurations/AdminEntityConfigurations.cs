@@ -168,3 +168,33 @@ public sealed class AdminAuditLogEntityConfiguration : IEntityTypeConfiguration<
         builder.HasIndex(x => x.Action);
     }
 }
+
+/// <summary>
+/// Entity Framework configuration for admin entity
+/// Represents admin privileges for a user (1:1 relationship with Users)
+/// </summary>
+public sealed class AdminEntityConfiguration : IEntityTypeConfiguration<AdminEntity>
+{
+    public void Configure(EntityTypeBuilder<AdminEntity> builder)
+    {
+        builder.ToTable("Admins");
+
+        // PK = FK to Users
+        builder.HasKey(x => x.UserId);
+
+        builder.Property(x => x.IsSuperAdmin)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        // Index on IsSuperAdmin for quick lookups
+        builder.HasIndex(x => x.IsSuperAdmin);
+
+        // 1:1 relationship with Users
+        // When a User is deleted, corresponding Admin record is deleted
+        builder.HasOne(x => x.User)
+            .WithOne()
+            .HasForeignKey<AdminEntity>(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
+    }
+}

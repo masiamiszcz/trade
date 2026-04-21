@@ -59,6 +59,19 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
     /// </summary>
     public string GenerateToken(User user, bool isTempToken, Models.TokenContext? context = null)
     {
+        return GenerateToken(user, isTempToken, context, isSuperAdmin: false);
+    }
+
+    /// <summary>
+    /// Generate JWT token with custom context for 2FA operations
+    /// isTempToken=true: 5 min (for 2FA verification - contains only sessionId + requires_2fa)
+    /// isTempToken=false: 60 min (for normal authenticated operations)
+    /// 
+    /// SECURITY: TOTP secrets are NEVER included in JWT
+    /// They are stored server-side in Redis and retrieved via sessionId
+    /// </summary>
+    public string GenerateToken(User user, bool isTempToken, Models.TokenContext? context, bool isSuperAdmin)
+    {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -88,6 +101,13 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             // TOTP secret is stored in Redis indexed by sessionId
             // Client sends back sessionId, backend looks up secret from Redis
             // This prevents exposure if JWT is intercepted
+        }
+
+        // ✨ Add is_super_admin claim (only for admins)
+        // Frontend uses this to show "Dodaj Admina" button
+        if (isSuperAdmin)
+        {
+            claims.Add(new Claim("is_super_admin", "true"));
         }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));

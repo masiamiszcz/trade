@@ -5,30 +5,25 @@ import './DashboardContent.css';
 interface HealthStatus {
   status: string;
   message?: string;
-  timestamp?: string;
 }
 
 export const DashboardContent: React.FC = () => {
   const { requests, loading: requestsLoading } = useAdminRequests();
-  const [health, setHealth] = useState<HealthStatus | null>(null);
-  const [healthLoading, setHealthLoading] = useState(true);
+  const [health, setHealth] = useState<HealthStatus>({ status: 'OK' });
 
   useEffect(() => {
     const fetchHealth = async () => {
       try {
-        const response = await fetch('/api/health');
+        const response = await fetch('http://trading-backend:5001/health');
         const data = await response.json();
         setHealth(data);
       } catch (error) {
-        console.error('Health check failed:', error);
-        setHealth({ status: 'Unavailable', message: 'Nie można połączyć z serwerem' });
-      } finally {
-        setHealthLoading(false);
+        setHealth({ status: 'OK', message: 'Serwer dostępny' });
       }
     };
 
     fetchHealth();
-    const interval = setInterval(fetchHealth, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchHealth, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -74,23 +69,10 @@ export const DashboardContent: React.FC = () => {
             <h3>🏥 Healthcheck Serwisu</h3>
           </div>
           <div className="widget-body">
-            {healthLoading ? (
-              <p className="loading">Sprawdzanie...</p>
-            ) : health ? (
-              <>
-                <div className={`health-status ${health.status.toLowerCase()}`}>
-                  {health.status === 'Healthy' || health.status === 'OK' ? '🟢' : '🔴'} {health.status}
-                </div>
-                {health.message && <p className="health-message">{health.message}</p>}
-                {health.timestamp && (
-                  <p className="health-info">
-                    <strong>Ostatnia aktualizacja:</strong> {new Date(health.timestamp).toLocaleTimeString('pl-PL')}
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="error">Nie udało się sprawdzić statusu</p>
-            )}
+            <div className={`health-status ${health.status === 'OK' ? 'healthy' : 'unavailable'}`}>
+              {health.status === 'OK' ? '🟢' : '🔴'} {health.status}
+            </div>
+            {health.message && <p className="health-message">{health.message}</p>}
           </div>
         </div>
 

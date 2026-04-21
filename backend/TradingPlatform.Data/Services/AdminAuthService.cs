@@ -116,6 +116,9 @@ public sealed class AdminAuthService : IAdminAuthService
             // Save to repository (repository should persist this)
             await _authRepository.CreateAdminAsync(user, passwordHash, cancellationToken);
 
+            // ✨ Create admin entity with IsSuperAdmin=false (invited admins are not super admins)
+            await _authRepository.CreateAdminEntityAsync(user.Id, isSuperAdmin: false, cancellationToken);
+
             // Mark invitation as used
             await _invitationService.MarkAsUsedAsync(token, adminId, cancellationToken);
 
@@ -521,7 +524,9 @@ public sealed class AdminAuthService : IAdminAuthService
             }
 
             // Generate final JWT token (60 min)
-            var finalToken = _jwtTokenGenerator.GenerateToken(admin, isTempToken: false);
+            // ✨ Check if user is super admin (for JWT claim)
+            var isSuperAdmin = await _authRepository.IsUserSuperAdminAsync(adminId, cancellationToken);
+            var finalToken = _jwtTokenGenerator.GenerateToken(admin, isTempToken: false, context: null, isSuperAdmin: isSuperAdmin);
             var expiresAt = DateTimeOffset.UtcNow.AddMinutes(60).ToUnixTimeSeconds();
 
             // Log successful 2FA
@@ -759,6 +764,9 @@ public sealed class AdminAuthService : IAdminAuthService
             var passwordHash = _passwordHasher.HashPassword(user, password);
             await _authRepository.CreateAdminAsync(user, passwordHash, cancellationToken);
 
+            // ✨ Create admin entity with IsSuperAdmin=true
+            await _authRepository.CreateAdminEntityAsync(user.Id, isSuperAdmin: true, cancellationToken);
+
             // Log bootstrap
             await LogRegistrationAsync(null, adminId, email,
                 AdminRegistrationAction.RegistrationCompleted, AdminRegistrationLogStatus.Success,
@@ -817,6 +825,14 @@ public sealed class AdminAuthService : IAdminAuthService
             var superAdmin = await _authRepository.GetAdminByIdAsync(superAdminId, cancellationToken);
             if (superAdmin == null)
                 throw new UnauthorizedAccessException("Super Admin not found");
+
+            // ✨ Verify that requester is actually a super admin
+            var isSuperAdmin = await _authRepository.IsUserSuperAdminAsync(superAdminId, cancellationToken);
+            if (!isSuperAdmin)
+            {
+                _logger.LogWarning("Non-super-admin {AdminId} attempted to invite new admin", superAdminId);
+                throw new UnauthorizedAccessException("Only Super Admin can invite new admins");
+            }
 
             // Generate invitation token
             var token = await _invitationService.GenerateInvitationAsync(

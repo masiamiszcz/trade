@@ -159,6 +159,50 @@ public sealed class AdminAuthRepository : IAdminAuthRepository
 
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Check if admin is super admin
+    /// Returns false if admin doesn't exist or is not in Admins table
+    /// </summary>
+    public async Task<bool> IsUserSuperAdminAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var admin = await _context.Admins
+            .Where(a => a.UserId == userId)
+            .FirstOrDefaultAsync(cancellationToken);
+        
+        return admin?.IsSuperAdmin ?? false;
+    }
+
+    /// <summary>
+    /// Create admin entity with SuperAdmin flag
+    /// Must be called AFTER CreateAdminAsync to ensure user exists
+    /// </summary>
+    public async Task CreateAdminEntityAsync(Guid userId, bool isSuperAdmin, CancellationToken cancellationToken = default)
+    {
+        // Verify user exists
+        var user = await _context.Users.FindAsync(new object[] { userId }, cancellationToken);
+        if (user == null)
+            throw new InvalidOperationException($"User {userId} not found. Call CreateAdminAsync first.");
+
+        // Check if admin record already exists (safety)
+        var existingAdmin = await _context.Admins
+            .Where(a => a.UserId == userId)
+            .FirstOrDefaultAsync(cancellationToken);
+        
+        if (existingAdmin != null)
+            throw new InvalidOperationException($"Admin record for user {userId} already exists");
+
+        // Create admin entity
+        var adminEntity = new AdminEntity
+        {
+            UserId = userId,
+            IsSuperAdmin = isSuperAdmin,
+            User = user
+        };
+
+        _context.Admins.Add(adminEntity);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }
 
 /// <summary>

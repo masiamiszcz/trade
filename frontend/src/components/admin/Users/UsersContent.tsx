@@ -1,12 +1,16 @@
 
 import { useState } from 'react';
 import { useAdminUsers } from '../../../hooks/admin/useAdminUsers';
+import { useAdminAuth } from '../../../hooks/admin/useAdminAuth';
 import { AdminUser } from '../../../types/admin';
+import { AdminInviteModal } from '../Modals/AdminInviteModal';
 import './UsersContent.css';
 
-export const UsersContent: React.FC = () => {
-  const { users, loading, error, changeUserRole } = useAdminUsers();
+export c{ adminId } = useAdminAuth();
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [newRole, setNewRole] = useState<'User' | 'Admin'>('User');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [inviteModalOpen, setInvitesetSelectedUser] = useState<AdminUser | null>(null);
   const [newRole, setNewRole] = useState<'User' | 'Admin'>('User');
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -36,7 +40,16 @@ export const UsersContent: React.FC = () => {
     );
   }
 
-  return (
+  returdiv className="content-header">
+        <h2>👥 Użytkownicy</h2>
+        <button 
+          className="btn-add-admin"
+          onClick={() => setInviteModalOpen(true)}
+          title="Tylko Super Admin może zapraszać nowych adminów"
+        >
+          ➕ Dodaj Admina
+        </button>
+      </div
     <div className="users-content">
       <h2>👥 Użytkownicy</h2>
 
@@ -123,6 +136,14 @@ export const UsersContent: React.FC = () => {
             </div>
             <div className="modal-footer">
               <button className="btn-cancel" onClick={() => setModalOpen(false)}>
+
+      <AdminInviteModal
+        isOpen={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        onSuccess={(token) => {
+          console.log('Invitation token:', token);
+        }}
+      />
                 Anuluj
               </button>
               <button className="btn-confirm" onClick={handleConfirm}>
