@@ -223,10 +223,10 @@ public sealed class UserAuthController : ControllerBase
                 return BadRequest(new { error = "TOTP secret missing from token - must provide 2FA temp token" });
 
             // Call service with extracted data
-            var response = await _userAuthService.VerifyUserTwoFactorInternalAsync(
-                userId,
-                request.Code,
-                cancellationToken);
+            var response = await _userAuthService.VerifyUserTwoFactorAsync(
+                sessionId: request.SessionId,
+                code: request.Code,
+                cancellationToken: cancellationToken);
 
             return Ok(response);
         }
