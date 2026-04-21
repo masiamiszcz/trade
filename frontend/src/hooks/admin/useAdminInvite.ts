@@ -30,7 +30,7 @@ export const useAdminInvite = () => {
       setSuccessMessage(null);
 
       try {
-        const response = await fetch('http://trading-backend:5001/api/auth/admin/invite', {
+        const response = await fetch('/api/auth/admin/invite', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

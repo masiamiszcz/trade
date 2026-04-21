@@ -44,8 +44,9 @@ public sealed class AdminAuthRepository : IAdminAuthRepository
     /// </summary>
     public async Task<bool> HasAnyAdminAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.Users
-            .Where(u => u.Role == UserRole.Admin)
+        // Check if any AdminEntity exists (more accurate than checking Users.Role==Admin)
+        // since AdminEntity is created after user creation
+        return await _context.Admins
             .AnyAsync(cancellationToken);
     }
 

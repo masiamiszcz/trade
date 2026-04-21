@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAdminUsers } from '../../../hooks/admin/useAdminUsers';
 import { useAdminAuth } from '../../../hooks/admin/useAdminAuth';
@@ -6,13 +5,13 @@ import { AdminUser } from '../../../types/admin';
 import { AdminInviteModal } from '../Modals/AdminInviteModal';
 import './UsersContent.css';
 
-export c{ adminId } = useAdminAuth();
+export const UsersContent = () => {
+  const { users, loading, error, changeUserRole } = useAdminUsers();
+  const { isSuperAdmin } = useAdminAuth();
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [newRole, setNewRole] = useState<'User' | 'Admin'>('User');
   const [modalOpen, setModalOpen] = useState(false);
-  const [inviteModalOpen, setInvitesetSelectedUser] = useState<AdminUser | null>(null);
-  const [newRole, setNewRole] = useState<'User' | 'Admin'>('User');
-  const [modalOpen, setModalOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   const handleChangeRole = (user: AdminUser) => {
     setSelectedUser(user);
@@ -40,18 +39,22 @@ export c{ adminId } = useAdminAuth();
     );
   }
 
-  returdiv className="content-header">
-        <h2>👥 Użytkownicy</h2>
-        <button 
-          className="btn-add-admin"
-          onClick={() => setInviteModalOpen(true)}
-          title="Tylko Super Admin może zapraszać nowych adminów"
-        >
-          ➕ Dodaj Admina
-        </button>
-      </div
+  return (
     <div className="users-content">
-      <h2>👥 Użytkownicy</h2>
+      {/* Header with title and invite button */}
+      <div className="content-header">
+        <h2>👥 Użytkownicy</h2>
+        {/* ✨ Button visible ONLY to Super Admin */}
+        {isSuperAdmin && (
+          <button 
+            className="btn-add-admin"
+            onClick={() => setInviteModalOpen(true)}
+            title="Zaproś nowego administratora (dostępne tylko dla Super Admin)"
+          >
+            ➕ Dodaj Admina
+          </button>
+        )}
+      </div>
 
       {error && <div className="error-banner">{error}</div>}
 
@@ -107,6 +110,7 @@ export c{ adminId } = useAdminAuth();
         </table>
       </div>
 
+      {/* Role change modal */}
       {modalOpen && selectedUser && (
         <div className="modal-overlay" onClick={() => setModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -136,14 +140,6 @@ export c{ adminId } = useAdminAuth();
             </div>
             <div className="modal-footer">
               <button className="btn-cancel" onClick={() => setModalOpen(false)}>
-
-      <AdminInviteModal
-        isOpen={inviteModalOpen}
-        onClose={() => setInviteModalOpen(false)}
-        onSuccess={(token) => {
-          console.log('Invitation token:', token);
-        }}
-      />
                 Anuluj
               </button>
               <button className="btn-confirm" onClick={handleConfirm}>
@@ -153,6 +149,16 @@ export c{ adminId } = useAdminAuth();
           </div>
         </div>
       )}
+
+      {/* Admin invitation modal */}
+      <AdminInviteModal
+        isOpen={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        onSuccess={(token) => {
+          console.log('Invitation token:', token);
+          setInviteModalOpen(false);
+        }}
+      />
     </div>
   );
 };

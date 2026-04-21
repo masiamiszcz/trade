@@ -63,6 +63,7 @@ builder.Services.AddAuthentication(options =>
 
     options.RequireHttpsMetadata = true;
     options.SaveToken = true;
+    options.MapInboundClaims = false;  // ✅ Keep original claim names for role authorization
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,

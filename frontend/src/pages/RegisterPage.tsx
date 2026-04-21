@@ -191,7 +191,7 @@ export const RegisterPage: React.FC = () => {
               className={fieldErrors.baseCurrency ? 'input-error' : ''}
             />
             {fieldErrors.baseCurrency && <span className="error-text">{fieldErrors.baseCurrency}</span>}
-          </div>
+          </div>  
 
           <button type="submit" disabled={loading || !isFormValid()}>
             {loading ? 'Rejestruję...' : 'Zarejestruj się'}
