@@ -73,6 +73,7 @@ export const LoginPage: React.FC = () => {
       if (response.requiresTwoFactor) {
         // 2FA enabled - store temp session and redirect to verification
         auth.setTempSession(response.token, response.sessionId);
+        // ℹ️ Don't set setLoading(false) here - navigate will trigger useEffect redirect
         navigate('/user/verify-2fa', {
           state: {
             sessionId: response.sessionId,
@@ -82,7 +83,8 @@ export const LoginPage: React.FC = () => {
         });
       } else {
         // 2FA disabled - token already set in AuthenticationService
-        navigate(from, { replace: true });
+        // ✅ Let useEffect handle the redirect based on auth.isAuthenticated
+        setLoading(false);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Błąd logowania';

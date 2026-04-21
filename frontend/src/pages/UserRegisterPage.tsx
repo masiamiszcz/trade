@@ -11,6 +11,13 @@ export const UserRegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const auth = useAuth();
 
+  // ✅ Redirect to dashboard if already authenticated (like LoginPage)
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [auth.isAuthenticated, navigate]);
+
   // Clear old temp session on component mount (from previous registration attempts)
   useEffect(() => {
     auth.clearTempSession();

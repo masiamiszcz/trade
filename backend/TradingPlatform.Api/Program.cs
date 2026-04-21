@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 using TradingPlatform.Api.Middleware;
 using TradingPlatform.Core.Extensions;
 using TradingPlatform.Core.Interfaces;
@@ -76,6 +77,33 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddDataServices(builder.Configuration);
+
+// 🔐 Enable HttpContext access for 2FA wrapper (extracts userId from JWT claims)
+builder.Services.AddHttpContextAccessor();
+
+// 🔐 Redis for 2FA session management
+// Stores TOTP secrets temporarily (not in JWT)
+// Manages rate limiting (failed attempts, lockout)
+var redisConnection = builder.Configuration.GetConnectionString("Redis")
+    ?? throw new InvalidOperationException(
+        "Redis connection string is not configured. Add 'ConnectionStrings:Redis' to appsettings.json");
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    try
+    {
+        var connection = ConnectionMultiplexer.Connect(redisConnection);
+        return connection;
+    }
+    catch (Exception ex)
+    {
+        throw new InvalidOperationException(
+            $"Failed to connect to Redis at {redisConnection}. Make sure Redis is running.", ex);
+    }
+});
+
+// Register Redis session service for 2FA
+builder.Services.AddScoped<IRedisSessionService, RedisSessionService>();
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<TradingPlatform.Data.Context.TradingPlatformDbContext>();

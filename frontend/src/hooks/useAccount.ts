@@ -18,8 +18,8 @@ export const useAccount = () => {
     setLoading(true);
     setError(null);
 
-    const baseUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '') || 'http://localhost:5001';
-    const url = `${baseUrl}/api/account/main`;
+    // ✅ Use relative /api path (goes through nginx, not direct to backend:5001)
+    const url = '/api/account/main';
 
     try {
       const response = await fetch(url, {

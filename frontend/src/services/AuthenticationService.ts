@@ -66,31 +66,36 @@ class AuthenticationService {
   }
 
   /**
-   * Store user token
+   * Store user token and emit event for useAuth hook to pick up
    */
   setUserToken(token: string): void {
     localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    // Emit custom event so useAuth hook updates in same tab (storage events don't fire in same tab!)
+    window.dispatchEvent(new CustomEvent('userTokenUpdated', { detail: { token } }));
   }
 
   /**
-   * Store admin token
+   * Store admin token and emit event
    */
   setAdminToken(token: string): void {
     localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+    window.dispatchEvent(new CustomEvent('adminTokenUpdated', { detail: { token } }));
   }
 
   /**
-   * Clear user token
+   * Clear user token and emit event
    */
   clearUserToken(): void {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
+    window.dispatchEvent(new CustomEvent('userTokenUpdated', { detail: { token: null } }));
   }
 
   /**
-   * Clear admin token
+   * Clear admin token and emit event
    */
   clearAdminToken(): void {
     localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+    window.dispatchEvent(new CustomEvent('adminTokenUpdated', { detail: { token: null } }));
   }
 
   /**
@@ -406,20 +411,17 @@ class AuthenticationService {
         tempTokenPreview: tempToken ? tempToken.substring(0, 20) + '...' : 'UNDEFINED',
       });
 
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${tempToken}`,
-      };
 
-      console.log('[userVerifyLogin2FA] Request headers:', {
-        'Content-Type': headers['Content-Type'],
-        'Authorization': headers['Authorization']?.substring(0, 30) + '...',
-      });
+
+
 
       const response = await httpClient.fetch<UserAuthCompleteResponse>({
         url: '/user/verify-2fa',
         method: 'POST',
-        headers,
+        headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${tempToken}`,
+        },
         body: JSON.stringify({ sessionId: request.sessionId, code: request.code }),
       });
 

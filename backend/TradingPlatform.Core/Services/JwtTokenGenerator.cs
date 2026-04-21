@@ -50,14 +50,15 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
     }
 
     /// <summary>
-    /// Generate JWT token with custom context for admin operations
-    /// isTempToken=true: 5 min (for 2FA setup/verification)
-    /// isTempToken=false: 60 min (for normal admin operations)
+    /// Generate JWT token with custom context for 2FA operations
+    /// isTempToken=true: 5 min (for 2FA verification - contains only sessionId + requires_2fa)
+    /// isTempToken=false: 60 min (for normal authenticated operations)
+    /// 
+    /// SECURITY: TOTP secrets are NEVER included in JWT
+    /// They are stored server-side in Redis and retrieved via sessionId
     /// </summary>
     public string GenerateToken(User user, bool isTempToken, Models.TokenContext? context = null)
     {
-        Console.WriteLine($"[GenerateToken] Called with isTempToken={isTempToken}, context={context}");
-        
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -68,39 +69,21 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             new("userId", user.Id.ToString())
         };
 
+        // Add context-specific claims (only safe ones)
         if (context != null)
         {
-            Console.WriteLine($"[GenerateToken] Context is NOT null");
-            Console.WriteLine($"[GenerateToken] context.SessionId={context.SessionId}");
-            Console.WriteLine($"[GenerateToken] context.TwoFactorRequired={context.TwoFactorRequired}");
-            Console.WriteLine($"[GenerateToken] context.TotpSecret={context.TotpSecret} (is null or empty: {string.IsNullOrWhiteSpace(context.TotpSecret)})");
-            
+            // Add sessionId - used to lookup secrets in Redis
             if (!string.IsNullOrWhiteSpace(context.SessionId))
                 claims.Add(new Claim("session_id", context.SessionId));
 
+            // Add 2FA requirement flag
             if (context.TwoFactorRequired)
                 claims.Add(new Claim("requires_2fa", "true"));
 
-            // Add TOTP secret for temp tokens used in 2FA verification
-            if (!string.IsNullOrWhiteSpace(context.TotpSecret))
-            {
-                Console.WriteLine($"[GenerateToken] Adding totp_secret claim!");
-                claims.Add(new Claim("totp_secret", context.TotpSecret));
-            }
-            else
-            {
-                Console.WriteLine($"[GenerateToken] WARNING: TotpSecret is null or empty, NOT adding claim!");
-            }
-        }
-        else
-        {
-            Console.WriteLine($"[GenerateToken] Context is null!");
-        }
-
-        Console.WriteLine($"[GenerateToken] Total claims: {claims.Count}");
-        foreach (var claim in claims)
-        {
-            Console.WriteLine($"[GenerateToken]   - {claim.Type}: {claim.Value}");
+            // ✅ SECURITY: NEVER add TotpSecret to JWT claims
+            // TOTP secret is stored in Redis indexed by sessionId
+            // Client sends back sessionId, backend looks up secret from Redis
+            // This prevents exposure if JWT is intercepted
         }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));

@@ -47,6 +47,25 @@ public interface IUserAuthService
 
     /// <summary>
     /// STEP 2 (Internal variant): User provides 2FA code from authenticator
+    /// <summary>
+    /// Registration STEP 2 (sessionId variant): Verify 2FA code and create user
+    /// Retrieves password + backup codes from Redis using sessionId
+    /// ✅ SECURE: Sensitive data never leaves server memory
+    /// </summary>
+    Task<UserRegistrationCompleteResponse> RegisterCompleteInternalAsync(
+        Guid userId,
+        string username,
+        string email,
+        string firstName,
+        string lastName,
+        string baseCurrency,
+        string code,
+        string sessionId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Registration STEP 2 (full param variant): Verify 2FA code and create user
+    /// Takes all parameters explicitly; used internally by sessionId overload
     /// Called by controller after extracting user data from JWT token claims
     /// Verifies 2FA code against the secret
     /// If valid: CREATES USER in database, saves encrypted TOTP secret, creates main account
@@ -60,7 +79,7 @@ public interface IUserAuthService
         string lastName,
         string baseCurrency,
         string code,
-        string totpSecret,
+        string sessionId,
         List<string> backupCodes,
         string password,
         CancellationToken cancellationToken = default);

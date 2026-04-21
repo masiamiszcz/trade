@@ -20,9 +20,11 @@ export const UserVerify2FAPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [attempts, setAttempts] = useState(0);
 
-  // Redirect to dashboard when authenticated (after setSession completes)
+  // ✅ Redirect to dashboard when auth token is set (after setUserToken in AuthenticationService)
+  // This works because useAuth now syncs with AuthenticationService via storage events
   useEffect(() => {
     if (auth.isAuthenticated && !loading) {
+      console.log('[UserVerify2FAPage] ✅ Authenticated, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
     }
   }, [auth.isAuthenticated, loading, navigate]);

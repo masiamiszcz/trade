@@ -83,8 +83,16 @@ public sealed class UserAuthController : ControllerBase
 
     /// <summary>
     /// Step 2 of user registration: Verify 2FA code and create user account
-    /// User is created in database only after successful 2FA verification
-    /// Extracts user data from JWT token claims
+    /// 
+    /// Security flow:
+    /// 1. Frontend sends temp token (from Step 1) in Authorization header
+    /// 2. Token contains: userId, sessionId, requires_2fa claim
+    /// 3. Backend extracts sessionId from token claims
+    /// 4. Backend retrieves TOTP secret from Redis using sessionId
+    /// 5. Backend verifies 2FA code against Redis-stored secret
+    /// 6. Backend creates user account + deletes Redis session
+    /// 
+    /// ✅ TOTP secret NEVER in JWT - stored in Redis instead!
     /// </summary>
     [HttpPost("register/verify-2fa")]
     [AllowAnonymous]
@@ -99,49 +107,33 @@ public sealed class UserAuthController : ControllerBase
 
             var token = authHeader.Substring("Bearer ".Length).Trim();
 
-            // Validate token and extract all claims
-            // This happens in JwtTokenGenerator.ValidateTokenAndGetClaims
+            // Validate token and extract claims
             var claims = _userAuthService.ValidateTokenAndExtractClaims(token);
             if (claims == null)
                 return Unauthorized(new { error = "Invalid or expired token" });
 
-            // Extract required data from claims
+            // Extract userId from token
             if (!Guid.TryParse(claims.GetValueOrDefault("userId") ?? claims.GetValueOrDefault("sub"), out var userId))
                 return BadRequest(new { error = "Invalid user ID in token" });
 
+            // 🔐 SECURITY: Extract sessionId (pointer to Redis where secret, password, backup codes are stored)
+            var sessionId = claims.GetValueOrDefault("session_id");
+            if (string.IsNullOrEmpty(sessionId))
+                return BadRequest(new { error = "Session ID missing from token" });
+
+            // Extract user metadata from token
             var username = claims.GetValueOrDefault("name") ?? claims.GetValueOrDefault("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name");
             var email = claims.GetValueOrDefault("email") ?? claims.GetValueOrDefault("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress");
             var firstName = claims.GetValueOrDefault("given_name") ?? "";
             var lastName = claims.GetValueOrDefault("family_name") ?? "";
             var baseCurrency = claims.GetValueOrDefault("baseCurrency") ?? "PLN";
-            var totpSecret = claims.GetValueOrDefault("totp_secret");
-            var backupCodesJson = claims.GetValueOrDefault("backup_codes");
-            var password = claims.GetValueOrDefault("password");
 
             if (string.IsNullOrEmpty(username))
                 return BadRequest(new { error = "Username missing from token" });
             if (string.IsNullOrEmpty(email))
                 return BadRequest(new { error = "Email missing from token" });
-            if (string.IsNullOrEmpty(totpSecret))
-                return BadRequest(new { error = "TOTP secret missing from token" });
-            if (string.IsNullOrEmpty(password))
-                return BadRequest(new { error = "Password missing from token" });
 
-            // Parse backup codes from JSON
-            var backupCodes = new List<string>();
-            if (!string.IsNullOrEmpty(backupCodesJson))
-            {
-                try
-                {
-                    backupCodes = System.Text.Json.JsonSerializer.Deserialize<List<string>>(backupCodesJson) ?? new List<string>();
-                }
-                catch
-                {
-                    return BadRequest(new { error = "Invalid backup codes in token" });
-                }
-            }
-
-            // Call service with extracted data
+            // Call service with sessionId (service will retrieve secret, password, backup codes from Redis)
             var response = await _userAuthService.RegisterCompleteInternalAsync(
                 userId,
                 username,
@@ -150,9 +142,7 @@ public sealed class UserAuthController : ControllerBase
                 lastName,
                 baseCurrency,
                 request.Code,
-                totpSecret,
-                backupCodes,
-                password,
+                sessionId,  // ← Service fetches secret, password, backup codes from Redis using this
                 cancellationToken);
 
             return Ok(response);
@@ -194,10 +184,13 @@ public sealed class UserAuthController : ControllerBase
     /// <summary>
     /// Step 2 of user login: Verify 2FA code (only required if user has 2FA enabled)
     /// Returns final token after successful 2FA verification
-    /// Extracts userId and totp_secret from JWT temp token claims
+    /// Uses sessionId (from temp token) to retrieve TOTP secret from Redis
+    /// 
+    /// Security: MUST use [Authorize] because wrapper extracts userId from httpContext.User
+    /// Frontend sends temp token in Authorization header - [Authorize] validates it
     /// </summary>
     [HttpPost("verify-2fa")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> VerifyLogin2FA([FromBody] UserVerifyLogin2FARequest request, CancellationToken cancellationToken)
     {
         try
@@ -209,7 +202,7 @@ public sealed class UserAuthController : ControllerBase
 
             var token = authHeader.Substring("Bearer ".Length).Trim();
 
-            // Validate token and extract all claims
+            // Validate token and extract claims
             var claims = _userAuthService.ValidateTokenAndExtractClaims(token);
             if (claims == null)
                 return Unauthorized(new { error = "Invalid or expired token" });
@@ -218,13 +211,14 @@ public sealed class UserAuthController : ControllerBase
             if (!Guid.TryParse(claims.GetValueOrDefault("userId") ?? claims.GetValueOrDefault("sub"), out var userId))
                 return BadRequest(new { error = "Invalid user ID in token" });
 
-            var totpSecret = claims.GetValueOrDefault("totp_secret");
-            if (string.IsNullOrEmpty(totpSecret))
-                return BadRequest(new { error = "TOTP secret missing from token - must provide 2FA temp token" });
+            // 🔐 SECURITY: Extract sessionId (pointer to Redis where TOTP secret is stored)
+            var sessionId = claims.GetValueOrDefault("session_id");
+            if (string.IsNullOrEmpty(sessionId))
+                return BadRequest(new { error = "Session ID missing from token - must provide 2FA temp token" });
 
-            // Call service with extracted data
+            // Call service with sessionId (service retrieves secret from Redis)
             var response = await _userAuthService.VerifyUserTwoFactorAsync(
-                sessionId: request.SessionId,
+                sessionId: sessionId,
                 code: request.Code,
                 cancellationToken: cancellationToken);
 

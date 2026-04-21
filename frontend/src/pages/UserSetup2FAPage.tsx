@@ -37,6 +37,14 @@ export const UserSetup2FAPage: React.FC = () => {
     }
   }, [state, navigate]);
 
+  // ✅ Auto-redirect to /dashboard when modal closed AND authenticated (same as login 2FA pattern)
+  useEffect(() => {
+    if (!showBackupCodesModal && auth.isAuthenticated) {
+      console.log('[UserSetup2FAPage] ✅ Registration complete, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [showBackupCodesModal, auth.isAuthenticated, navigate]);
+
   // ✅ Guard dla TypeScript i renderu
   if (!state || !state.manualKey) {
     return null;
@@ -69,8 +77,10 @@ export const UserSetup2FAPage: React.FC = () => {
   };
 
   const handleBackupCodesConfirm = () => {
+    // ✅ Clear temp session only (keep final token - user is logged in!)
     auth.clearTempSession();
-    navigate('/login', { replace: true });
+    // ✅ Close modal - triggers useEffect to navigate to /dashboard (because isAuthenticated=true)
+    setShowBackupCodesModal(false);
   };
 
   return (

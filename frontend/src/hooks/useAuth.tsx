@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
-import { authService } from '../services/AuthService';
+import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
+import { authService } from '../services/AuthenticationService';
 import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest } from '../types';
 
 interface AuthContextState {
@@ -18,7 +18,7 @@ interface AuthContextState {
 }
 
 const AuthContext = createContext<AuthContextState | undefined>(undefined);
-const STORAGE_KEY = 'trading-platform-auth-token';
+const STORAGE_KEY = 'auth_token'; // ✅ Match AuthenticationService.ts storage key!
 const TEMP_STORAGE_KEY = 'trading-platform-temp-token';
 const SESSION_STORAGE_KEY = 'trading-platform-session-id';
 
@@ -36,6 +36,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [requires2FA, setRequires2FA] = useState<boolean>(false);
+
+  // ✅ Sync with AuthenticationService.setUserToken() via custom event
+  // Using custom event instead of storage events because storage events 
+  // DON'T fire in the same tab where the write happens!
+  useEffect(() => {
+    const handleTokenUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const newToken = customEvent.detail?.token || null;
+      setToken(newToken);
+      console.log('[useAuth] 🔄 Token updated via userTokenUpdated event:', !!newToken);
+    };
+
+    window.addEventListener('userTokenUpdated', handleTokenUpdate);
+    return () => window.removeEventListener('userTokenUpdated', handleTokenUpdate);
+  }, []);
 
   const login = async (payload: LoginRequest): Promise<ApiResponse<AuthResponse>> => {
     try {

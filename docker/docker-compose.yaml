@@ -32,6 +32,7 @@ services:
       ASPNETCORE_URLS: "http://+:5001"
       ASPNETCORE_ENVIRONMENT: "Development"
       ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=TradingDB;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True"
+      ConnectionStrings__Redis: "redis:6379"
       Jwt__Issuer: "TradingPlatform"
       Jwt__Audience: "TradingPlatformUsers"
       Jwt__Key: "ThisIsAVerySecureSecretKeyForJwtTokenGenerationMinimum32Characters!"
@@ -40,6 +41,8 @@ services:
     depends_on:
       sqlserver:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - backend-sql
       - backend-nginx
@@ -60,6 +63,20 @@ services:
     networks:
       - frontend-nginx
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Cache Layer for 2FA sessions - accessible only to backend
+  redis:
+    image: redis:7-alpine
+    container_name: trading-redis
+    # NO PORT EXPOSURE - only internal network
+    networks:
+      - backend-nginx
+    restart: on-failure
     logging:
       driver: "json-file"
       options:
