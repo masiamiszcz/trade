@@ -84,15 +84,3 @@ public interface IAdminAuthRepository
         /// <summary>Save changes</summary>
         Task SaveChangesAsync(CancellationToken cancellationToken = default);
     }
-
-    /// <summary>
-    /// Repository for admin audit log
-    /// </summary>
-    public interface IAdminAuditLogRepository
-    {
-        /// <summary>Add audit log entry</summary>
-        Task AddAsync(dynamic log, CancellationToken cancellationToken = default);
-
-        /// <summary>Save changes</summary>
-        Task SaveChangesAsync(CancellationToken cancellationToken = default);
-    }

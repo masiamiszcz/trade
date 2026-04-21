@@ -247,6 +247,38 @@
   color: #10b981;
 }
 
+/* Invitation link display */
+.invitation-link-box {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.invitation-url-input {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #86efac;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  word-break: break-all;
+  transition: all 0.3s ease;
+}
+
+.invitation-url-input:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.6);
+  background: rgba(15, 23, 42, 1);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
 /* Form actions */
 .form-actions {
   display: flex;

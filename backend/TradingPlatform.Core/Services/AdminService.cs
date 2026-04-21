@@ -16,20 +16,26 @@ public sealed class AdminService : IAdminService
 {
     private readonly IAdminRequestRepository _adminRequestRepository;
     private readonly IAuditLogRepository _auditLogRepository;
+    private readonly IAdminAuditLogRepository _adminAuditLogRepository;
     private readonly IInstrumentRepository _instrumentRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<AdminService> _logger;
 
     public AdminService(
         IAdminRequestRepository adminRequestRepository,
         IAuditLogRepository auditLogRepository,
+        IAdminAuditLogRepository adminAuditLogRepository,
         IInstrumentRepository instrumentRepository,
+        IUserRepository userRepository,
         IMapper mapper,
         ILogger<AdminService> logger)
     {
         _adminRequestRepository = adminRequestRepository;
         _auditLogRepository = auditLogRepository;
+        _adminAuditLogRepository = adminAuditLogRepository;
         _instrumentRepository = instrumentRepository;
+        _userRepository = userRepository;
         _mapper = mapper;
         _logger = logger;
     }
@@ -74,6 +80,27 @@ public sealed class AdminService : IAdminService
 
         var instruments = await _instrumentRepository.GetAllAsync(cancellationToken);
         var dtos = instruments.Select(_mapper.Map<InstrumentDto>);
+
+        return dtos;
+    }
+
+    // ======== USER MANAGEMENT ========
+
+    public async Task<IEnumerable<UserListItemDto>> GetAllUsersAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving all users for admin dashboard");
+
+        var users = await _userRepository.GetAllUsersAsync(cancellationToken);
+        var dtos = users.Select(u => new UserListItemDto(
+            u.Id,
+            u.UserName,
+            u.Email,
+            u.FirstName,
+            u.LastName,
+            u.Role.ToString(),
+            u.Status.ToString(),
+            u.CreatedAtUtc
+        )).ToList();
 
         return dtos;
     }
@@ -386,6 +413,83 @@ public sealed class AdminService : IAdminService
         var dtos = items.Select(_mapper.Map<AuditLogDto>);
 
         return (dtos, totalCount);
+    }
+
+    // ======== ADMIN AUDIT LOG OPERATIONS ========
+
+    public async Task<IEnumerable<AdminAuditLogDto>> GetAdminAuditLogsAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving all admin audit logs");
+
+        var logs = await _adminAuditLogRepository.GetAllAsync(cancellationToken);
+        var admins = await _userRepository.GetAllUsersAsync(cancellationToken);
+        var adminDict = admins.ToDictionary(a => a.Id, a => a.UserName);
+
+        var dtos = logs.Select(log =>
+        {
+            adminDict.TryGetValue(log.AdminId, out string? adminUserName);
+            return new AdminAuditLogDto(
+                Id: log.Id,
+                AdminId: log.AdminId,
+                AdminUserName: adminUserName ?? "Unknown",
+                Action: log.Action.ToString(),
+                IpAddress: log.IpAddress,
+                UserAgent: log.UserAgent,
+                CreatedAtUtc: log.CreatedAt,
+                Details: log.Details);
+        });
+
+        return dtos;
+    }
+
+    public async Task<IEnumerable<AdminAuditLogDto>> GetAdminAuditLogsByAdminIdAsync(
+        Guid adminId,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving admin audit logs for admin {AdminId}", adminId);
+
+        var logs = await _adminAuditLogRepository.GetByAdminIdAsync(adminId, cancellationToken);
+        var admin = await _userRepository.GetByIdAsync(adminId, cancellationToken);
+        var adminUserName = admin?.UserName ?? "Unknown";
+
+        var dtos = logs.Select(log => new AdminAuditLogDto(
+            Id: log.Id,
+            AdminId: log.AdminId,
+            AdminUserName: adminUserName,
+            Action: log.Action.ToString(),
+            IpAddress: log.IpAddress,
+            UserAgent: log.UserAgent,
+            CreatedAtUtc: log.CreatedAt,
+            Details: log.Details));
+
+        return dtos;
+    }
+
+    public async Task<IEnumerable<AdminAuditLogDto>> GetRecentAdminAuditLogsAsync(
+        int count = 50,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving recent {Count} admin audit logs", count);
+
+        var logs = await _adminAuditLogRepository.GetRecentAsync(count, cancellationToken);
+        var admins = await _userRepository.GetAllUsersAsync(cancellationToken);
+        var adminDict = admins.ToDictionary(a => a.Id, a => a.UserName);
+
+        var dtos = logs.Select(log =>
+        {
+            adminDict.TryGetValue(log.AdminId, out string? adminUserName);
+            return new AdminAuditLogDto(
+                Id: log.Id,
+                AdminId: log.AdminId,
+                AdminUserName: adminUserName ?? "Unknown",
+                Action: log.Action.ToString(),
+                IpAddress: log.IpAddress,
+                UserAgent: log.UserAgent,
+                CreatedAtUtc: log.CreatedAt,
+                Details: log.Details);
+        });
+
+        return dtos;
     }
 
     // ======== HELPER METHODS ========

@@ -15,7 +15,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, onTabChan
     { id: 'dashboard', label: '📊 Dashboard', icon: '📊' },
     { id: 'approvals', label: '✅ Zatwierdzenia', icon: '✅' },
     { id: 'instruments', label: '🛠️ Instrumenty', icon: '🛠️' },
-    { id: 'audit-logs', label: '📋 Historia', icon: '📋' },
+    { id: 'audit-logs', label: '📋 Logi Obiektów', icon: '📋' },
     { id: 'users', label: '👥 Użytkownicy', icon: '👥' },
   ] as const;
 

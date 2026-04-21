@@ -10,6 +10,7 @@ import { ApprovalsContent } from '../components/admin/Approvals/ApprovalsContent
 import { InstrumentsContent } from '../components/admin/Instruments/InstrumentsContent';
 import { AuditLogsContent } from '../components/admin/Auditlogs/AuditLogsContent';
 import { UsersContent } from '../components/admin/Users/UsersContent';
+// import AdminAuditLogsContent from '../components/admin/Auditlogs/AdminAuditLogsContent';
 import './AdminDashboardPage.css';
 
 type TabType = 'dashboard' | 'approvals' | 'instruments' | 'audit-logs' | 'users';
@@ -52,6 +53,8 @@ export const AdminDashboardPage: React.FC = () => {
         return <AuditLogsContent />;
       case 'users':
         return <UsersContent />;
+      // case 'history':
+      //   return <AdminAuditLogsContent />;
       default:
         return <DashboardContent />;
     }

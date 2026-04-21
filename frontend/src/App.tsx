@@ -16,6 +16,7 @@ import { AdminRegisterViaInvitePage } from './pages/AdminRegisterViaInvitePage';
 import { AdminSetup2FAPage } from './pages/AdminSetup2FAPage';
 import { AdminVerify2FAPage } from './pages/AdminVerify2FAPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AdminRegisterWrapper } from './pages/AdminRegisterWrapper';
 
 import './App.css';
 
@@ -60,12 +61,12 @@ const App: React.FC = () => {
         />
 
         {/* ===== ADMIN AUTH ROUTES ===== */}
-        {/* Bootstrap super admin (one-time registration) */}
+        {/* Admin registration - bootstrap (no token) or invitation (with token) */}
         <Route
           path="/admin/register"
           element={
             <MainLayout>
-              <AdminRegisterPage />
+              <AdminRegisterWrapper />
             </MainLayout>
           }
         />
@@ -94,16 +95,6 @@ const App: React.FC = () => {
           element={
             <MainLayout>
               <AdminSetup2FAPage />
-            </MainLayout>
-          }
-        />
-
-        {/* Invite-based admin registration */}
-        <Route
-          path="/admin/register-invite"
-          element={
-            <MainLayout>
-              <AdminRegisterViaInvitePage />
             </MainLayout>
           }
         />

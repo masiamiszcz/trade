@@ -10,6 +10,8 @@ public interface IUserRepository
 
     Task<(User? user, string? passwordHash)> GetByUserNameOrEmailWithPasswordHashAsync(string userNameOrEmail, CancellationToken cancellationToken = default);
 
+    Task<IEnumerable<User>> GetAllUsersAsync(CancellationToken cancellationToken = default);
+
     Task AddAsync(User user, string passwordHash, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

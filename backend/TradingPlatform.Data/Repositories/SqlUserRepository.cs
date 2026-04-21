@@ -70,6 +70,12 @@ public sealed class SqlUserRepository : IUserRepository
         _dbContext.Users.Add(entity);
     }
 
+    public async Task<IEnumerable<User>> GetAllUsersAsync(CancellationToken cancellationToken = default)
+    {
+        var entities = await _dbContext.Users.ToListAsync(cancellationToken);
+        return entities.Select(MapToDomain).ToList();
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _dbContext.SaveChangesAsync(cancellationToken);
 

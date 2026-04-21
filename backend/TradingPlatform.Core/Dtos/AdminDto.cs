@@ -55,3 +55,30 @@ public sealed record AuditLogDto(
     string Details,
     string IpAddress,
     DateTimeOffset CreatedAtUtc);
+
+/// <summary>
+/// DTO for listing users in admin panel
+/// </summary>
+public sealed record UserListItemDto(
+    Guid Id,
+    string UserName,
+    string Email,
+    string FirstName,
+    string LastName,
+    string Role,
+    string Status,
+    DateTimeOffset CreatedAtUtc);
+
+/// <summary>
+/// Data Transfer Object for AdminAuditLog
+/// Used in API responses for admin action history
+/// </summary>
+public sealed record AdminAuditLogDto(
+    Guid Id,
+    Guid AdminId,
+    string AdminUserName,
+    string Action,
+    string IpAddress,
+    string UserAgent,
+    DateTimeOffset CreatedAtUtc,
+    string? Details);

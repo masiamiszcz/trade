@@ -300,22 +300,39 @@ public sealed class AdminAuditLogRepository : IAdminAuditLogRepository
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
-    public async Task AddAsync(dynamic log, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<dynamic>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        _context.AdminAuditLogs.Add((AdminAuditLogEntity)log);
-        await Task.CompletedTask;
+        var results = await _context.AdminAuditLogs
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return results.Cast<dynamic>().ToList();
     }
 
-    public async Task<List<AdminAuditLogEntity>> GetByAdminIdAsync(Guid adminId, int? limit = null, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<dynamic>> GetByAdminIdAsync(Guid adminId, CancellationToken cancellationToken = default)
     {
-        var query = _context.AdminAuditLogs
+        var results = await _context.AdminAuditLogs
             .Where(x => x.AdminId == adminId)
-            .OrderByDescending(x => x.CreatedAt) as IQueryable<AdminAuditLogEntity>;
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return results.Cast<dynamic>().ToList();
+    }
 
-        if (limit.HasValue)
-            query = query.Take(limit.Value);
+    public async Task<IEnumerable<dynamic>> GetRecentAsync(int count = 50, CancellationToken cancellationToken = default)
+    {
+        var results = await _context.AdminAuditLogs
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(count)
+            .ToListAsync(cancellationToken);
+        return results.Cast<dynamic>().ToList();
+    }
 
-        return await query.ToListAsync(cancellationToken);
+    public async Task AddAsync(dynamic log, CancellationToken cancellationToken = default)
+    {
+        if (log is AdminAuditLogEntity entity)
+        {
+            _context.AdminAuditLogs.Add(entity);
+        }
+        await Task.CompletedTask;
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)

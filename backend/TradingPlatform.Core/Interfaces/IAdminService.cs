@@ -25,6 +25,11 @@ public interface IAdminService
     Task<IEnumerable<AdminRequestDto>> GetPendingRequestsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Get all users for admin management
+    /// </summary>
+    Task<IEnumerable<UserListItemDto>> GetAllUsersAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Get a specific admin request by ID
     /// </summary>
     Task<AdminRequestDto> GetRequestByIdAsync(Guid requestId, CancellationToken cancellationToken = default);
@@ -107,4 +112,21 @@ public interface IAdminService
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken = default);
+
+    // ADMIN AUDIT LOG OPERATIONS
+
+    /// <summary>
+    /// Get all admin action audit logs
+    /// </summary>
+    Task<IEnumerable<AdminAuditLogDto>> GetAdminAuditLogsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get admin action audit logs for specific admin
+    /// </summary>
+    Task<IEnumerable<AdminAuditLogDto>> GetAdminAuditLogsByAdminIdAsync(Guid adminId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get recent admin action audit logs
+    /// </summary>
+    Task<IEnumerable<AdminAuditLogDto>> GetRecentAdminAuditLogsAsync(int count = 50, CancellationToken cancellationToken = default);
 }

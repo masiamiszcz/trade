@@ -53,6 +53,10 @@ export const AdminInviteModal: React.FC<AdminInviteModalProps> = ({
     onClose();
   };
 
+  const getInvitationUrl = () => {
+    return `${window.location.origin}/admin/register?token=${invitationToken}`;
+  };
+
   if (!isOpen) return null;
 
   if (showSuccess) {
@@ -65,17 +69,23 @@ export const AdminInviteModal: React.FC<AdminInviteModalProps> = ({
             <h2>✅ Link Zaproszenia Wygenerowany</h2>
             
             <div className="success-message">
-              <p>Nowy admin może się zalogować przy użyciu tego linku:</p>
-              <div className="invitation-token-box">
-                <code>{invitationToken}</code>
+              <p>Prześlij ten link do nowego administratora:</p>
+              <div className="invitation-link-box">
+                <input 
+                  type="text"
+                  value={getInvitationUrl()}
+                  readOnly
+                  className="invitation-url-input"
+                />
                 <button 
+                  type="button"
                   className="copy-btn"
                   onClick={() => {
-                    navigator.clipboard.writeText(invitationToken);
-                    alert('Link skopiowany do schowka!');
+                    navigator.clipboard.writeText(getInvitationUrl());
+                    alert('Link skopiowany do schowka! ✅');
                   }}
                 >
-                  📋 Kopiuj
+                  📋 Kopiuj Link
                 </button>
               </div>
               <p className="token-info">

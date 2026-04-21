@@ -1,34 +1,17 @@
-import { useState } from 'react';
-import { useAdminUsers } from '../../../hooks/admin/useAdminUsers';
+import { useEffect, useState } from 'react';
+import { useGetUsers } from '../../../hooks/admin/useGetUsers';
 import { useAdminAuth } from '../../../hooks/admin/useAdminAuth';
-import { AdminUser } from '../../../types/admin';
 import { AdminInviteModal } from '../Modals/AdminInviteModal';
 import './UsersContent.css';
 
 export const UsersContent = () => {
-  const { users, loading, error, changeUserRole } = useAdminUsers();
+  const { users, loading, error, fetchUsers } = useGetUsers();
   const { isSuperAdmin } = useAdminAuth();
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  const [newRole, setNewRole] = useState<'User' | 'Admin'>('User');
-  const [modalOpen, setModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
-  const handleChangeRole = (user: AdminUser) => {
-    setSelectedUser(user);
-    setNewRole(user.role === 'Admin' ? 'User' : 'Admin');
-    setModalOpen(true);
-  };
-
-  const handleConfirm = async () => {
-    if (!selectedUser) return;
-    try {
-      await changeUserRole(selectedUser.id, newRole);
-      setModalOpen(false);
-      setSelectedUser(null);
-    } catch (err) {
-      console.error('Error:', err);
-    }
-  };
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   if (loading) {
     return (
@@ -65,10 +48,10 @@ export const UsersContent = () => {
               <th>ID</th>
               <th>Nazwa Użytkownika</th>
               <th>Email</th>
+              <th>Imię i Nazwisko</th>
               <th>Rola</th>
+              <th>Status</th>
               <th>Data Rejestracji</th>
-              <th>Ostatnie Logowanie</th>
-              <th>Akcje</th>
             </tr>
           </thead>
           <tbody>
@@ -82,27 +65,20 @@ export const UsersContent = () => {
               users.map((user) => (
                 <tr key={user.id}>
                   <td className="id-cell">{user.id.substring(0, 8)}</td>
-                  <td className="username-cell">{user.username}</td>
+                  <td className="username-cell">{user.userName}</td>
                   <td>{user.email}</td>
+                  <td>{user.firstName} {user.lastName}</td>
                   <td>
                     <span className={`role-badge role-${user.role.toLowerCase()}`}>
                       {user.role}
                     </span>
                   </td>
-                  <td>{new Date(user.createdAt).toLocaleDateString('pl-PL')}</td>
                   <td>
-                    {user.lastLogin
-                      ? new Date(user.lastLogin).toLocaleString('pl-PL')
-                      : 'Nigdy'}
+                    <span className={`status-badge status-${user.status.toLowerCase()}`}>
+                      {user.status}
+                    </span>
                   </td>
-                  <td>
-                    <button
-                      className="btn-change-role"
-                      onClick={() => handleChangeRole(user)}
-                    >
-                      🔄 Zmień Role
-                    </button>
-                  </td>
+                  <td>{new Date(user.createdAtUtc).toLocaleDateString('pl-PL')}</td>
                 </tr>
               ))
             )}
@@ -111,45 +87,6 @@ export const UsersContent = () => {
       </div>
 
       {/* Role change modal */}
-      {modalOpen && selectedUser && (
-        <div className="modal-overlay" onClick={() => setModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>🔄 Zmiana Roli Użytkownika</h2>
-            </div>
-            <div className="modal-body">
-              <p className="modal-description">
-                Zmieniasz rolę dla użytkownika <strong>{selectedUser.username}</strong>
-              </p>
-              <div className="role-change">
-                <div className="current-role">
-                  <strong>Obecna rola:</strong>
-                  <span className={`role-badge role-${selectedUser.role.toLowerCase()}`}>
-                    {selectedUser.role}
-                  </span>
-                </div>
-                <div className="arrow">→</div>
-                <div className="new-role">
-                  <strong>Nowa rola:</strong>
-                  <span className={`role-badge role-${newRole.toLowerCase()}`}>
-                    {newRole}
-                  </span>
-                </div>
-              </div>
-              <p className="warning">⚠️ Ta akcja będzie zarejestrowana w logach audytu</p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setModalOpen(false)}>
-                Anuluj
-              </button>
-              <button className="btn-confirm" onClick={handleConfirm}>
-                🔄 Zmień Role
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Admin invitation modal */}
       <AdminInviteModal
         isOpen={inviteModalOpen}

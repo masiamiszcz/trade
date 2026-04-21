@@ -63,7 +63,7 @@ builder.Services.AddAuthentication(options =>
 
     options.RequireHttpsMetadata = true;
     options.SaveToken = true;
-    options.MapInboundClaims = false;  // ✅ Keep original claim names for role authorization
+    options.MapInboundClaims = true;  // ✅ Map JWT claims to standard claim types for role/policy support
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -75,6 +75,12 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
         ClockSkew = TimeSpan.FromMinutes(1)
     };
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SuperAdmin", policy =>
+        policy.RequireClaim("is_super_admin"));
 });
 
 builder.Services.AddDataServices(builder.Configuration);
