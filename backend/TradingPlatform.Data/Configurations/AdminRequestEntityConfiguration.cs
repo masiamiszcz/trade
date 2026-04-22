@@ -3,6 +3,7 @@ namespace TradingPlatform.Data.Configurations;
 // AdminRequestEntityConfiguration
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using TradingPlatform.Core.Enums;
 using TradingPlatform.Data.Entities;
 
 
@@ -41,8 +42,7 @@ public sealed class AdminRequestEntityConfiguration : IEntityTypeConfiguration<A
 
         builder.Property(x => x.Status)
             .HasMaxLength(20)
-            .IsRequired()
-            .HasDefaultValue("Pending");
+            .IsRequired();
 
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired()

@@ -37,7 +37,7 @@ public sealed class SqlInstrumentRepository : IInstrumentRepository
     public async Task<IEnumerable<Instrument>> GetAllActiveAsync(CancellationToken cancellationToken = default)
     {
         var entities = await _dbContext.Instruments
-            .Where(x => x.IsActive && !x.IsBlocked)
+            .Where(x => x.Status == TradingPlatform.Core.Enums.InstrumentStatus.Approved && !x.IsBlocked)
             .ToListAsync(cancellationToken);
         return entities.Select(MapToDomain);
     }
@@ -49,13 +49,18 @@ public sealed class SqlInstrumentRepository : IInstrumentRepository
             Id = instrument.Id,
             Symbol = instrument.Symbol,
             Name = instrument.Name,
+            Description = instrument.Description,
             Type = instrument.Type,
             Pillar = instrument.Pillar,
             BaseCurrency = instrument.BaseCurrency,
             QuoteCurrency = instrument.QuoteCurrency,
-            IsActive = instrument.IsActive,
+            Status = instrument.Status,
             IsBlocked = instrument.IsBlocked,
-            CreatedAtUtc = instrument.CreatedAtUtc
+            CreatedBy = instrument.CreatedBy,
+            CreatedAtUtc = instrument.CreatedAtUtc,
+            ModifiedBy = instrument.ModifiedBy,
+            ModifiedAtUtc = instrument.ModifiedAtUtc,
+            RowVersion = instrument.RowVersion
         };
 
         _dbContext.Instruments.Add(entity);
@@ -70,12 +75,16 @@ public sealed class SqlInstrumentRepository : IInstrumentRepository
 
         entity.Symbol = instrument.Symbol;
         entity.Name = instrument.Name;
+        entity.Description = instrument.Description;
         entity.Type = instrument.Type;
         entity.Pillar = instrument.Pillar;
         entity.BaseCurrency = instrument.BaseCurrency;
         entity.QuoteCurrency = instrument.QuoteCurrency;
-        entity.IsActive = instrument.IsActive;
+        entity.Status = instrument.Status;
         entity.IsBlocked = instrument.IsBlocked;
+        entity.ModifiedBy = instrument.ModifiedBy;
+        entity.ModifiedAtUtc = instrument.ModifiedAtUtc;
+        entity.RowVersion = instrument.RowVersion;
 
         _dbContext.Instruments.Update(entity);
         await Task.CompletedTask;
@@ -99,11 +108,16 @@ public sealed class SqlInstrumentRepository : IInstrumentRepository
             entity.Id,
             entity.Symbol,
             entity.Name,
+            entity.Description,
             entity.Type,
             entity.Pillar,
             entity.BaseCurrency,
             entity.QuoteCurrency,
-            entity.IsActive,
+            entity.Status,
             entity.IsBlocked,
-            entity.CreatedAtUtc);
+            entity.CreatedBy,
+            entity.CreatedAtUtc,
+            entity.ModifiedBy,
+            entity.ModifiedAtUtc,
+            entity.RowVersion);
 }

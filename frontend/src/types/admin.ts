@@ -1,43 +1,101 @@
 // Admin Types
 // Admin Panel Types
 
-export type AdminRequestType = 'Create' | 'Update' | 'Delete' | 'Approve';
-export type AdminRequestStatus = 'pending' | 'approved' | 'rejected';
-export type InstrumentType = 'Forex' | 'Commodity' | 'Crypto' | 'Stock' | 'CFD';
-export type InstrumentStatus = 'draft' | 'pending' | 'approved' | 'rejected';
-export type UserRole = 'User' | 'Admin';
+// === BACKEND-ALIGNED ENUMS ===
 
-// Admin Request (do zatwierdzenia)
-export interface AdminRequest {
-  id: string;
-  requestedBy: string;
-  action: AdminRequestType;
-  status: AdminRequestStatus;
-  entityType: string;
-  entityId: string;
-  details: Record<string, any>;
-  reason?: string;
-  approvedBy?: string;
-  createdAt: string;
-  approvedAt?: string;
-}
+// InstrumentType (matches backend enum)
+export type InstrumentType = 'Stock' | 'Crypto' | 'Cfd' | 'Etf' | 'Forex';
 
-// Instrument
+// InstrumentStatus (matches backend enum - single source of truth)
+export type InstrumentStatus = 'Draft' | 'PendingApproval' | 'Approved' | 'Rejected' | 'Blocked' | 'Archived';
+
+// AdminRequestActionType (matches backend enum)
+export type AdminRequestActionType = 
+  | 'Create' 
+  | 'RequestApproval' 
+  | 'Approve' 
+  | 'Reject' 
+  | 'Block' 
+  | 'Unblock' 
+  | 'Archive' 
+  | 'RetrySubmission';
+
+// AdminRequestStatus (matches backend - 3 states)
+export type AdminRequestStatus = 'Pending' | 'Approved' | 'Rejected';
+
+// AccountPillar (if needed on frontend)
+export type AccountPillar = 'Primary' | 'Secondary' | 'Trading' | 'Investment';
+
+export type UserRole = 'User' | 'Admin' | 'SuperAdmin';
+
+// === INSTRUMENT (FULL DTO) ===
 export interface Instrument {
   id: string;
-  name: string;
-  symbol: string;
-  type: InstrumentType;
-  description?: string;
-  status: InstrumentStatus;
-  createdBy: string;
-  createdAt: string;
-  submittedAt?: string;
-  rejectionReason?: string;
-  isActive: boolean;
+  symbol: string;              // e.g., "AAPL", "BTC", "SPY"
+  name: string;                // e.g., "Apple Inc."
+  description: string;         // Admin notes
+  type: InstrumentType;        // Stock|Crypto|Cfd|Etf|Forex
+  pillar: AccountPillar;       // Primary|Secondary|Trading|Investment
+  baseCurrency: string;        // e.g., "USD", "EUR"
+  quoteCurrency: string;       // e.g., "USD", "EUR"
+  status: InstrumentStatus;    // Draft|PendingApproval|Approved|Rejected|Blocked|Archived
+  isActive: boolean;           // logical delete flag
+  isBlocked: boolean;          // admin override block
+  createdBy: string;           // admin ID who created
+  createdAtUtc: string;        // ISO datetime
+  modifiedBy?: string;         // admin ID who last modified
+  modifiedAtUtc?: string;      // ISO datetime (null if never modified)
 }
 
-// Health Status
+// === CREATE/UPDATE DTOs ===
+export interface CreateInstrumentRequest {
+  symbol: string;              // required, uppercase enforced by backend
+  name: string;                // required
+  description?: string;        // optional, can be empty initially
+  type: string;                // send as string, backend parses enum
+  pillar: string;              // send as string, backend parses enum
+  baseCurrency: string;        // required
+  quoteCurrency: string;       // required
+}
+
+export interface UpdateInstrumentRequest {
+  name?: string;               // optional field
+  description?: string;        // optional field
+  baseCurrency?: string;       // optional field
+  quoteCurrency?: string;      // optional field
+}
+
+export interface RejectInstrumentRequest {
+  reason: string;              // required, min 10 chars (validated by backend)
+}
+
+// === ADMIN REQUEST (AUDIT LOG) ===
+export interface AdminRequest {
+  id: string;
+  instrumentId: string;
+  requestedByAdminId: string;
+  approvedByAdminId?: string;
+  action: AdminRequestActionType;
+  status: AdminRequestStatus;  // Pending|Approved|Rejected (confusing - means "request status", not instrument status)
+  reason?: string;             // rejection reason or other metadata
+  createdAtUtc: string;        // ISO datetime
+  approvedAtUtc?: string;      // ISO datetime when approved
+}
+
+// === ADMIN RESPONSE DTOs ===
+export interface AdminRequestDto {
+  id: string;
+  instrumentId: string;
+  requestedByAdminId: string;
+  approvedByAdminId?: string;
+  action: AdminRequestActionType;
+  status: AdminRequestStatus;
+  reason?: string;
+  createdAtUtc: string;
+  approvedAtUtc?: string;
+}
+
+// === HEALTH STATUS ===
 export interface HealthStatus {
   status: 'Healthy' | 'Unhealthy';
   lastCheck: string;
@@ -49,7 +107,7 @@ export interface HealthStatus {
   };
 }
 
-// Audit Log
+// === AUDIT LOG ===
 export interface AuditLog {
   id: string;
   adminId: string;
@@ -62,17 +120,19 @@ export interface AuditLog {
   createdAt: string;
 }
 
-// Admin User
+// === ADMIN USER ===
 export interface AdminUser {
   id: string;
   username: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   role: UserRole;
   createdAt: string;
   lastLogin?: string;
 }
 
-// Pagination
+// === PAGINATION ===
 export interface PaginationParams {
   page: number;
   pageSize: number;
@@ -88,9 +148,10 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-// API Responses
+// === API RESPONSE WRAPPER ===
 export interface ApiResponse<T> {
-  data: T;
+  data?: T;
   success: boolean;
   message?: string;
+  error?: string;
 }

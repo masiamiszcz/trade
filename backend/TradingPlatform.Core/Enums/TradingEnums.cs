@@ -59,3 +59,44 @@ public enum TransferStatus
     Rejected = 3,
     Cancelled = 4
 }
+
+/// <summary>
+/// Instrument Workflow Status - Canonical source of truth
+/// Enterprise rule: One status, not scattered booleans
+/// </summary>
+public enum InstrumentStatus
+{
+    Draft = 1,              // Admin edytuje, nie publikowany
+    PendingApproval = 2,    // Oczekujący zatwierdzenia przez innego admina
+    Approved = 3,           // Zatwierdzony, dostępny dla userów
+    Rejected = 4,           // Odrzucony, admin może edytować i wysłać ponownie
+    Blocked = 5,            // Zablokowany - nie może być kupowany/sprzedawany
+    Archived = 6            // Archiwizowany (soft deleted)
+}
+
+/// <summary>
+/// Admin Request Action Type - Workflow transitions
+/// Part of FAZA 3 State Machine Engine
+/// </summary>
+public enum AdminRequestActionType
+{
+    Create = 1,             // Initial creation (audit only)
+    RequestApproval = 2,    // Draft → PendingApproval (admin requests review)
+    Approve = 3,            // PendingApproval → Approved (admin approves)
+    Reject = 4,             // PendingApproval → Rejected (admin rejects)
+    Block = 5,              // Approved → Blocked (admin blocks trading)
+    Unblock = 6,            // Blocked → Approved (admin unblocks trading)
+    Archive = 7,            // Approved → Archived (admin archives)
+    RetrySubmission = 8     // Rejected → Draft (admin/creator resubmits)
+}
+
+/// <summary>
+/// Admin Request Status - Workflow state for approval requests
+/// Part of FAZA 3 State Machine Engine
+/// </summary>
+public enum AdminRequestStatus
+{
+    Pending = 1,            // Awaiting approval decision
+    Approved = 2,           // Request approved (action succeeded)
+    Rejected = 3            // Request rejected (action declined or failed)
+}

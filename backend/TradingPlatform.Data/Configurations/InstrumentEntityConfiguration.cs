@@ -41,11 +41,14 @@ public sealed class InstrumentEntityConfiguration : IEntityTypeConfiguration<Ins
                 Id = new Guid("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
                 Symbol = "AAPL",
                 Name = "Apple Inc.",
+                Description = "Apple Inc. stock",
                 Type = InstrumentType.Stock,
                 Pillar = AccountPillar.Stocks,
                 BaseCurrency = "USD",
                 QuoteCurrency = "USD",
-                IsActive = true,
+                Status = InstrumentStatus.Approved,
+                IsBlocked = false,
+                CreatedBy = Guid.Empty,
                 CreatedAtUtc = new DateTimeOffset(2026, 3, 31, 0, 0, 0, TimeSpan.Zero)
             },
             new InstrumentEntity
@@ -53,11 +56,14 @@ public sealed class InstrumentEntityConfiguration : IEntityTypeConfiguration<Ins
                 Id = new Guid("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
                 Symbol = "BTCUSD",
                 Name = "Bitcoin / US Dollar",
+                Description = "Bitcoin cryptocurrency",
                 Type = InstrumentType.Crypto,
                 Pillar = AccountPillar.Crypto,
                 BaseCurrency = "BTC",
                 QuoteCurrency = "USD",
-                IsActive = true,
+                Status = InstrumentStatus.Approved,
+                IsBlocked = false,
+                CreatedBy = Guid.Empty,
                 CreatedAtUtc = new DateTimeOffset(2026, 3, 31, 0, 0, 0, TimeSpan.Zero)
             },
             new InstrumentEntity
@@ -65,11 +71,14 @@ public sealed class InstrumentEntityConfiguration : IEntityTypeConfiguration<Ins
                 Id = new Guid("cccccccc-cccc-cccc-cccc-cccccccccccc"),
                 Symbol = "US500CFD",
                 Name = "S&P 500 CFD",
+                Description = "S&P 500 Contract for Difference",
                 Type = InstrumentType.Cfd,
                 Pillar = AccountPillar.Cfd,
                 BaseCurrency = "USD",
                 QuoteCurrency = "USD",
-                IsActive = true,
+                Status = InstrumentStatus.Approved,
+                IsBlocked = false,
+                CreatedBy = Guid.Empty,
                 CreatedAtUtc = new DateTimeOffset(2026, 3, 31, 0, 0, 0, TimeSpan.Zero)
             });
     }

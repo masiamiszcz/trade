@@ -1,5 +1,6 @@
 
 using Microsoft.EntityFrameworkCore;
+using TradingPlatform.Core.Enums;
 using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Models;
 using TradingPlatform.Data.Context;
@@ -33,7 +34,7 @@ public sealed class SqlAdminRequestRepository : IAdminRequestRepository
     {
         var entities = await _dbContext.AdminRequests
             .AsNoTracking()
-            .Where(x => x.Status == "Pending")
+            .Where(x => x.Status == AdminRequestStatus.Pending)
             .OrderByDescending(x => x.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 

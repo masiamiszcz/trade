@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useInstruments } from '../../../hooks/admin/useInstruments';
 import { Instrument } from '../../../types/admin';
 import { DataTable, Column } from '../../common/DataTable';
@@ -14,21 +14,19 @@ export const InstrumentsContent: React.FC = () => {
     totalPages,
     loading,
     error,
-    page,
     pageSize,
-    setPage,
-    setPageSize,
-    addInstrument,
+    fetchInstruments,
+    createInstrument,
     updateInstrument,
-    deleteInstrument,
-    submitForApproval
+    deleteInstrument
   } = useInstruments();
+
+  useEffect(() => {
+    fetchInstruments();
+  }, []);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingInstrument, setEditingInstrument] = useState<Instrument | null>(null);
-  const [actionModal, setActionModal] = useState<'submit' | null>(null);
-  const [selectedInstrument, setSelectedInstrument] = useState<Instrument | null>(null);
-  const [reason, setReason] = useState('');
 
   const handleAdd = () => {
     setEditingInstrument(null);
@@ -45,10 +43,11 @@ export const InstrumentsContent: React.FC = () => {
       if (editingInstrument) {
         await updateInstrument(editingInstrument.id, formData);
       } else {
-        await addInstrument(formData);
+        await createInstrument(formData);
       }
       setModalOpen(false);
       setEditingInstrument(null);
+      await fetchInstruments();
     } catch (err) {
       console.error('Error:', err);
     }
@@ -58,27 +57,10 @@ export const InstrumentsContent: React.FC = () => {
     if (window.confirm('Czy napewno chcesz usunąć ten instrument?')) {
       try {
         await deleteInstrument(id);
+        await fetchInstruments();
       } catch (err) {
         console.error('Error:', err);
       }
-    }
-  };
-
-  const handleSubmitApproval = (instrument: Instrument) => {
-    setSelectedInstrument(instrument);
-    setActionModal('submit');
-    setReason('');
-  };
-
-  const handleConfirmSubmit = async () => {
-    if (!selectedInstrument) return;
-    try {
-      await submitForApproval(selectedInstrument.id, reason);
-      setActionModal(null);
-      setSelectedInstrument(null);
-      setReason('');
-    } catch (err) {
-      console.error('Error:', err);
     }
   };
 
@@ -107,10 +89,12 @@ export const InstrumentsContent: React.FC = () => {
       render: (value) => {
         const statusClass = `status-badge status-${value}`;
         const statusLabel = {
-          draft: 'Szkic',
-          pending: 'Oczekujący',
-          approved: 'Zatwierdzony',
-          rejected: 'Odrzucony'
+          Draft: 'Szkic',
+          PendingApproval: 'Oczekujący',
+          Approved: 'Zatwierdzony',
+          Rejected: 'Odrzucony',
+          Blocked: 'Zablokowany',
+          Archived: 'Archiwizowany'
         }[value as string] || value;
         return <span className={statusClass}>{statusLabel}</span>;
       }
@@ -122,7 +106,7 @@ export const InstrumentsContent: React.FC = () => {
       render: (value) => <span>{String(value).substring(0, 50)}...</span>
     },
     {
-      key: 'createdAt',
+      key: 'createdAtUtc',
       label: 'Data',
       width: '130px',
       render: (value) => new Date(value).toLocaleDateString('pl-PL')
@@ -134,11 +118,6 @@ export const InstrumentsContent: React.FC = () => {
       <button className="btn-edit" onClick={() => handleEdit(instrument)}>
         ✏️ Edytuj
       </button>
-      {(instrument.status === 'draft' || instrument.status === 'rejected') && (
-        <button className="btn-submit" onClick={() => handleSubmitApproval(instrument)}>
-          📤 Wyślij
-        </button>
-      )}
       <button className="btn-delete" onClick={() => handleDelete(instrument.id)}>
         🗑️ Usuń
       </button>
@@ -163,53 +142,22 @@ export const InstrumentsContent: React.FC = () => {
         currentPage={currentPage}
         totalPages={totalPages}
         pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={(page) => fetchInstruments()}
+        onPageSizeChange={(size) => fetchInstruments()}
         loading={loading}
         actions={getRowActions}
       />
 
       {modalOpen && (
         <InstrumentModal
+          isOpen={modalOpen}
           instrument={editingInstrument}
           onSubmit={handleSubmit}
-          onCancel={() => {
+          onClose={() => {
             setModalOpen(false);
             setEditingInstrument(null);
           }}
         />
-      )}
-
-      {actionModal === 'submit' && selectedInstrument && (
-        <div className="modal-overlay" onClick={() => setActionModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>📤 Wyślij do Zatwierdzenia</h2>
-            </div>
-            <div className="modal-body">
-              <p className="modal-description">
-                Wysyłasz instrument <strong>{selectedInstrument.name}</strong> do zatwierdzenia
-              </p>
-              <div className="form-group">
-                <label>Powód/Notatka (opcjonalnie):</label>
-                <textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="Dodaj notatkę..."
-                  rows={4}
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setActionModal(null)}>
-                Anuluj
-              </button>
-              <button className="btn-confirm" onClick={handleConfirmSubmit}>
-                📤 Wyślij
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

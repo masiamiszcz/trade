@@ -27,7 +27,7 @@ public sealed class InstrumentsController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<InstrumentDto>>> GetAll(CancellationToken cancellationToken)
     {
-        var instruments = await _instrumentService.GetAllAsync(cancellationToken);
+        var instruments = await _instrumentService.GetAllAsync(page: 1, pageSize: 50, cancellationToken: cancellationToken);
         return Ok(instruments);
     }
 
@@ -71,7 +71,8 @@ public sealed class InstrumentsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<InstrumentDto>> Create([FromBody] CreateInstrumentRequest request, CancellationToken cancellationToken)
     {
-        var instrument = await _instrumentService.CreateAsync(request, cancellationToken);
+        var adminId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new InvalidOperationException("User ID not found in token"));
+        var instrument = await _instrumentService.CreateAsync(request, adminId, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = instrument.Id }, instrument);
     }
 
@@ -82,7 +83,8 @@ public sealed class InstrumentsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<InstrumentDto>> Update(Guid id, [FromBody] UpdateInstrumentRequest request, CancellationToken cancellationToken)
     {
-        var instrument = await _instrumentService.UpdateAsync(id, request, cancellationToken);
+        var adminId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new InvalidOperationException("User ID not found in token"));
+        var instrument = await _instrumentService.UpdateAsync(id, request, adminId, cancellationToken);
         return Ok(instrument);
     }
 
@@ -93,7 +95,8 @@ public sealed class InstrumentsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<InstrumentDto>> Block(Guid id, CancellationToken cancellationToken)
     {
-        var instrument = await _instrumentService.BlockAsync(id, cancellationToken);
+        var adminId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new InvalidOperationException("Unable to extract admin ID from token"));
+        var instrument = await _instrumentService.BlockAsync(id, adminId, cancellationToken);
         return Ok(instrument);
     }
 
@@ -104,7 +107,8 @@ public sealed class InstrumentsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<InstrumentDto>> Unblock(Guid id, CancellationToken cancellationToken)
     {
-        var instrument = await _instrumentService.UnblockAsync(id, cancellationToken);
+        var adminId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new InvalidOperationException("Unable to extract admin ID from token"));
+        var instrument = await _instrumentService.UnblockAsync(id, adminId, cancellationToken);
         return Ok(instrument);
     }
 
@@ -115,7 +119,8 @@ public sealed class InstrumentsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        await _instrumentService.DeleteAsync(id, cancellationToken);
+        var adminId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new InvalidOperationException("Unable to extract admin ID from token"));
+        await _instrumentService.DeleteAsync(id, adminId, cancellationToken);
         return NoContent();
     }
 }

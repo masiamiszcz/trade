@@ -32,9 +32,9 @@ public sealed class AdminRequestEntity
     public Guid? ApprovedByAdminId { get; set; }
 
     /// <summary>
-    /// The type of action requested: "Block", "Unblock", "Delete"
+    /// The type of action requested: Create, RequestApproval, Approve, Reject, Block, Unblock, Archive, RetrySubmission
     /// </summary>
-    public string Action { get; set; } = string.Empty;
+    public AdminRequestActionType Action { get; set; }
 
     /// <summary>
     /// The reason for this request (for audit trail)
@@ -42,9 +42,9 @@ public sealed class AdminRequestEntity
     public string Reason { get; set; } = string.Empty;
 
     /// <summary>
-    /// Current status: "Pending", "Approved", "Rejected"
+    /// Current status: Pending, Approved, Rejected
     /// </summary>
-    public string Status { get; set; } = "Pending";
+    public AdminRequestStatus Status { get; set; } = AdminRequestStatus.Pending;
 
     /// <summary>
     /// When this request was created

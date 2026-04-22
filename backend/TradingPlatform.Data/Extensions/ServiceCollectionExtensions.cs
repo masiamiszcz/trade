@@ -19,7 +19,11 @@ public static class ServiceCollectionExtensions
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
 
         services.AddDbContext<TradingPlatformDbContext>(options =>
-            options.UseSqlServer(connectionString));
+        {
+            options.UseSqlServer(connectionString);
+            // Suppress pending model changes warning (we handle defaults in code)
+            options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        });
 
         services.AddScoped<IMarketDataRepository, SqlMarketDataRepository>();
         services.AddScoped<IMarketDataService, MarketDataService>();
@@ -53,6 +57,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditLogRepository, SqlAuditLogRepository>();
         services.AddScoped<IAdminAuditLogRepository, SqlAdminAuditLogRepository>();
         services.AddScoped<IInstrumentRepository, SqlInstrumentRepository>();
+        services.AddScoped<IInstrumentService, InstrumentService>();
         
         // Register admin auth services and repositories
         services.AddScoped<IAdminAuthRepository, AdminAuthRepository>();

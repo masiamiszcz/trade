@@ -3,6 +3,7 @@ using AutoMapper;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using TradingPlatform.Core.Dtos;
+using TradingPlatform.Core.Enums;
 using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Models;
 
@@ -133,9 +134,9 @@ public sealed class AdminService : IAdminService
             InstrumentId: instrumentId,
             RequestedByAdminId: requestedByAdminId,
             ApprovedByAdminId: null,
-            Action: "Block",
+            Action: AdminRequestActionType.Block,
             Reason: reason.Trim(),
-            Status: "Pending",
+            Status: AdminRequestStatus.Pending,
             CreatedAtUtc: DateTimeOffset.UtcNow,
             ApprovedAtUtc: null);
 
@@ -191,9 +192,9 @@ public sealed class AdminService : IAdminService
             InstrumentId: instrumentId,
             RequestedByAdminId: requestedByAdminId,
             ApprovedByAdminId: null,
-            Action: "Unblock",
+            Action: AdminRequestActionType.Unblock,
             Reason: reason.Trim(),
-            Status: "Pending",
+            Status: AdminRequestStatus.Pending,
             CreatedAtUtc: DateTimeOffset.UtcNow,
             ApprovedAtUtc: null);
 
@@ -237,7 +238,7 @@ public sealed class AdminService : IAdminService
             ?? throw new InvalidOperationException($"Admin request with ID {requestId} not found");
 
         // Validate request is pending
-        if (request.Status != "Pending")
+        if (request.Status != AdminRequestStatus.Pending)
             throw new InvalidOperationException($"Cannot approve a request with status '{request.Status}'");
 
         // Prevent self-approval
@@ -251,8 +252,8 @@ public sealed class AdminService : IAdminService
         // Execute the requested action
         var updatedInstrument = request.Action switch
         {
-            "Block" => instrument with { IsBlocked = true },
-            "Unblock" => instrument with { IsBlocked = false },
+            AdminRequestActionType.Block => instrument with { IsBlocked = true },
+            AdminRequestActionType.Unblock => instrument with { IsBlocked = false },
             _ => throw new InvalidOperationException($"Unknown action type: {request.Action}")
         };
 
@@ -261,7 +262,7 @@ public sealed class AdminService : IAdminService
         // Update the admin request status
         var approvedRequest = request with
         {
-            Status = "Approved",
+            Status = AdminRequestStatus.Approved,
             ApprovedByAdminId = approvedByAdminId,
             ApprovedAtUtc = DateTimeOffset.UtcNow
         };
@@ -271,7 +272,7 @@ public sealed class AdminService : IAdminService
         // Log the approval with full details
         var auditLog = CreateAuditLogEntry(
             adminId: approvedByAdminId,
-            action: $"APPROVE_{request.Action.ToUpper()}_REQUEST",
+            action: $"APPROVE_{request.Action.ToString().ToUpper()}_REQUEST",
             entityType: "AdminRequest",
             entityId: requestId,
             details: new
@@ -289,7 +290,7 @@ public sealed class AdminService : IAdminService
         // Also log the instrument change
         var instrumentAuditLog = CreateAuditLogEntry(
             adminId: approvedByAdminId,
-            action: $"INSTRUMENT_{request.Action.ToUpper()}",
+            action: $"INSTRUMENT_{request.Action.ToString().ToUpper()}",
             entityType: "Instrument",
             entityId: request.InstrumentId,
             details: new
@@ -330,13 +331,13 @@ public sealed class AdminService : IAdminService
             ?? throw new InvalidOperationException($"Admin request with ID {requestId} not found");
 
         // Validate request is pending
-        if (request.Status != "Pending")
+        if (request.Status != AdminRequestStatus.Pending)
             throw new InvalidOperationException($"Cannot reject a request with status '{request.Status}'");
 
         // Update request status to rejected
         var rejectedRequest = request with
         {
-            Status = "Rejected",
+            Status = AdminRequestStatus.Rejected,
             ApprovedByAdminId = rejectedByAdminId,
             ApprovedAtUtc = DateTimeOffset.UtcNow
         };
@@ -346,7 +347,7 @@ public sealed class AdminService : IAdminService
         // Log the rejection
         var auditLog = CreateAuditLogEntry(
             adminId: rejectedByAdminId,
-            action: $"REJECT_{request.Action.ToUpper()}_REQUEST",
+            action: $"REJECT_{request.Action.ToString().ToUpper()}_REQUEST",
             entityType: "AdminRequest",
             entityId: requestId,
             details: new
