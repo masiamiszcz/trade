@@ -111,13 +111,16 @@ export interface HealthStatus {
 export interface AuditLog {
   id: string;
   adminId: string;
-  adminName: string;
+  adminName?: string;           // ← From old API
+  adminUserName?: string;        // ← From new API
   action: string;
-  entityType: string;
-  entityId: string;
-  details: Record<string, any>;
+  entityType?: string;           // ← Optional (new API doesn't have this)
+  entityId?: string;             // ← Optional (new API doesn't have this)
+  details?: Record<string, any>;
   ipAddress: string;
-  createdAt: string;
+  createdAt?: string;
+  createdAtUtc?: string;         // ← New API uses this
+  userAgent?: string;            // ← New API has this
 }
 
 // === ADMIN USER ===

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { adminAuthService } from '../services/AdminAuthService';
+import { authService } from '../services/AuthenticationService';
 import { useAdminAuth } from '../hooks/admin/useAdminAuth';
 import { AdminRegisterViaInviteRequest } from '../types/adminAuth';
 
@@ -88,39 +88,18 @@ export const AdminRegisterViaInvitePage: React.FC = () => {
         password: formData.password,
       };
 
-      const result = await adminAuthService.adminRegisterViaInvite(request);
+      const result = await authService.adminRegisterViaInvite(request);
 
-      if (result.error) {
-        setError(result.error.message || 'Błąd przy rejestracji');
+      if (!result.token) {
+        setError('Nieznany błąd - brak tokenu');
         setLoading(false);
         return;
       }
 
-      if (!result.data) {
-        setError('Nieznany błąd');
-        setLoading(false);
-        return;
-      }
-
-      // Zapisz temp session
-      setSession({
-        token: result.data.token,
-        sessionId: result.data.sessionId,
-        isTempToken: true,
-        requiresTwoFactor: result.data.requiresTwoFactorSetup,
-        username: formData.username,
-      });
-
-      // Redirect do setup 2FA
-      navigate('/admin/setup-2fa', {
-        state: {
-          qrCodeDataUrl: result.data.qrCodeDataUrl,
-          manualKey: result.data.manualKey,
-          backupCodes: result.data.backupCodes,
-        },
-      });
-    } catch (err) {
-      setError('Nieznany błąd - sprawdź konsolę');
+      // Admin registered, redirect to dashboard
+      navigate('/admin/dashboard', { replace: true });
+    } catch (err: any) {
+      setError(err?.message || 'Nieznany błąd');
       console.error('Registration error:', err);
     } finally {
       setLoading(false);

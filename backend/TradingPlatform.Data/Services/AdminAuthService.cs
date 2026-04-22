@@ -105,42 +105,79 @@ public sealed class AdminAuthService : IAdminAuthService
                 throw new InvalidOperationException("Username is already taken");
             }
 
-            // Create admin user
+            // 🔐 SECURITY: DO NOT create user in database yet!
+            // Step 1 only stores temporary data in Redis
+            // User will be created in database ONLY after 2FA verification (Step 2)
+            
             var adminId = Guid.NewGuid();
-            var user = new User(adminId, username.Trim(), invitation.Email, invitation.FirstName, invitation.LastName,
-                UserRole.Admin, false, false, string.Empty, string.Empty, UserStatus.Active, "PLN", DateTimeOffset.UtcNow);
+            var passwordHash = _passwordHasher.HashPassword(
+                new User(adminId, username.Trim(), invitation.Email, invitation.FirstName, invitation.LastName,
+                    UserRole.Admin, false, false, string.Empty, string.Empty, UserStatus.Active, "PLN", DateTimeOffset.UtcNow),
+                password);
 
-            // Hash password
-            var passwordHash = _passwordHasher.HashPassword(user, password);
+            // Create temporary registration data (stored in Redis, expires after 10 minutes)
+            var registrationSessionId = Guid.NewGuid().ToString();
+            
+            // Store all admin data in Redis with TTL of 10 minutes
+            // If 2FA is not completed within 10 minutes, this data is automatically deleted
+            await _redisSessionService.CreateSessionAsync(
+                registrationSessionId,
+                adminId.ToString(),
+                "", // TOTP secret will be stored later in Step 2
+                TwoFactorSetupSessionTimeoutSeconds, // 10 minutes
+                ct: cancellationToken);
 
-            // Save to repository (repository should persist this)
-            await _authRepository.CreateAdminAsync(user, passwordHash, cancellationToken);
+            // Store additional registration metadata in Redis
+            var registrationData = new
+            {
+                AdminId = adminId,
+                Username = username.Trim(),
+                Email = invitation.Email,
+                FirstName = invitation.FirstName,
+                LastName = invitation.LastName,
+                PasswordHash = passwordHash,
+                Token = token,  // ✅ Store token so we can mark invitation as used later
+                InvitationId = invitationId.ToString(),
+                IsSuperAdmin = false,
+                RegistrationStep = "pending_2fa",
+                CreatedAt = DateTimeOffset.UtcNow
+            };
 
-            // ✨ Create admin entity with IsSuperAdmin=false (invited admins are not super admins)
-            await _authRepository.CreateAdminEntityAsync(user.Id, isSuperAdmin: false, cancellationToken);
+            // Serialize and store in Redis (with same TTL)
+            var registrationJson = System.Text.Json.JsonSerializer.Serialize(registrationData);
+            await _redisSessionService.CreateSessionAsync(
+                $"admin_reg_data:{registrationSessionId}",
+                adminId.ToString(),
+                registrationJson,
+                TwoFactorSetupSessionTimeoutSeconds,
+                ct: cancellationToken);
 
-            // Mark invitation as used
-            await _invitationService.MarkAsUsedAsync(token, adminId, cancellationToken);
+            // Log registration step 1 completion (not yet account creation)
+            await LogRegistrationAsync(invitationId, null, invitation.Email,
+                AdminRegistrationAction.RegistrationStarted, AdminRegistrationLogStatus.Success,
+                "Admin registration started, awaiting 2FA setup", ipAddress, userAgent, cancellationToken);
 
-            // Log successful registration
-            await LogRegistrationAsync(invitationId, adminId, invitation.Email,
-                AdminRegistrationAction.RegistrationCompleted, AdminRegistrationLogStatus.Success,
-                "Admin account created, 2FA setup required", ipAddress, userAgent, cancellationToken);
+            _logger.LogInformation(
+                "Admin registration STEP 1: Temporary data stored in Redis for adminId {AdminId}, sessionId {SessionId}, " +
+                "expires in {Timeout}s",
+                adminId, registrationSessionId, TwoFactorSetupSessionTimeoutSeconds);
 
-            _logger.LogInformation("Admin {AdminId} registered with invitation {InvitationId}", adminId, invitationId);
-
-            // Generate temporary session token (for 2FA setup)
-            var tempToken = _jwtTokenGenerator.GenerateToken(user, isTempToken: true, 
-                context: new TokenContext { AdminRegistrationStep = "pending_2fa" });
-
-            // Extract session ID from token (would be stored in JWT)
-            var sessionId = Guid.NewGuid().ToString();
+            // Generate temporary token (5 min) - contains adminId for next steps
+            var tempToken = _jwtTokenGenerator.GenerateToken(
+                new User(adminId, username.Trim(), invitation.Email, invitation.FirstName, invitation.LastName,
+                    UserRole.Admin, false, false, string.Empty, string.Empty, UserStatus.Active, "PLN", DateTimeOffset.UtcNow),
+                isTempToken: true, 
+                context: new TokenContext 
+                { 
+                    AdminRegistrationStep = "pending_2fa",
+                    RegistrationSessionId = registrationSessionId
+                });
 
             return new AdminRegistrationResponse(
                 Token: tempToken,
-                SessionId: sessionId,
+                SessionId: registrationSessionId,
                 RequiresTwoFactorSetup: true,
-                Message: "Admin account created. You must set up 2FA to complete registration."
+                Message: "Admin registration started. You must set up 2FA to complete registration."
             );
         }
         catch (InvalidOperationException ex)
@@ -148,7 +185,7 @@ public sealed class AdminAuthService : IAdminAuthService
             await LogRegistrationAsync(invitationId, null, null,
                 AdminRegistrationAction.RegistrationFailed, AdminRegistrationLogStatus.Failed,
                 ex.Message, ipAddress, userAgent, cancellationToken);
-            _logger.LogWarning(ex, "Admin registration failed");
+            _logger.LogWarning(ex, "Admin registration STEP 1 failed");
             throw;
         }
         catch (Exception ex)
@@ -156,41 +193,59 @@ public sealed class AdminAuthService : IAdminAuthService
             await LogRegistrationAsync(invitationId, null, null,
                 AdminRegistrationAction.RegistrationFailed, AdminRegistrationLogStatus.Failed,
                 ex.Message, ipAddress, userAgent, cancellationToken);
-            _logger.LogError(ex, "Admin registration error");
+            _logger.LogError(ex, "Admin registration STEP 1 error");
             throw new InvalidOperationException("Registration failed", ex);
         }
     }
 
     /// <summary>
-    /// Generate 2FA secret (QR code) for admin during registration
-    /// 🔐 SECURITY: Stores secret in Redis, NOT in JWT
-    /// Secret is NOT saved to DB yet - only after verification
+    /// Generate 2FA secret (QR code) for admin during registration STEP 2
+    /// 🔐 SECURITY: Stores secret in Redis using registrationSessionId (not creating new session)
+    /// The registrationSessionId comes from Step 1 and points to temp admin data
     /// </summary>
     public async Task<AdminTwoFactorSetupResponse> SetupTwoFactorGenerateAsync(
         Guid adminId,
+        string registrationSessionId,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(registrationSessionId))
+            throw new ArgumentException("Registration session ID is required", nameof(registrationSessionId));
+
         try
         {
-            var secret = _twoFactorService.GenerateSecret();
-            var sessionId = Guid.NewGuid().ToString();
+            _logger.LogInformation(
+                "2FA setup STEP 2A: Generating TOTP secret for admin {AdminId}, using registrationSessionId={SessionId}",
+                adminId, registrationSessionId);
 
-            // 🔐 SECURITY: Store TOTP secret in Redis (NOT in JWT!)
-            // Session expires after 10 minutes with auto-cleanup
-            // This matches User 2FA pattern exactly
+            // Verify registration session still exists (not expired after 10 minutes)
+            var regSession = await _redisSessionService.GetSessionAsync($"admin_reg_data:{registrationSessionId}", cancellationToken)
+                ?? await _redisSessionService.GetSessionAsync($"admin_bootstrap_data:{registrationSessionId}", cancellationToken);
+
+            if (regSession == null)
+            {
+                _logger.LogWarning("2FA setup failed for admin {AdminId} - registration session expired", adminId);
+                throw new InvalidOperationException("Registration session expired. Please start registration again.");
+            }
+
+            var secret = _twoFactorService.GenerateSecret();
+
+            // Create TOTP session using SAME registrationSessionId (not a new one)
+            // This session will store the generated TOTP secret
             await _redisSessionService.CreateSessionAsync(
-                sessionId,
+                registrationSessionId,
                 adminId.ToString(),
                 secret.Secret,  // ✅ TOTP secret in Redis!
                 TwoFactorSetupSessionTimeoutSeconds,
                 ct: cancellationToken);
 
-            _logger.LogInformation("2FA setup started for admin {AdminId} - sessionId stored in Redis", adminId);
+            _logger.LogInformation(
+                "2FA setup STEP 2A completed: TOTP secret stored in Redis for admin {AdminId}, sessionId={SessionId}",
+                adminId, registrationSessionId);
 
             return new AdminTwoFactorSetupResponse(
                 QrCodeDataUrl: secret.QrCodeDataUrl,
                 ManualKey: secret.Secret,
-                SessionId: sessionId,  // ← Points to Redis, NOT JWT
+                SessionId: registrationSessionId,  // ← Same sessionId (points to Redis temp data + TOTP secret)
                 Message: "Scan QR code with Google Authenticator or similar app"
             );
         }
@@ -204,6 +259,7 @@ public sealed class AdminAuthService : IAdminAuthService
     /// <summary>
     /// Enable 2FA for admin (after verifying the code)
     /// 🔐 SECURITY: Retrieves TOTP secret from Redis using sessionId
+    /// ⚠️ IMPORTANT: THIS IS STEP 2 - ADMIN IS CREATED HERE (after 2FA verification)
     /// Generates backup codes and enables 2FA in database
     /// IMPORTANT: 2FA becomes mandatory after this
     /// </summary>
@@ -211,6 +267,7 @@ public sealed class AdminAuthService : IAdminAuthService
         Guid adminId,
         string code,
         string sessionId,
+        string registrationSessionId,
         string? ipAddress = null,
         string? userAgent = null,
         CancellationToken cancellationToken = default)
@@ -222,18 +279,22 @@ public sealed class AdminAuthService : IAdminAuthService
 
         try
         {
-            // 🔐 SECURITY: Retrieve TOTP secret from Redis using sessionId
+            _logger.LogInformation(
+                "2FA setup STEP 2: Verifying 2FA code for admin {AdminId}, sessionId={SessionId}",
+                adminId, sessionId);
+
+            // 🔐 SECURITY: Retrieve TOTP secret from temporary Redis session
             var session = await _redisSessionService.GetSessionAsync(sessionId, cancellationToken);
             if (session == null)
             {
-                _logger.LogWarning("2FA setup failed for admin {AdminId} - session expired", adminId);
+                _logger.LogWarning("2FA setup STEP 2 failed for admin {AdminId} - session expired", adminId);
                 throw new InvalidOperationException("2FA session expired. Please start setup again.");
             }
 
             var totpSecret = session.TotpSecret;
             if (string.IsNullOrWhiteSpace(totpSecret))
             {
-                _logger.LogError("2FA setup failed for admin {AdminId} - no secret in session", adminId);
+                _logger.LogError("2FA setup STEP 2 failed for admin {AdminId} - no secret in session", adminId);
                 throw new InvalidOperationException("TOTP secret not found in session");
             }
 
@@ -244,40 +305,149 @@ public sealed class AdminAuthService : IAdminAuthService
                 throw new InvalidOperationException("Invalid 2FA code");
             }
 
-            // Get admin user
-            var admin = await _authRepository.GetAdminByIdAsync(adminId, cancellationToken);
-            if (admin == null)
-                throw new InvalidOperationException("Admin not found");
+            _logger.LogInformation("2FA code verified for admin {AdminId} - retrieving registration data from Redis", adminId);
+
+            // ✅ 2FA code is valid! Now retrieve temporary admin data from Redis
+            // Check if this is registration (admin_reg_data or admin_bootstrap_data) or existing admin setup
+            var registrationData = await _redisSessionService.GetSessionAsync($"admin_reg_data:{registrationSessionId}", cancellationToken)
+                ?? await _redisSessionService.GetSessionAsync($"admin_bootstrap_data:{registrationSessionId}", cancellationToken);
+
+            // If NO registration data, this is existing admin enabling 2FA
+            if (registrationData == null)
+            {
+                // Existing admin - just get from database
+                var existingAdmin = await _authRepository.GetAdminByIdAsync(adminId, cancellationToken);
+                if (existingAdmin == null)
+                    throw new InvalidOperationException("Admin not found");
+
+                _logger.LogInformation("2FA enabled for existing admin {AdminId}", adminId);
+
+                // Encrypt TOTP secret for permanent storage in DB
+                var encryptedSecret = _encryptionService.Encrypt(totpSecret);
+
+                // Generate backup codes
+                var backupCodes = _twoFactorService.GenerateBackupCodes();
+                var hashedBackupCodes = backupCodes.Select(c => _twoFactorService.HashBackupCode(c)).ToArray();
+                var backupCodesJson = System.Text.Json.JsonSerializer.Serialize(hashedBackupCodes);
+
+                // Update admin with 2FA enabled in database
+                await _authRepository.UpdateAdminTwoFactorAsync(adminId, encryptedSecret, 
+                    backupCodesJson, true, cancellationToken);
+
+                // 🔐 SECURITY: Delete session from Redis (cleanup)
+                await _redisSessionService.DeleteSessionAsync(registrationSessionId, cancellationToken);
+                await _redisSessionService.DeleteSessionAsync($"admin_reg_data:{registrationSessionId}", cancellationToken);
+                await _redisSessionService.DeleteSessionAsync($"admin_bootstrap_data:{registrationSessionId}", cancellationToken);
+
+                await LogAuditAsync(adminId, AdminAuditAction.TwoFactorEnabled, ipAddress, userAgent,
+                    "2FA setup completed", cancellationToken);
+
+                _logger.LogInformation("2FA enabled for existing admin {AdminId} - Redis sessions cleaned up", adminId);
+
+                return new AdminTwoFactorCompleteResponse(
+                    BackupCodes: backupCodes,
+                    Success: true,
+                    Message: "2FA enabled successfully. Save these backup codes somewhere safe!"
+                );
+            }
+
+            // ✅ NEW ADMIN REGISTRATION - Deserialize registration data
+            _logger.LogInformation("2FA verified for NEW admin - creating account in database");
+
+            // Registration data already retrieved above (from either admin_reg_data or admin_bootstrap_data key)
+            // registrationData is NOT null here (checked on line 318)
+            if (registrationData == null)
+            {
+                // This should never happen due to check above, but be safe
+                throw new InvalidOperationException($"Registration data not found for session {registrationSessionId}");
+            }
+
+            // Registration data is stored in the TotpSecret field (as JSON string)
+            var regDataJson = registrationData.TotpSecret;
+            var adminRegData = System.Text.Json.JsonDocument.Parse(regDataJson).RootElement;
+
+            var username = adminRegData.GetProperty("Username").GetString()
+                ?? throw new InvalidOperationException("Username missing from registration data");
+            var email = adminRegData.GetProperty("Email").GetString()
+                ?? throw new InvalidOperationException("Email missing from registration data");
+            var firstName = adminRegData.GetProperty("FirstName").GetString() ?? "Super";
+            var lastName = adminRegData.GetProperty("LastName").GetString() ?? "Admin";
+            var passwordHashFromReg = adminRegData.GetProperty("PasswordHash").GetString()
+                ?? throw new InvalidOperationException("Password hash missing from registration data");
+            var isSuperAdmin = adminRegData.GetProperty("IsSuperAdmin").GetBoolean();
+            var invitationIdStr = adminRegData.TryGetProperty("InvitationId", out var invIdProp) 
+                ? invIdProp.GetString() 
+                : null;
 
             // Encrypt TOTP secret for permanent storage in DB
-            var encryptedSecret = _encryptionService.Encrypt(totpSecret);
+            var encryptedTotpSecret = _encryptionService.Encrypt(totpSecret);
 
             // Generate backup codes
-            var backupCodes = _twoFactorService.GenerateBackupCodes();
-            var hashedBackupCodes = backupCodes.Select(c => _twoFactorService.HashBackupCode(c)).ToArray();
-            var backupCodesJson = System.Text.Json.JsonSerializer.Serialize(hashedBackupCodes);
+            var backupCodesList = _twoFactorService.GenerateBackupCodes();
+            var hashedBackupCodesList = backupCodesList.Select(c => _twoFactorService.HashBackupCode(c)).ToList();
+            var backupCodesJsonStr = System.Text.Json.JsonSerializer.Serialize(hashedBackupCodesList);
 
-            // Update admin with 2FA enabled in database
-            await _authRepository.UpdateAdminTwoFactorAsync(adminId, encryptedSecret, 
-                backupCodesJson, true, cancellationToken);
+            // Create user entity with all properties set in constructor
+            var user = new User(
+                adminId, 
+                username, 
+                email, 
+                firstName, 
+                lastName,
+                UserRole.Admin, 
+                false,  // EmailConfirmed
+                true,   // TwoFactorEnabled - NOW TRUE because 2FA is verified
+                encryptedTotpSecret,  // ✅ Set in constructor (not after)
+                backupCodesJsonStr,   // ✅ Set in constructor (not after)
+                UserStatus.Active, 
+                "PLN", 
+                DateTimeOffset.UtcNow);
 
-            // 🔐 SECURITY: Delete session from Redis (cleanup)
-            await _redisSessionService.DeleteSessionAsync(sessionId, cancellationToken);
+            // ✅ CREATE ADMIN IN DATABASE
+            await _authRepository.CreateAdminAsync(user, passwordHashFromReg, cancellationToken);
+
+            // Create admin entity with IsSuperAdmin flag
+            await _authRepository.CreateAdminEntityAsync(adminId, isSuperAdmin, cancellationToken);
+
+            // If this was via invitation, mark invitation as used
+            if (Guid.TryParse(invitationIdStr, out var invitationId))
+            {
+                await _invitationService.MarkAsUsedAsync(
+                    adminRegData.GetProperty("Token").GetString() ?? "",
+                    adminId,
+                    cancellationToken);
+            }
+
+            _logger.LogInformation(
+                "Admin {AdminId} created in database with 2FA enabled (IsSuperAdmin={IsSuperAdmin})",
+                adminId, isSuperAdmin);
 
             // Log 2FA setup completion
-            await LogRegistrationAsync(null, adminId, admin.Email,
-                AdminRegistrationAction.TwoFactorSetupCompleted, AdminRegistrationLogStatus.Success,
-                "2FA enabled and backup codes generated", ipAddress, userAgent, cancellationToken);
+            await LogRegistrationAsync(
+                invitationIdStr != null ? Guid.Parse(invitationIdStr) : null,
+                adminId, 
+                email,
+                AdminRegistrationAction.TwoFactorSetupCompleted, 
+                AdminRegistrationLogStatus.Success,
+                "2FA enabled and admin account created", 
+                ipAddress, 
+                userAgent, 
+                cancellationToken);
 
             await LogAuditAsync(adminId, AdminAuditAction.TwoFactorEnabled, ipAddress, userAgent,
-                "2FA setup completed", cancellationToken);
+                "2FA setup completed during registration", cancellationToken);
 
-            _logger.LogInformation("2FA enabled for admin {AdminId} - Redis session cleaned up", adminId);
+            // 🔐 SECURITY: Delete ALL temporary sessions from Redis (cleanup)
+            await _redisSessionService.DeleteSessionAsync(registrationSessionId, cancellationToken);
+            await _redisSessionService.DeleteSessionAsync($"admin_reg_data:{registrationSessionId}", cancellationToken);
+            await _redisSessionService.DeleteSessionAsync($"admin_bootstrap_data:{registrationSessionId}", cancellationToken);
+
+            _logger.LogInformation("Admin {AdminId} fully registered with 2FA enabled - all Redis sessions cleaned up", adminId);
 
             return new AdminTwoFactorCompleteResponse(
-                BackupCodes: backupCodes,
+                BackupCodes: backupCodesList,
                 Success: true,
-                Message: "2FA enabled successfully. Save these backup codes somewhere safe!"
+                Message: "Registration complete! 2FA enabled successfully. Save these backup codes somewhere safe!"
             );
         }
         catch (InvalidOperationException)
@@ -756,35 +926,67 @@ public sealed class AdminAuthService : IAdminAuthService
                 throw new InvalidOperationException("Super Admin already exists. Bootstrap is disabled.");
             }
 
-            // Create super admin (no invitation needed for bootstrap)
+            // 🔐 SECURITY: DO NOT create user in database yet!
+            // Step 1 only stores temporary data in Redis
+            // Super admin will be created in database ONLY after 2FA verification (Step 2)
+            
             var adminId = Guid.NewGuid();
-            var user = new User(adminId, username.Trim(), email.ToLower().Trim(), "Super", "Admin",
+            var tempUser = new User(adminId, username.Trim(), email.ToLower().Trim(), "Super", "Admin",
                 UserRole.Admin, true, false, string.Empty, string.Empty, UserStatus.Active, "PLN", DateTimeOffset.UtcNow);
 
-            var passwordHash = _passwordHasher.HashPassword(user, password);
-            await _authRepository.CreateAdminAsync(user, passwordHash, cancellationToken);
+            var passwordHash = _passwordHasher.HashPassword(tempUser, password);
 
-            // ✨ Create admin entity with IsSuperAdmin=true
-            await _authRepository.CreateAdminEntityAsync(user.Id, isSuperAdmin: true, cancellationToken);
+            // Create temporary bootstrap data (stored in Redis, expires after 10 minutes)
+            var registrationSessionId = Guid.NewGuid().ToString();
+            
+            // Store all super admin data in Redis with TTL of 10 minutes
+            var bootstrapData = new
+            {
+                AdminId = adminId,
+                Username = username.Trim(),
+                Email = email.ToLower().Trim(),
+                FirstName = "Super",
+                LastName = "Admin",
+                PasswordHash = passwordHash,
+                IsSuperAdmin = true,
+                RegistrationStep = "pending_2fa",
+                CreatedAt = DateTimeOffset.UtcNow
+            };
 
-            // Log bootstrap
-            await LogRegistrationAsync(null, adminId, email,
-                AdminRegistrationAction.RegistrationCompleted, AdminRegistrationLogStatus.Success,
-                "Super Admin bootstrapped", ipAddress, userAgent, cancellationToken);
+            var bootstrapJson = System.Text.Json.JsonSerializer.Serialize(bootstrapData);
+            await _redisSessionService.CreateSessionAsync(
+                $"admin_bootstrap_data:{registrationSessionId}",
+                adminId.ToString(),
+                bootstrapJson,
+                TwoFactorSetupSessionTimeoutSeconds,
+                ct: cancellationToken);
 
-            _logger.LogInformation("Super Admin bootstrapped: {AdminId}", adminId);
+            // Log bootstrap step 1 completion (not yet account creation)
+            await LogRegistrationAsync(null, null, email,
+                AdminRegistrationAction.RegistrationStarted, AdminRegistrationLogStatus.Success,
+                "Super Admin bootstrap started, awaiting 2FA setup", ipAddress, userAgent, cancellationToken);
+
+            _logger.LogInformation(
+                "Super Admin bootstrap STEP 1: Temporary data stored in Redis for adminId {AdminId}, sessionId {SessionId}, " +
+                "expires in {Timeout}s",
+                adminId, registrationSessionId, TwoFactorSetupSessionTimeoutSeconds);
 
             // Generate temporary token for 2FA setup
-            var tempToken = _jwtTokenGenerator.GenerateToken(user, isTempToken: true,
-                context: new TokenContext { AdminRegistrationStep = "pending_2fa" });
+            var tempToken = _jwtTokenGenerator.GenerateToken(tempUser, isTempToken: true,
+                context: new TokenContext 
+                { 
+                    AdminRegistrationStep = "pending_2fa",
+                    RegistrationSessionId = registrationSessionId,
+                    IsSuperAdmin = true
+                });
 
             var sessionId = Guid.NewGuid().ToString();
 
             return new AdminRegistrationResponse(
                 Token: tempToken,
-                SessionId: sessionId,
+                SessionId: registrationSessionId,
                 RequiresTwoFactorSetup: true,
-                Message: "Super Admin created successfully. You must set up 2FA to complete setup."
+                Message: "Super Admin bootstrap started. You must set up 2FA to complete setup."
             );
         }
         catch (InvalidOperationException ex)
@@ -882,10 +1084,10 @@ public interface IAdminAuthService
         CancellationToken cancellationToken = default);
 
     Task<AdminTwoFactorSetupResponse> SetupTwoFactorGenerateAsync(
-        Guid adminId, CancellationToken cancellationToken = default);
+        Guid adminId, string registrationSessionId, CancellationToken cancellationToken = default);
 
     Task<AdminTwoFactorCompleteResponse> SetupTwoFactorEnableAsync(
-        Guid adminId, string code, string totpSecret,
+        Guid adminId, string code, string sessionId, string registrationSessionId,
         string? ipAddress = null, string? userAgent = null,
         CancellationToken cancellationToken = default);
 

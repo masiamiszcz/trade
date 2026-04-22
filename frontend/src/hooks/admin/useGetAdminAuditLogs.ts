@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { httpClient } from '../../services/http/HttpClient';
 
 export interface AdminAuditLog {
   id: string;
@@ -32,33 +33,11 @@ export const useGetAdminAuditLogs = (): UseGetAdminAuditLogsReturn => {
     setError(null);
 
     try {
-      // Get token from localStorage
-      const tokenData = localStorage.getItem('auth-token');
-      if (!tokenData) {
-        setError('No authentication token found');
-        setLoading(false);
-        return;
-      }
-
-      const token = JSON.parse(tokenData);
-      const authToken = token.token || token;
-
-      const response = await fetch('/api/admin/audit-history', {
+      const data = await httpClient.fetch<AdminAuditLog[]>({
+        url: '/admin/audit-history',
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
-        },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        setError(errorData?.error || `Error: ${response.status}`);
-        setAuditLogs([]);
-        return;
-      }
-
-      const data = await response.json();
       setAuditLogs(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err) {

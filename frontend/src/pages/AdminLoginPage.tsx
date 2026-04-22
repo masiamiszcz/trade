@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminAuthService } from '../services/AdminAuthService';
+import { authService } from '../services/AuthenticationService';
 import { useAdminAuth } from '../hooks/admin/useAdminAuth';
 import { AdminLoginRequest } from '../types/adminAuth';
 
@@ -62,38 +62,28 @@ export const AdminLoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const result = await adminAuthService.adminLogin(loginData);
+      const result = await authService.adminLogin(loginData);
 
-      if (result.error) {
-        setErrorMessage(result.error.message || 'Błęd logowania');
+      if (!result.token) {
+        setErrorMessage('Nieznany błąd - brak tokenu');
         setLoading(false);
         return;
       }
 
-      if (!result.data) {
-        setErrorMessage('Nieznany błąd');
-        setLoading(false);
-        return;
+      if (result.requiresTwoFactor) {
+        // 2FA required - navigate to 2FA verification
+        navigate('/admin/verify-2fa', {
+          state: {
+            sessionId: result.sessionId,
+            username: loginData.usernameOrEmail,
+          },
+        });
+      } else {
+        // No 2FA, redirect to dashboard
+        navigate('/admin/dashboard', { replace: true });
       }
-
-      // Zapisz temp session
-      setSession({
-        token: result.data.token,
-        sessionId: result.data.sessionId,
-        isTempToken: true,
-        requiresTwoFactor: result.data.requiresTwoFactor,
-        username: result.data.username,
-      });
-
-      // Redirect do 2FA verification
-      navigate('/admin/verify-2fa', {
-        state: {
-          sessionId: result.data.sessionId,
-          username: result.data.username,
-        },
-      });
-    } catch (err) {
-      setErrorMessage('Nieznany błąd - sprawdź konsolę');
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Nieznany błąd');
       console.error('Login error:', err);
     } finally {
       setLoading(false);

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminAuthService } from '../services/AdminAuthService';
+import { authService } from '../services/AuthenticationService';
 import { useAdminAuth } from '../hooks/admin/useAdminAuth';
 import { QRCodeDisplay } from '../components/admin/2FA/QRCodeDisplay';
 import { BackupCodesModal } from '../components/admin/2FA/BackupCodesModal';
@@ -31,23 +31,17 @@ export const AdminSetup2FAPage: React.FC = () => {
     // Generate TOTP secret on mount
     const generateSecret = async () => {
       try {
-        const result = await adminAuthService.adminGenerateSetup2FA(token);
-        
-        if (result.error) {
-          setError(result.error.message || 'Błąd przy generowaniu 2FA');
-          setLoading(false);
-          return;
-        }
+        const result = await authService.adminGenerateSetup2FA();
 
-        if (!result.data) {
+        if (!result) {
           setError('Nieznany błąd - brak danych');
           setLoading(false);
           return;
         }
 
-        setManualKey(result.data.manualKey);
-        setQrCodeDataUrl(result.data.qrCodeDataUrl);
-        setSetupSessionId(result.data.sessionId);
+        setManualKey(result.manualKey);
+        setQrCodeDataUrl(result.qrCodeDataUrl);
+        setSetupSessionId(result.sessionId);
         setLoading(false);
       } catch (err) {
         setError('Błąd przy generowaniu kodu QR');
@@ -65,29 +59,23 @@ export const AdminSetup2FAPage: React.FC = () => {
 
     try {
       const request: AdminSetup2FARequest = { code, sessionId: setupSessionId };
-      const result = await adminAuthService.adminEnableSetup2FA(request, token!);
+      const result = await authService.adminEnableSetup2FA(request);
 
-      if (result.error) {
-        setError(result.error.message || 'Błąd przy weryfikacji kodu');
-        setLoading(false);
-        return;
-      }
-
-      if (!result.data) {
+      if (!result) {
         setError('Nieznany błąd');
         setLoading(false);
         return;
       }
 
       // Zapisz backup codes z response
-      if (result.data.backupCodes && Array.isArray(result.data.backupCodes)) {
-        setBackupCodes(result.data.backupCodes);
+      if (result.backupCodes && Array.isArray(result.backupCodes)) {
+        setBackupCodes(result.backupCodes);
       }
 
       // Pokaż backup codes modal
       setShowBackupCodesModal(true);
-    } catch (err) {
-      setError('Nieznany błąd - sprawdź konsolę');
+    } catch (err: any) {
+      setError(err?.message || 'Nieznany błąd');
       console.error('2FA enable error:', err);
       setLoading(false);
     }

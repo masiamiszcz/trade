@@ -14,9 +14,13 @@ export const AuditLogsContent: React.FC = () => {
 
   const columns: Column<AuditLog>[] = [
     {
-      key: 'adminName',
+      key: 'adminUserName',
       label: 'Administrator',
-      width: '120px'
+      width: '120px',
+      render: (value, item) => {
+        const displayName = value || (item as any).adminName || '-';
+        return <span>{displayName}</span>;
+      }
     },
     {
       key: 'action',
@@ -25,24 +29,6 @@ export const AuditLogsContent: React.FC = () => {
       render: (value) => {
         try {
           return <span className="action-badge">{value || '-'}</span>;
-        } catch (e) {
-          return <span>-</span>;
-        }
-      }
-    },
-    {
-      key: 'entityType',
-      label: 'Typ Encji',
-      width: '100px'
-    },
-    {
-      key: 'entityId',
-      label: 'ID Encji',
-      width: '120px',
-      render: (value) => {
-        try {
-          const strValue = String(value || '');
-          return <span className="entity-id">{strValue.substring(0, 12)}{strValue.length > 12 ? '...' : ''}</span>;
         } catch (e) {
           return <span>-</span>;
         }
@@ -61,13 +47,14 @@ export const AuditLogsContent: React.FC = () => {
       }
     },
     {
-      key: 'createdAt',
+      key: 'createdAtUtc',
       label: 'Data i Czas',
       width: '180px',
-      render: (value) => {
+      render: (value, item) => {
         try {
-          if (!value) return <span>-</span>;
-          const date = new Date(value);
+          const dateString = value || (item as any).createdAt;
+          if (!dateString) return <span>-</span>;
+          const date = new Date(dateString);
           if (isNaN(date.getTime())) return <span>-</span>;
           return <span>{date.toLocaleString('pl-PL')}</span>;
         } catch (e) {

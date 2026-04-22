@@ -89,6 +89,10 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             if (!string.IsNullOrWhiteSpace(context.SessionId))
                 claims.Add(new Claim("session_id", context.SessionId));
 
+            // Add registration session ID - points to temp admin data in Redis
+            if (!string.IsNullOrWhiteSpace(context.RegistrationSessionId))
+                claims.Add(new Claim("registration_session_id", context.RegistrationSessionId));
+
             // Add 2FA requirement flag
             if (context.TwoFactorRequired)
                 claims.Add(new Claim("requires_2fa", "true"));
@@ -96,6 +100,10 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             // Add admin registration step (for bootstrap/invite flow)
             if (!string.IsNullOrWhiteSpace(context.AdminRegistrationStep))
                 claims.Add(new Claim("registration_step", context.AdminRegistrationStep));
+
+            // Add super admin flag (for bootstrap flow)
+            if (context.IsSuperAdmin)
+                claims.Add(new Claim("is_super_admin", "true"));
 
             // ✅ SECURITY: NEVER add TotpSecret to JWT claims
             // TOTP secret is stored in Redis indexed by sessionId

@@ -60,7 +60,7 @@ export const UserSetup2FAPage: React.FC = () => {
         code,
       };
 
-      const response = await authService.userRegisterComplete2FA(request, auth.tempToken!);
+      const response = await authService.userRegisterComplete2FA(request);
 
       if (response.backupCodes && response.backupCodes.length > 0) {
         setBackupCodes(response.backupCodes);

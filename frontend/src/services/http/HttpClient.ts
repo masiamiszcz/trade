@@ -9,11 +9,37 @@
  * - Request/Response logging for debugging
  * - Centralized error handling
  * - Request timeout handling
- * - Token injection in Authorization header
+ * - Automatic token injection in Authorization header (2FA aware)
+ * - Intelligent token management (temp vs final)
  */
 
 import { API_CONFIG } from '../../config/apiConfig';
 import { ApiError } from './ApiError';
+
+/**
+ * Token storage configuration
+ * Supports multiple auth contexts (user + admin)
+ */
+interface TokenStorage {
+  // User tokens
+  finalUserToken: string | null;           // 'auth_token'
+  tempUserToken: string | null;            // 'trading-platform-temp-token'
+  tempUserSessionId: string | null;        // 'trading-platform-session-id'
+
+  // Admin tokens (stored as single JSON object)
+  adminSession: AdminSessionStorage | null; // 'trading-admin-session'
+}
+
+interface AdminSessionStorage {
+  token: string;
+  sessionId?: string;
+  adminId?: string;
+  username?: string;
+  email?: string;
+  isTempToken?: boolean;
+  requiresTwoFactor?: boolean;
+  isSuperAdmin?: boolean;
+}
 
 /**
  * Request interceptor types
@@ -54,6 +80,142 @@ class HttpClient {
   private requestLog: Map<string, RequestLogEntry> = new Map();
 
   /**
+   * CRITICAL: Get authentication token based on request endpoint
+   * 
+   * Token Selection Rules:
+   * RULE 1 - FINAL TOKEN: For regular API calls
+   *   Use final token if exists (admin or user)
+   * 
+   * RULE 2 - TEMP TOKEN: For 2FA verification endpoints
+   *   Use temp token for: /verify-2fa, /verify-login-2fa, /register-complete-2fa
+   *   
+   * RULE 3 - POST 2FA SUCCESS: Response contains final token
+   *   Save as main token, clear temp token
+   * 
+   * @param endpoint - API endpoint URL (e.g., '/user/verify-2fa' or 'http://localhost/api/user/verify-2fa')
+   * @returns Token string or null if not authenticated
+   */
+  private getAuthToken(endpoint: string): string | null {
+    // Normalize endpoint - extract just the path if full URL is passed
+    const path = endpoint.includes('/api/') 
+      ? endpoint.substring(endpoint.indexOf('/api/'))
+      : endpoint.includes('://')
+      ? new URL(endpoint).pathname
+      : endpoint;
+
+    // Parse admin session if exists
+    let adminSession: AdminSessionStorage | null = null;
+    try {
+      const stored = localStorage.getItem('trading-admin-session');
+      if (stored) {
+        adminSession = JSON.parse(stored);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+
+    // 2FA verification endpoints require TEMP TOKEN
+    const is2FAEndpoint =
+      path.includes('/verify-2fa') ||
+      path.includes('/verify-login-2fa') ||
+      path.includes('/register-complete-2fa') ||
+      path.includes('/setup-2fa/generate') ||
+      path.includes('/setup-2fa/enable');
+
+    if (is2FAEndpoint) {
+      // Check for user temp token first
+      const tempToken = localStorage.getItem('trading-platform-temp-token');
+      if (tempToken) {
+        console.log('[HttpClient] Using TEMP TOKEN for 2FA endpoint:', path);
+        return tempToken;
+      }
+
+      // For admin, temp token is stored in admin session
+      if (adminSession?.isTempToken && adminSession?.token) {
+        console.log('[HttpClient] Using ADMIN TEMP TOKEN for 2FA endpoint:', path);
+        return adminSession.token;
+      }
+    }
+
+    // FINAL TOKEN usage - regular API calls
+    // Priority: Admin final token > User final token
+    if (adminSession?.token && !adminSession.isTempToken) {
+      console.log('[HttpClient] Using ADMIN FINAL TOKEN for:', path);
+      return adminSession.token;
+    }
+
+    const userToken = localStorage.getItem('auth_token');
+    if (userToken) {
+      console.log('[HttpClient] Using USER FINAL TOKEN for:', path);
+      return userToken;
+    }
+
+    // No token available
+    console.log('[HttpClient] No token available for:', path);
+    return null;
+  }
+
+  /**
+   * Add authorization header automatically if token exists
+   * This is the REQUEST INTERCEPTOR for token injection
+   */
+  private injectAuthorizationHeader(config: RequestConfig): RequestConfig {
+    // 🔐 SECURITY: Protected 2FA endpoints that REQUIRE tokens (even during registration/login)
+    // These must be checked BEFORE public endpoints to avoid false positives
+    const protected2FAEndpoints = [
+      '/verify-2fa',
+      '/verify-login-2fa',
+      '/register-complete-2fa',
+      '/register/verify-2fa',  // ← User registration 2FA verification
+      '/setup-2fa/generate',
+      '/setup-2fa/enable',
+    ];
+
+    const is2FAProtected = protected2FAEndpoints.some(endpoint =>
+      config.url?.includes(endpoint)
+    );
+
+    // Don't inject token for public endpoints (that are NOT 2FA protected)
+    const publicEndpoints = [
+      '/auth/login',
+      '/auth/register',
+      '/user/login',
+      '/user/register',
+      '/admin/bootstrap',
+      '/health',
+      '/market',
+    ];
+
+    const isPublic = !is2FAProtected && publicEndpoints.some(endpoint =>
+      config.url?.includes(endpoint)
+    );
+
+    if (isPublic) {
+      return config;
+    }
+
+    // Get appropriate token based on endpoint
+    const token = this.getAuthToken(config.url || '');
+    
+    if (token) {
+      // Remove existing Authorization header if present (to avoid duplicates)
+      if (config.headers && typeof config.headers === 'object' && !Array.isArray(config.headers)) {
+        delete (config.headers as Record<string, unknown>)['Authorization'];
+      }
+
+      // Add Authorization header
+      config.headers = {
+        ...config.headers,
+        'Authorization': `Bearer ${token}`,
+      };
+
+      console.log('[HttpClient] ✓ Authorization header injected for:', config.url);
+    }
+
+    return config;
+  }
+
+  /**
    * Add request interceptor
    */
   addRequestInterceptor(interceptor: RequestInterceptor): void {
@@ -76,12 +238,16 @@ class HttpClient {
 
   /**
    * Execute request interceptors chain
+   * FIRST: Automatically inject authorization header
+   * THEN: Run user-defined interceptors
    */
   private async executeRequestInterceptors(
     config: RequestConfig
   ): Promise<RequestConfig> {
-    let processedConfig = config;
+    // STEP 1: Automatic token injection (built-in interceptor)
+    let processedConfig = this.injectAuthorizationHeader(config);
 
+    // STEP 2: Run user-defined interceptors
     for (const interceptor of this.requestInterceptors) {
       processedConfig = await Promise.resolve(interceptor(processedConfig));
     }
@@ -243,12 +409,16 @@ class HttpClient {
     config.requestId = requestId;
 
     try {
-      // Build full URL
-      const fullUrl = `${API_CONFIG.baseUrl}${config.url}`;
-      config.url = fullUrl;
+      // IMPORTANT: Store original endpoint BEFORE building full URL
+      // This is used by getAuthToken() to detect 2FA endpoints
+      const originalEndpoint = config.url;
 
-      // Run request interceptors
-      const processedConfig = await this.executeRequestInterceptors(config);
+      // Run request interceptors (BEFORE building full URL)
+      // This allows token injection based on original endpoint path
+      let processedConfig = await this.executeRequestInterceptors(config);
+
+      // Now build full URL using potentially modified config.url
+      const fullUrl = `${API_CONFIG.baseUrl}${processedConfig.url}`;
 
       // Set timeout
       const controller = new AbortController();
@@ -257,7 +427,7 @@ class HttpClient {
       // Log request
       this.logRequest(
         processedConfig.method || 'GET',
-        config.url,
+        fullUrl,
         requestId,
         processedConfig.headers || {},
         processedConfig.body

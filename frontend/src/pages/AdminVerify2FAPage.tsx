@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { adminAuthService } from '../services/AdminAuthService';
+import { authService } from '../services/AuthenticationService';
 import { useAdminAuth } from '../hooks/admin/useAdminAuth';
 import { TwoFactorInput } from '../components/admin/2FA/TwoFactorInput';
 import { AdminVerify2FARequest } from '../types/adminAuth';
@@ -28,8 +28,8 @@ export const AdminVerify2FAPage: React.FC = () => {
     }
   }, [isAuthenticated, loading, navigate]);
 
-  // Protect this page - must have temp token and sessionId
-  if (!token || !isTempToken || !state) {
+  // Protect this page - must have token (temp or final) and sessionId
+  if (!token || !state) {
     navigate('/admin/login');
     return null;
   }
@@ -44,9 +44,9 @@ export const AdminVerify2FAPage: React.FC = () => {
         code,
       };
 
-      const result = await adminAuthService.adminVerify2FA(request, token!);
+      const result = await authService.adminVerify2FA(request);
 
-      if (result.error) {
+      if (!result.token) {
         const newAttempts = attempts + 1;
         setAttempts(newAttempts);
 
@@ -58,39 +58,25 @@ export const AdminVerify2FAPage: React.FC = () => {
           }, 2000);
         } else {
           setError(
-            `Błędny kod. (Próba ${newAttempts}/3) ${result.error.message || 'Spróbuj ponownie'}`
+            `Błędny kod. (Próba ${newAttempts}/3)`
           );
         }
         setLoading(false);
         return;
       }
 
-      if (!result.data) {
-        setError('Nieznany błąd');
-        setLoading(false);
-        return;
-      }
-
-      // ✅ UNIFIED: Save to trading-admin-session (main storage key)
-      // This ensures hook finds token immediately after 2FA verification
-      const sessionData = {
-        token: result.data.token,
-        sessionId: result.data.adminId,
-        adminId: result.data.adminId,
-        username: result.data.username,
+      // ✅ Success - update React state via hook
+      setSession({
+        token: result.token,
         isTempToken: false,
         requiresTwoFactor: false,
-      };
+        sessionId: state.sessionId,
+      });
       
-      // Direct localStorage save to ensure immediate availability
-      localStorage.setItem('trading-admin-session', JSON.stringify(sessionData));
-      console.log('✅ Token saved to trading-admin-session (direct localStorage)');
-      
-      // Also update context (for React state sync)
-      setSession(sessionData);
-      setLoading(false);
-    } catch (err) {
-      setError('Nieznany błąd - sprawdź konsolę');
+      // Now navigate to dashboard
+      navigate('/admin/dashboard', { replace: true });
+    } catch (err: any) {
+      setError(err?.message || 'Nieznany błąd');
       console.error('2FA verification error:', err);
       setLoading(false);
     }

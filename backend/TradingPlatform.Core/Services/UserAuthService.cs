@@ -134,33 +134,59 @@ public sealed class UserAuthService : IUserAuthService
 
             // Create session ID for this registration attempt
             var sessionId = Guid.NewGuid().ToString();
+            var tempUserId = Guid.NewGuid();
 
             // 🔐 SECURITY: Store all session data in Redis (NOT in JWT!)
             // This includes:
-            // - TOTP secret (for verification)
+            // - TOTP secret (for verification) - stored in 2fa_session:{sessionId}
             // - Backup codes (shown to user, then hashed in DB)
             // - Password (hashed immediately after verification, then deleted from Redis)
+            // - Registration data (username, email, firstName, lastName, baseCurrency)
             // 
             // This approach:
             // 1. Keeps sensitive data off the network (not in JWT)
             // 2. Keeps data encrypted in transit (Redis connection is internal)
             // 3. Auto-cleanup after 10 minutes (TTL)
             // 4. Password never stored persistently
+            
+            // Store registration data as JSON (stored in TotpSecret field as JSON string)
+            var registrationData = new
+            {
+                UserId = tempUserId,
+                Username = username.Trim(),
+                Email = email.Trim(),
+                FirstName = firstName.Trim(),
+                LastName = lastName.Trim(),
+                BaseCurrency = baseCurrency.ToUpper(),
+                RegistrationStep = "pending_2fa",
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            var registrationJson = System.Text.Json.JsonSerializer.Serialize(registrationData);
+
+            // Main registration session - stores registration data
             await _redisSessionService.CreateSessionAsync(
                 sessionId,
-                Guid.NewGuid().ToString(), // temp userId for this session
-                secretDto.Secret,
+                tempUserId.ToString(),
+                registrationJson,  // ← Registration data as JSON
                 SessionTimeoutSeconds,
                 password: password, // ⚠️ Plaintext in Redis (memory only, expires 10min)
                 backupCodes: backupCodes.ToList(),
                 cancellationToken);
 
+            // Separate 2FA session - stores TOTP secret
+            await _redisSessionService.CreateSessionAsync(
+                $"2fa_session:{sessionId}",
+                tempUserId.ToString(),
+                secretDto.Secret,  // ← Actual TOTP secret
+                SessionTimeoutSeconds,
+                cancellationToken);
+
             _logger.LogInformation(
-                "Registration STEP 1: Created Redis session {SessionId} with TOTP secret, backup codes, and password (all expire in {Timeout}s)",
+                "Registration STEP 1: Created Redis sessions {SessionId} with registration data + TOTP secret, " +
+                "backup codes, and password (all expire in {Timeout}s)",
                 sessionId, SessionTimeoutSeconds);
 
             // Create temporary user object (for metadata only - not saved to DB yet)
-            var tempUserId = Guid.NewGuid();
             var tempUser = new User(
                 Id: tempUserId,
                 UserName: username.Trim(),
@@ -277,8 +303,8 @@ public sealed class UserAuthService : IUserAuthService
     /// </summary>
     /// <summary>
     /// Complete user registration Step 2: Verify 2FA code and create account
-    /// Overload that retrieves password + backup codes from Redis using sessionId
-    /// ✅ SECURE: Password + codes never leave server, never in JWT
+    /// Overload that retrieves password + backup codes + registration data from Redis using sessionId
+    /// ✅ SECURE: Password + codes + registration data never leave server, never in JWT
     /// </summary>
     public async Task<UserRegistrationCompleteResponse> RegisterCompleteInternalAsync(
         Guid userId,
@@ -298,10 +324,17 @@ public sealed class UserAuthService : IUserAuthService
 
         try
         {
-            // Retrieve session from Redis (contains TOTP secret, password, backup codes)
-            var session = await _redisSessionService.GetSessionAsync(sessionId, cancellationToken);
-            if (session == null)
+            // Retrieve main session from Redis (contains registration data, password, backup codes)
+            var mainSession = await _redisSessionService.GetSessionAsync(sessionId, cancellationToken);
+            if (mainSession == null)
                 throw new UnauthorizedAccessException("2FA session expired or invalid");
+
+            // Retrieve TOTP secret from separate 2FA session
+            var totpSession = await _redisSessionService.GetSessionAsync($"2fa_session:{sessionId}", cancellationToken);
+            if (totpSession == null)
+                throw new UnauthorizedAccessException("TOTP session not found");
+
+            var totpSecret = totpSession.TotpSecret;
 
             // Check if session is locked (too many failed attempts)
             var isLocked = await _redisSessionService.IsSessionLockedAsync(sessionId, cancellationToken);
@@ -316,8 +349,8 @@ public sealed class UserAuthService : IUserAuthService
                 throw new UnauthorizedAccessException($"Maximum 2FA attempts ({MaxFailedAttempts}) exceeded. Account locked for {LockoutDurationSeconds / 60} minutes.");
             }
 
-            // Verify 2FA code using Redis-stored secret
-            if (!_twoFactorService.VerifyCode(session.TotpSecret, code))
+            // Verify 2FA code using TOTP secret from 2FA session
+            if (!_twoFactorService.VerifyCode(totpSecret, code))
             {
                 // Increment failed attempts
                 var newAttemptCount = await _redisSessionService.IncrementFailedAttemptsAsync(sessionId, cancellationToken);
@@ -333,9 +366,9 @@ public sealed class UserAuthService : IUserAuthService
                     $"Invalid 2FA code. Attempts: {newAttemptCount}/{MaxFailedAttempts}. Session expires in 10 minutes.");
             }
 
-            // Get password and backup codes from session
-            var password = session.Password ?? throw new InvalidOperationException("Password missing from session");
-            var backupCodes = session.BackupCodes ?? throw new InvalidOperationException("Backup codes missing from session");
+            // Get password and backup codes from main session
+            var password = mainSession.Password ?? throw new InvalidOperationException("Password missing from session");
+            var backupCodes = mainSession.BackupCodes ?? throw new InvalidOperationException("Backup codes missing from session");
 
             // Delegate to the original overload with all parameters explicitly provided
             return await RegisterCompleteInternalAsync(
@@ -400,17 +433,29 @@ public sealed class UserAuthService : IUserAuthService
                 "Registration STEP 2: Verifying 2FA code for user '{Username}', sessionId={SessionId}",
                 username, sessionId);
 
-            // 🔐 SECURITY: Get TOTP secret from Redis (NOT from JWT!)
-            var sessionData = await _redisSessionService.GetSessionAsync(sessionId, cancellationToken);
-            if (sessionData == null)
+            // 🔐 SECURITY: Get main session (contains registration data, password, backup codes)
+            var mainSession = await _redisSessionService.GetSessionAsync(sessionId, cancellationToken);
+            if (mainSession == null)
             {
                 _logger.LogWarning(
-                    "Registration STEP 2: Session {SessionId} not found or expired for user '{Username}'",
+                    "Registration STEP 2: Main session {SessionId} not found or expired for user '{Username}'",
                     sessionId, username);
                 throw new UnauthorizedAccessException("Session expired. Please start registration again.");
             }
 
-            var totpSecret = sessionData.TotpSecret;
+            // 🔐 SECURITY: Get TOTP secret from SEPARATE 2FA session (NOT from main session!)
+            // Main session stores registration JSON in TotpSecret field
+            // We need the actual TOTP secret from the 2fa_session:{sessionId} key
+            var totpSession = await _redisSessionService.GetSessionAsync($"2fa_session:{sessionId}", cancellationToken);
+            if (totpSession == null)
+            {
+                _logger.LogWarning(
+                    "Registration STEP 2: 2FA session for {SessionId} not found for user '{Username}'",
+                    sessionId, username);
+                throw new UnauthorizedAccessException("2FA session not found. Please restart registration.");
+            }
+
+            var totpSecret = totpSession.TotpSecret;
 
             // Check rate limiting - is session locked?
             var isLocked = await _redisSessionService.IsSessionLockedAsync(sessionId, cancellationToken);
@@ -501,9 +546,10 @@ public sealed class UserAuthService : IUserAuthService
                 initialBalance: 10000,
                 cancellationToken);
 
-            // 🔐 CLEANUP: Delete session from Redis (successful verification)
+            // 🔐 CLEANUP: Delete sessions from Redis (successful verification)
             await _redisSessionService.DeleteSessionAsync(sessionId, cancellationToken);
-            _logger.LogInformation("Cleaned up Redis session {SessionId}", sessionId);
+            await _redisSessionService.DeleteSessionAsync($"2fa_session:{sessionId}", cancellationToken);
+            _logger.LogInformation("Cleaned up Redis sessions for {SessionId}", sessionId);
 
             _logger.LogInformation("Main account created for user '{UserId}' with balance 10000 {BaseCurrency}", user.Id, baseCurrency);
 
@@ -977,5 +1023,19 @@ public sealed class UserAuthService : IUserAuthService
             _logger.LogWarning(ex, "Token validation failed");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Get Redis session data for user registration
+    /// Retrieves registration data stored in Redis during Step 1
+    /// </summary>
+    public async Task<TwoFASessionData?> GetRedisSessionDataAsync(
+        string sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new ArgumentException("Session ID is required", nameof(sessionId));
+
+        return await _redisSessionService.GetSessionAsync(sessionId, cancellationToken);
     }
 }

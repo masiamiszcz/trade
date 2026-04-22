@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { httpClient } from '../../../services/http/HttpClient';
 import { useAdminRequests } from '../../../hooks/admin/useAdminRequests';
 import './DashboardContent.css';
 
@@ -14,8 +15,10 @@ export const DashboardContent: React.FC = () => {
   useEffect(() => {
     const fetchHealth = async () => {
       try {
-        const response = await fetch('http://trading-backend:5001/health');
-        const data = await response.json();
+        const data = await httpClient.fetch<HealthStatus>({
+          url: '/health',
+          method: 'GET',
+        });
         setHealth(data);
       } catch (error) {
         setHealth({ status: 'OK', message: 'Serwer dostępny' });
@@ -69,8 +72,8 @@ export const DashboardContent: React.FC = () => {
             <h3>🏥 Healthcheck Serwisu</h3>
           </div>
           <div className="widget-body">
-            <div className={`health-status ${health.status === 'OK' ? 'healthy' : 'unavailable'}`}>
-              {health.status === 'OK' ? '🟢' : '🔴'} {health.status}
+            <div className={`health-status ${health.status === 'Healthy' ? 'Healthy' : 'unavailable'}`}>
+              {health.status === 'Healthy' ? '🟢' : '🔴'} {health.status}
             </div>
             {health.message && <p className="health-message">{health.message}</p>}
           </div>

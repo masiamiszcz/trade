@@ -66,13 +66,16 @@ export const API_CONFIG = {
     
     // Admin
     admin: {
-      bootstrap: '/admin/bootstrap',
-      login: '/admin/auth/login',
-      verify2fa: '/admin/auth/2fa/verify',
-      setup2fa: '/admin/auth/2fa/setup',
-      invitations: '/admin/invitations',
-      requests: '/admin/requests',
-      health: '/admin/health',
+      bootstrap: '/auth/admin/bootstrap',
+      login: '/auth/admin-login',
+      verify2fa: '/auth/admin/verify-2fa',
+      setup2faGenerate: '/auth/admin/setup-2fa/generate',
+      setup2faEnable: '/auth/admin/setup-2fa/enable',
+      setup2faDisable: '/auth/admin/setup-2fa/disable',
+      backupCodesRegenerate: '/auth/admin/backup-codes/regenerate',
+      invite: '/auth/admin/invite',
+      register: '/auth/admin/register',
+      health: '/auth/admin/health',
     },
   },
 } as const;

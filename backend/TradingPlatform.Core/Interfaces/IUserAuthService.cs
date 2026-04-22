@@ -172,4 +172,12 @@ public interface IUserAuthService
     /// Returns dictionary of claims or null if token is invalid
     /// </summary>
     Dictionary<string, string>? ValidateTokenAndExtractClaims(string token);
+
+    /// <summary>
+    /// Get Redis session data for user registration
+    /// Used to retrieve registration data (username, email, etc.) from Redis
+    /// </summary>
+    Task<TwoFASessionData?> GetRedisSessionDataAsync(
+        string sessionId,
+        CancellationToken cancellationToken = default);
 }

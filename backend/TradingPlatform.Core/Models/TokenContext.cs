@@ -11,7 +11,10 @@ public sealed class TokenContext
     /// <summary>Admin registration step (if applicable)</summary>
     public string? AdminRegistrationStep { get; set; }
 
-    /// <summary>Session ID for correlation</summary>
+    /// <summary>Registration session ID for temporary admin data (points to Redis)</summary>
+    public string? RegistrationSessionId { get; set; }
+
+    /// <summary>Session ID for correlation (2FA login)</summary>
     public string? SessionId { get; set; }
 
     /// <summary>Whether 2FA is required for this token</summary>
@@ -25,4 +28,7 @@ public sealed class TokenContext
 
     /// <summary>User password for registration (stored in JWT temporarily for Step 2)</summary>
     public string? Password { get; set; }
+
+    /// <summary>Is this a super admin (for bootstrap flow)</summary>
+    public bool IsSuperAdmin { get; set; }
 }

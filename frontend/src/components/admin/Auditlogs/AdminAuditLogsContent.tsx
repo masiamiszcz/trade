@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useGetAdminAuditLogs, AdminAuditLog } from '../../hooks/admin/useGetAdminAuditLogs.ts';
+import { useGetAdminAuditLogs, AdminAuditLog } from '../../hooks/admin/useGetAdminAuditLogs';
 import './AdminAuditLogsContent.css';
 
 interface SortConfig {

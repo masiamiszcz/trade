@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { httpClient } from '../../services/http/HttpClient';
 import { useAdminAuth } from './useAdminAuth';
 
 interface InviteResponse {
@@ -30,25 +31,17 @@ export const useAdminInvite = () => {
       setSuccessMessage(null);
 
       try {
-        const response = await fetch('/api/auth/admin/invite', {
+        const data: InviteResponse = await httpClient.fetch<InviteResponse>({
+          url: '/auth/admin/invite',
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email,
             firstName,
             lastName
           })
         });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Nie udało się wygenerować linku zaproszenia');
-        }
-
-        const data: InviteResponse = await response.json();
+        
         setSuccessMessage(`Link zaproszenia wysłany dla: ${email}`);
         return data.token;
       } catch (err) {

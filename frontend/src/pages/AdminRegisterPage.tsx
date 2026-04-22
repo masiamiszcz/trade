@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminAuthService } from '../services/AdminAuthService';
+import { authService } from '../services/AuthenticationService';
 import { useAdminAuth } from '../hooks/admin/useAdminAuth';
 import { AdminBootstrapRequest } from '../types/adminAuth';
 
@@ -75,31 +75,25 @@ export const AdminRegisterPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const result = await adminAuthService.adminBootstrap(formData);
+      const result = await authService.adminBootstrap(formData);
 
-      if (result.error) {
-        setError(result.error.message || 'Błąd przy tworzeniu Super Admina');
+      if (!result.token) {
+        setError('Nieznany błąd - brak tokenu');
         return;
       }
 
-      if (!result.data) {
-        setError('Nieznany błąd');
-        return;
-      }
-
-      // Zapisz sesję (temp token do setup 2FA)
+      // 🔑 CRITICAL: Save to context (not just localStorage)
       setSession({
-        token: result.data.token,
-        sessionId: result.data.sessionId,
+        token: result.token,
         isTempToken: true,
-        requiresTwoFactor: result.data.requiresTwoFactorSetup,
+        requiresTwoFactor: true,
         username: formData.username,
       });
 
-      // Redirect do setup 2FA - bez location state
+      // Redirect do setup 2FA
       navigate('/admin/setup-2fa');
-    } catch (err) {
-      setError('Nieznany błąd - sprawdź konsolę');
+    } catch (err: any) {
+      setError(err?.message || 'Nieznany błąd');
       console.error('Bootstrap error:', err);
     } finally {
       setLoading(false);

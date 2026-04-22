@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
+import { httpClient } from '../../services/http/HttpClient';
 import { useAdminAuth } from './useAdminAuth';
 
 export interface UserListItem {
@@ -33,19 +34,11 @@ export const useGetUsers = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/admin/users', {
+      const data: UserListItem[] = await httpClient.fetch<UserListItem[]>({
+        url: '/admin/users',
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch users: ${response.status}`);
-      }
-
-      const data: UserListItem[] = await response.json();
       const newUsersStr = JSON.stringify(data);
       
       // ✅ MEMO: Only update state if data actually changed

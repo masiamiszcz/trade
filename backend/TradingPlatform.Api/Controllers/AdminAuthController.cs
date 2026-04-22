@@ -134,9 +134,19 @@ public sealed class AdminAuthController : ControllerBase
                     return Unauthorized(new AdminAuthErrorResponse(401, $"Invalid registration step: {registrationStepClaim.Value}. Expected: pending_2fa", "INVALID_REGISTRATION_STEP"));
                 }
 
-                _logger.LogInformation("✅ All validations passed. Generating 2FA setup for admin {AdminId}", adminId);
+                // Extract registration session ID (points to Redis where temp data is stored)
+                var registrationSessionIdClaim = principal.FindFirst("registration_session_id");
+                if (registrationSessionIdClaim == null)
+                {
+                    _logger.LogWarning("❌ Missing 'registration_session_id' claim in JWT");
+                    return Unauthorized(new AdminAuthErrorResponse(401, "Missing 'registration_session_id' claim. Token must be from bootstrap/register endpoint.", "MISSING_SESSION_ID"));
+                }
 
-                var response = await _authService.SetupTwoFactorGenerateAsync(adminId, cancellationToken);
+                var registrationSessionId = registrationSessionIdClaim.Value;
+
+                _logger.LogInformation("✅ All validations passed. Generating 2FA setup for admin {AdminId}, sessionId={SessionId}", adminId, registrationSessionId);
+
+                var response = await _authService.SetupTwoFactorGenerateAsync(adminId, registrationSessionId, cancellationToken);
 
                 _logger.LogInformation("✅ 2FA setup generated successfully");
                 return Ok(response);
@@ -257,6 +267,14 @@ public sealed class AdminAuthController : ControllerBase
                     return Unauthorized(new AdminAuthErrorResponse(401, "Not a 2FA setup token", "WRONG_TOKEN_TYPE"));
                 }
 
+                // Extract registration_session_id from JWT (stored in Step 1)
+                var registrationSessionIdClaim = principal.FindFirst("registration_session_id");
+                if (string.IsNullOrWhiteSpace(registrationSessionIdClaim?.Value))
+                {
+                    _logger.LogWarning("❌ No registration_session_id in JWT");
+                    return Unauthorized(new AdminAuthErrorResponse(401, "No registration session ID in token", "NO_REG_SESSION"));
+                }
+
                 // 🔐 SECURITY: Extract sessionId from REQUEST BODY (generated in /generate)
                 if (string.IsNullOrWhiteSpace(request.SessionId))
                 {
@@ -265,16 +283,27 @@ public sealed class AdminAuthController : ControllerBase
                 }
 
                 var sessionId = request.SessionId;
-                _logger.LogInformation("✅ All validations passed for admin {AdminId}, sessionId={SessionId}", adminId, sessionId);
+                var registrationSessionId = registrationSessionIdClaim.Value;
+
+                // 🔐 SECURITY: Verify sessionId from request matches JWT claim (prevent tampering)
+                if (sessionId != registrationSessionId)
+                {
+                    _logger.LogWarning("❌ SessionId mismatch! request={RequestSessionId}, jwt={JwtSessionId}", sessionId, registrationSessionId);
+                    return BadRequest(new AdminAuthErrorResponse(400, "SessionId mismatch. Request has been tampered with.", "SESSION_MISMATCH"));
+                }
+
+                _logger.LogInformation("✅ All validations passed for admin {AdminId}, sessionId={SessionId}", 
+                    adminId, sessionId);
 
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
                 var userAgent = Request.Headers["User-Agent"].ToString();
 
-                // 🔐 SECURITY: Pass sessionId (Redis will fetch secret)
+                // 🔐 SECURITY: sessionId == registrationSessionId (verified above)
                 var response = await _authService.SetupTwoFactorEnableAsync(
                     adminId,
                     request.Code,
-                    sessionId,  // ← Backend will fetch secret from Redis using this
+                    sessionId,  // ← Both TOTP secret Redis session AND registration data are keyed by this
+                    sessionId,  // ← Same as above (after validation they're equal)
                     ipAddress,
                     userAgent,
                     cancellationToken);

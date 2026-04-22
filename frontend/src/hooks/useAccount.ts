@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
+import { httpClient } from '../services/http/HttpClient';
 import { ApiResponse, AccountDto } from '../types';
 
 export const useAccount = () => {
@@ -18,47 +19,19 @@ export const useAccount = () => {
     setLoading(true);
     setError(null);
 
-    // ✅ Use relative /api path (goes through nginx, not direct to backend:5001)
-    const url = '/api/account/main';
-
     try {
-      const response = await fetch(url, {
+      const response = await httpClient.fetch<AccountDto | ApiResponse<AccountDto>>({
+        url: '/account/main',
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
       });
 
-      if (!response.ok) {
-        const text = await response.text();
-        if (response.status === 404) {
-          setError('Main account not found');
-        } else if (response.status === 401) {
-          setError('Unauthorized');
-        } else {
-          setError(`Error: ${response.status} ${response.statusText} - ${text}`);
-        }
-        setLoading(false);
-        return;
-      }
-
-      const responseText = await response.text();
-      let parsed: any;
-      try {
-        parsed = JSON.parse(responseText);
-      } catch {
-        setError('Invalid server response: expected JSON.');
-        setLoading(false);
-        return;
-      }
-
       let accountData: AccountDto | null = null;
-      if (parsed && typeof parsed === 'object') {
-        if ('data' in parsed && parsed.data) {
-          accountData = parsed.data as AccountDto;
-        } else if ('accountNumber' in parsed && 'availableBalance' in parsed) {
-          accountData = parsed as AccountDto;
+      
+      if (response && typeof response === 'object') {
+        if ('data' in response && response.data) {
+          accountData = response.data as AccountDto;
+        } else if ('accountNumber' in response && 'availableBalance' in response) {
+          accountData = response as AccountDto;
         }
       }
 

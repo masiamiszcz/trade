@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { httpClient } from '../http/HttpClient';
 import {
   Instrument,
   CreateInstrumentRequest,
@@ -7,8 +7,6 @@ import {
   AdminRequest,
   AdminRequestDto,
 } from '../../types/admin';
-
-const API_BASE = '/api/admin';
 
 /**
  * INSTRUMENTS SERVICE
@@ -27,8 +25,10 @@ const API_BASE = '/api/admin';
  * Returns ALL instruments (all statuses) for admin management
  */
 export const getAll = async (): Promise<Instrument[]> => {
-  const response = await axios.get<Instrument[]>(`${API_BASE}/instruments`);
-  return response.data;
+  return httpClient.fetch<Instrument[]>({
+    url: '/admin/instruments',
+    method: 'GET',
+  });
 };
 
 /**
@@ -36,8 +36,10 @@ export const getAll = async (): Promise<Instrument[]> => {
  * Get single instrument by ID
  */
 export const getById = async (id: string): Promise<Instrument> => {
-  const response = await axios.get<Instrument>(`${API_BASE}/instruments/${id}`);
-  return response.data;
+  return httpClient.fetch<Instrument>({
+    url: `/admin/instruments/${id}`,
+    method: 'GET',
+  });
 };
 
 /**
@@ -47,8 +49,12 @@ export const getById = async (id: string): Promise<Instrument> => {
  * CreatedBy will be set to current admin from JWT token
  */
 export const create = async (request: CreateInstrumentRequest): Promise<Instrument> => {
-  const response = await axios.post<Instrument>(`${API_BASE}/instruments`, request);
-  return response.data;
+  return httpClient.fetch<Instrument>({
+    url: '/admin/instruments',
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
 };
 
 /**
@@ -58,11 +64,12 @@ export const create = async (request: CreateInstrumentRequest): Promise<Instrume
  * ModifiedBy will be set to current admin
  */
 export const update = async (id: string, request: UpdateInstrumentRequest): Promise<Instrument> => {
-  const response = await axios.put<Instrument>(
-    `${API_BASE}/instruments/${id}`,
-    request
-  );
-  return response.data;
+  return httpClient.fetch<Instrument>({
+    url: `/admin/instruments/${id}`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
 };
 
 /**
@@ -71,7 +78,10 @@ export const update = async (id: string, request: UpdateInstrumentRequest): Prom
  * Only works on Draft status (business rule enforced by backend)
  */
 export const delete_ = async (id: string): Promise<void> => {
-  await axios.delete(`${API_BASE}/instruments/${id}`);
+  await httpClient.fetch({
+    url: `/admin/instruments/${id}`,
+    method: 'DELETE',
+  });
 };
 
 // ============ WORKFLOW STATE MACHINE OPERATIONS ============
@@ -84,10 +94,10 @@ export const delete_ = async (id: string): Promise<void> => {
  * Backend validates: description not empty
  */
 export const requestApproval = async (id: string): Promise<Instrument> => {
-  const response = await axios.post<Instrument>(
-    `${API_BASE}/instruments/${id}/request-approval`
-  );
-  return response.data;
+  return httpClient.fetch<Instrument>({
+    url: `/admin/instruments/${id}/request-approval`,
+    method: 'POST',
+  });
 };
 
 /**
@@ -97,10 +107,10 @@ export const requestApproval = async (id: string): Promise<Instrument> => {
  * Backend validates: approver ≠ creator (no self-approval)
  */
 export const approve = async (id: string): Promise<Instrument> => {
-  const response = await axios.post<Instrument>(
-    `${API_BASE}/instruments/${id}/approve`
-  );
-  return response.data;
+  return httpClient.fetch<Instrument>({
+    url: `/admin/instruments/${id}/approve`,
+    method: 'POST',
+  });
 };
 
 /**
@@ -113,11 +123,12 @@ export const reject = async (
   id: string,
   request: RejectInstrumentRequest
 ): Promise<Instrument> => {
-  const response = await axios.post<Instrument>(
-    `${API_BASE}/instruments/${id}/reject`,
-    request
-  );
-  return response.data;
+  return httpClient.fetch<Instrument>({
+    url: `/admin/instruments/${id}/reject`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
 };
 
 /**
@@ -126,10 +137,10 @@ export const reject = async (
  * Transition: Rejected → Draft
  */
 export const retrySubmission = async (id: string): Promise<Instrument> => {
-  const response = await axios.post<Instrument>(
-    `${API_BASE}/instruments/${id}/retry-submission`
-  );
-  return response.data;
+  return httpClient.fetch<Instrument>({
+    url: `/admin/instruments/${id}/retry-submission`,
+    method: 'POST',
+  });
 };
 
 /**
@@ -138,10 +149,10 @@ export const retrySubmission = async (id: string): Promise<Instrument> => {
  * Transition: Approved → Archived
  */
 export const archive = async (id: string): Promise<Instrument> => {
-  const response = await axios.post<Instrument>(
-    `${API_BASE}/instruments/${id}/archive`
-  );
-  return response.data;
+  return httpClient.fetch<Instrument>({
+    url: `/admin/instruments/${id}/archive`,
+    method: 'POST',
+  });
 };
 
 // ============ ADMINISTRATIVE OPERATIONS ============
@@ -152,10 +163,10 @@ export const archive = async (id: string): Promise<Instrument> => {
  * Sets IsBlocked=true
  */
 export const block = async (id: string): Promise<Instrument> => {
-  const response = await axios.post<Instrument>(
-    `${API_BASE}/instruments/${id}/block`
-  );
-  return response.data;
+  return httpClient.fetch<Instrument>({
+    url: `/admin/instruments/${id}/block`,
+    method: 'POST',
+  });
 };
 
 /**
@@ -164,10 +175,10 @@ export const block = async (id: string): Promise<Instrument> => {
  * Sets IsBlocked=false
  */
 export const unblock = async (id: string): Promise<Instrument> => {
-  const response = await axios.post<Instrument>(
-    `${API_BASE}/instruments/${id}/unblock`
-  );
-  return response.data;
+  return httpClient.fetch<Instrument>({
+    url: `/admin/instruments/${id}/unblock`,
+    method: 'POST',
+  });
 };
 
 // ============ ADMIN REQUEST (AUDIT TRAIL) ============
@@ -177,8 +188,10 @@ export const unblock = async (id: string): Promise<Instrument> => {
  * Get all admin requests (audit trail for instruments)
  */
 export const getAllAdminRequests = async (): Promise<AdminRequest[]> => {
-  const response = await axios.get<AdminRequest[]>(`${API_BASE}/admin-requests`);
-  return response.data;
+  return httpClient.fetch<AdminRequest[]>({
+    url: '/admin/admin-requests',
+    method: 'GET',
+  });
 };
 
 /**
@@ -186,10 +199,10 @@ export const getAllAdminRequests = async (): Promise<AdminRequest[]> => {
  * Get pending admin requests (not yet approved)
  */
 export const getPendingAdminRequests = async (): Promise<AdminRequest[]> => {
-  const response = await axios.get<AdminRequest[]>(
-    `${API_BASE}/admin-requests/pending`
-  );
-  return response.data;
+  return httpClient.fetch<AdminRequest[]>({
+    url: '/admin/admin-requests/pending',
+    method: 'GET',
+  });
 };
 
 /**
@@ -197,10 +210,10 @@ export const getPendingAdminRequests = async (): Promise<AdminRequest[]> => {
  * Get single admin request by ID
  */
 export const getAdminRequestById = async (id: string): Promise<AdminRequestDto> => {
-  const response = await axios.get<AdminRequestDto>(
-    `${API_BASE}/admin-requests/${id}`
-  );
-  return response.data;
+  return httpClient.fetch<AdminRequestDto>({
+    url: `/admin/admin-requests/${id}`,
+    method: 'GET',
+  });
 };
 
 // ============ EXPORT AS SERVICE OBJECT ============

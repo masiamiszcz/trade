@@ -79,7 +79,7 @@
   letter-spacing: 0.5px;
 }
 
-.health-widget .health-status.healthy {
+.health-widget .health-status.Healthy {
   background-color: rgba(76, 175, 80, 0.2);
   color: #4caf50;
 }

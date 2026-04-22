@@ -116,22 +116,29 @@ public sealed class UserAuthController : ControllerBase
             if (!Guid.TryParse(claims.GetValueOrDefault("userId") ?? claims.GetValueOrDefault("sub"), out var userId))
                 return BadRequest(new { error = "Invalid user ID in token" });
 
-            // 🔐 SECURITY: Extract sessionId (pointer to Redis where secret, password, backup codes are stored)
+            // 🔐 SECURITY: Extract sessionId (pointer to Redis where secret, password, backup codes, registration data are stored)
             var sessionId = claims.GetValueOrDefault("session_id");
             if (string.IsNullOrEmpty(sessionId))
                 return BadRequest(new { error = "Session ID missing from token" });
 
-            // Extract user metadata from token
-            var username = claims.GetValueOrDefault("name") ?? claims.GetValueOrDefault("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name");
-            var email = claims.GetValueOrDefault("email") ?? claims.GetValueOrDefault("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress");
-            var firstName = claims.GetValueOrDefault("given_name") ?? "";
-            var lastName = claims.GetValueOrDefault("family_name") ?? "";
-            var baseCurrency = claims.GetValueOrDefault("baseCurrency") ?? "PLN";
+            // 🔐 SECURITY: Extract user metadata from Redis session (NOT from JWT claims!)
+            // This ensures frontend cannot modify registration data
+            var registrationSession = await _userAuthService.GetRedisSessionDataAsync(sessionId, cancellationToken);
+            if (registrationSession == null)
+                return BadRequest(new { error = "Registration session not found - please start registration again" });
+
+            // Parse registration data from Redis session
+            var registrationData = System.Text.Json.JsonDocument.Parse(registrationSession.TotpSecret).RootElement;
+            var username = registrationData.GetProperty("Username").GetString() ?? "";
+            var email = registrationData.GetProperty("Email").GetString() ?? "";
+            var firstName = registrationData.GetProperty("FirstName").GetString() ?? "";
+            var lastName = registrationData.GetProperty("LastName").GetString() ?? "";
+            var baseCurrency = registrationData.GetProperty("BaseCurrency").GetString() ?? "PLN";
 
             if (string.IsNullOrEmpty(username))
-                return BadRequest(new { error = "Username missing from token" });
+                return BadRequest(new { error = "Username missing from registration data" });
             if (string.IsNullOrEmpty(email))
-                return BadRequest(new { error = "Email missing from token" });
+                return BadRequest(new { error = "Email missing from registration data" });
 
             // Call service with sessionId (service will retrieve secret, password, backup codes from Redis)
             var response = await _userAuthService.RegisterCompleteInternalAsync(
@@ -142,7 +149,7 @@ public sealed class UserAuthController : ControllerBase
                 lastName,
                 baseCurrency,
                 request.Code,
-                sessionId,  // ← Service fetches secret, password, backup codes from Redis using this
+                sessionId,  // ← Service fetches secret, password, backup codes, registration data from Redis using this
                 cancellationToken);
 
             return Ok(response);

@@ -80,6 +80,8 @@ public sealed class AdminAuthRepository : IAdminAuthRepository
             Status = UserStatus.Active,
             EmailConfirmed = admin.EmailConfirmed,
             TwoFactorEnabled = admin.TwoFactorEnabled,
+            TwoFactorSecret = admin.TwoFactorSecret,  // ✅ FIX: Include encrypted TOTP secret
+            BackupCodes = admin.BackupCodes,          // ✅ FIX: Include backup codes JSON
             BaseCurrency = admin.BaseCurrency,
             CreatedAtUtc = DateTimeOffset.UtcNow,
             SecurityStamp = Guid.NewGuid().ToString("N")
