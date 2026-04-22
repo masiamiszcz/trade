@@ -50,7 +50,7 @@ const ADMIN_TOKEN_STORAGE_KEY = 'admin_auth_token';
 /**
  * Unified Authentication Service
  */
-class AuthenticationService {
+export class AuthenticationService {
   /**
    * Get stored user token
    */

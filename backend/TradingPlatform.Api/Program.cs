@@ -61,9 +61,9 @@ builder.Services.AddAuthentication(options =>
     var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()
         ?? throw new InvalidOperationException("JWT settings are not configured properly.");
 
-    options.RequireHttpsMetadata = true;
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();  // ✅ Allow HTTP in development, enforce HTTPS in production
     options.SaveToken = true;
-    options.MapInboundClaims = true;  // ✅ Map JWT claims to standard claim types for role/policy support
+    options.MapInboundClaims = false;  // ❌ Do NOT map - preserve custom claims (sub, is_super_admin) used in controllers
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,

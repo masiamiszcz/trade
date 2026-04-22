@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useAdminAuth } from './useAdminAuth';
 
 export interface UserListItem {
@@ -21,6 +21,7 @@ export const useGetUsers = () => {
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const prevUsersRef = useRef<string>(''); // ✅ MEMO: Track previous data
 
   const fetchUsers = useCallback(async () => {
     if (!token) {
@@ -45,7 +46,16 @@ export const useGetUsers = () => {
       }
 
       const data: UserListItem[] = await response.json();
-      setUsers(Array.isArray(data) ? data : []);
+      const newUsersStr = JSON.stringify(data);
+      
+      // ✅ MEMO: Only update state if data actually changed
+      if (newUsersStr !== prevUsersRef.current) {
+        console.log('📝 Users CHANGED:', data.length, 'records - updating component');
+        prevUsersRef.current = newUsersStr;
+        setUsers(Array.isArray(data) ? data : []);
+      } else {
+        console.log('🔄 Users unchanged - NOT re-rendering component');
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch users';
       setError(message);
@@ -54,6 +64,19 @@ export const useGetUsers = () => {
       setLoading(false);
     }
   }, [token]);
+
+  // ✅ AUTO-REFRESH: Fetch every 10 seconds for FRESH data
+  useEffect(() => {
+    console.log('🎯 useEffect triggered - fetching users');
+    fetchUsers();
+    
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refresh triggered for users');
+      fetchUsers();
+    }, 10000); // 10 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [fetchUsers]);
 
   return { users, loading, error, fetchUsers };
 };

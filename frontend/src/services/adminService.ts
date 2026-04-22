@@ -249,7 +249,7 @@ class AdminService {
     if (params.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
-    const response = await fetch(`${API_URL}/admin/audit-logs?${queryParams}`, {
+    const response = await fetch(`${API_URL}/admin/audit-history?${queryParams}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) throw new Error('Failed to fetch audit logs');

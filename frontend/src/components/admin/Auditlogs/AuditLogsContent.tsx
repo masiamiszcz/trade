@@ -8,15 +8,8 @@ import './AuditLogsContent.css';
 export const AuditLogsContent: React.FC = () => {
   const {
     logs,
-    totalCount,
-    currentPage,
-    totalPages,
     loading,
     error,
-    page,
-    pageSize,
-    setPage,
-    setPageSize
   } = useAuditLogs();
 
   const columns: Column<AuditLog>[] = [
@@ -29,7 +22,13 @@ export const AuditLogsContent: React.FC = () => {
       key: 'action',
       label: 'Akcja',
       width: '100px',
-      render: (value) => <span className="action-badge">{value}</span>
+      render: (value) => {
+        try {
+          return <span className="action-badge">{value || '-'}</span>;
+        } catch (e) {
+          return <span>-</span>;
+        }
+      }
     },
     {
       key: 'entityType',
@@ -40,21 +39,52 @@ export const AuditLogsContent: React.FC = () => {
       key: 'entityId',
       label: 'ID Encji',
       width: '120px',
-      render: (value) => <span className="entity-id">{String(value).substring(0, 12)}...</span>
+      render: (value) => {
+        try {
+          const strValue = String(value || '');
+          return <span className="entity-id">{strValue.substring(0, 12)}{strValue.length > 12 ? '...' : ''}</span>;
+        } catch (e) {
+          return <span>-</span>;
+        }
+      }
     },
     {
       key: 'ipAddress',
       label: 'Adres IP',
       width: '130px',
-      render: (value) => <span className="ip-address">{value}</span>
+      render: (value) => {
+        try {
+          return <span className="ip-address">{value || '-'}</span>;
+        } catch (e) {
+          return <span>-</span>;
+        }
+      }
     },
     {
       key: 'createdAt',
       label: 'Data i Czas',
       width: '180px',
-      render: (value) => new Date(value).toLocaleString('pl-PL')
+      render: (value) => {
+        try {
+          if (!value) return <span>-</span>;
+          const date = new Date(value);
+          if (isNaN(date.getTime())) return <span>-</span>;
+          return <span>{date.toLocaleString('pl-PL')}</span>;
+        } catch (e) {
+          return <span>-</span>;
+        }
+      }
     }
   ];
+
+  // ✅ SAFE KEY EXTRACTOR
+  const keyExtractor = (item: AuditLog) => {
+    try {
+      return item.id || String(item.entityId) || Math.random();
+    } catch {
+      return Math.random();
+    }
+  };
 
   return (
     <div className="audit-logs-content">
@@ -69,13 +99,9 @@ export const AuditLogsContent: React.FC = () => {
       <DataTable
         columns={columns}
         data={logs}
-        totalCount={totalCount}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        keyExtractor={keyExtractor}
         loading={loading}
+        emptyMessage="Brak danych w dzienniku działań"
       />
     </div>
   );

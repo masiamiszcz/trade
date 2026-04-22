@@ -71,15 +71,23 @@ export const AdminVerify2FAPage: React.FC = () => {
         return;
       }
 
-      // Zapisz final JWT - useEffect obsłuży redirect
-      setSession({
+      // ✅ UNIFIED: Save to trading-admin-session (main storage key)
+      // This ensures hook finds token immediately after 2FA verification
+      const sessionData = {
         token: result.data.token,
         sessionId: result.data.adminId,
         adminId: result.data.adminId,
         username: result.data.username,
         isTempToken: false,
         requiresTwoFactor: false,
-      });
+      };
+      
+      // Direct localStorage save to ensure immediate availability
+      localStorage.setItem('trading-admin-session', JSON.stringify(sessionData));
+      console.log('✅ Token saved to trading-admin-session (direct localStorage)');
+      
+      // Also update context (for React state sync)
+      setSession(sessionData);
       setLoading(false);
     } catch (err) {
       setError('Nieznany błąd - sprawdź konsolę');
