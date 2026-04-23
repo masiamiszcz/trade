@@ -115,7 +115,7 @@ public sealed class AdminController : ControllerBase
             var adminId = GetAdminIdFromToken();
             _logger.LogInformation("Admin {AdminId} creating instrument {Symbol}", adminId, request.Symbol);
 
-            var instrument = await _instrumentService.CreateAsync(request, adminId, cancellationToken);
+            var instrument = await _instrumentService.RequestCreateAsync(request, adminId, cancellationToken);
             return CreatedAtAction(nameof(GetInstrument), new { id = instrument.Id }, instrument);
         }
         catch (InvalidOperationException ex)
@@ -131,24 +131,24 @@ public sealed class AdminController : ControllerBase
     }
 
     /// <summary>
-    /// Update existing instrument (ADMIN only)
-    /// Fields are optional — only provided fields will be updated
-    /// Optimistic concurrency control via RowVersion
+    /// Request approval for instrument update
+    /// Creates AdminRequest with Action=Update, Status=Pending
+    /// Update doesn't take effect until another admin approves the request
     /// </summary>
     /// <param name="id">Instrument ID</param>
     /// <param name="request">Update request with optional fields</param>
-    /// <response code="200">Instrument updated successfully</response>
-    /// <response code="400">Invalid request data or concurrency conflict</response>
+    /// <response code="201">Update request created successfully, awaiting approval</response>
+    /// <response code="400">Invalid request data or idempotent duplicate</response>
     /// <response code="401">User not authenticated</response>
     /// <response code="403">User is not an admin</response>
     /// <response code="404">Instrument not found</response>
-    [HttpPut("instruments/{id}")]
-    [ProducesResponseType(typeof(InstrumentDto), StatusCodes.Status200OK)]
+    [HttpPost("instruments/{id}/request-update")]
+    [ProducesResponseType(typeof(InstrumentDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<InstrumentDto>> UpdateInstrument(
+    public async Task<ActionResult<InstrumentDto>> RequestUpdateInstrument(
         Guid id,
         [FromBody] UpdateInstrumentRequest request,
         CancellationToken cancellationToken)
@@ -159,29 +159,199 @@ public sealed class AdminController : ControllerBase
                 return BadRequest(ModelState);
 
             var adminId = GetAdminIdFromToken();
-            _logger.LogInformation("Admin {AdminId} updating instrument {InstrumentId}", adminId, id);
+            _logger.LogInformation("Admin {AdminId} requesting update for instrument {InstrumentId}", adminId, id);
 
-            var instrument = await _instrumentService.UpdateAsync(id, request, adminId, cancellationToken);
-            return Ok(instrument);
+            var instrument = await _instrumentService.RequestUpdateAsync(id, request, adminId, cancellationToken);
+            return CreatedAtAction(nameof(GetInstrument), new { id = instrument.Id }, instrument);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation for instrument update");
+            _logger.LogWarning(ex, "Invalid operation for instrument update request");
             return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating instrument {InstrumentId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to update instrument" });
+            _logger.LogError(ex, "Error requesting instrument update {InstrumentId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to request instrument update" });
         }
     }
 
     /// <summary>
-    /// <response code="200">List of all users</response>
+    /// Request approval for instrument deletion
+    /// Creates AdminRequest with Action=Delete, Status=Pending
+    /// Deletion doesn't take effect until another admin approves the request
+    /// </summary>
+    /// <param name="id">Instrument ID to delete</param>
+    /// <response code="201">Delete request created successfully, awaiting approval</response>
     /// <response code="401">User not authenticated</response>
     /// <response code="403">User is not an admin</response>
+    /// <response code="404">Instrument not found</response>
+    [HttpPost("instruments/{id}/request-delete")]
+    [ProducesResponseType(typeof(InstrumentDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<InstrumentDto>> RequestDeleteInstrument(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var adminId = GetAdminIdFromToken();
+            _logger.LogInformation("Admin {AdminId} requesting deletion for instrument {InstrumentId}", adminId, id);
+
+            var instrument = await _instrumentService.RequestDeleteAsync(id, adminId, cancellationToken);
+            return CreatedAtAction(nameof(GetInstrument), new { id = instrument.Id }, instrument);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation for instrument deletion request");
+            return NotFound(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error requesting instrument deletion {InstrumentId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to request instrument deletion" });
+        }
+    }
+
+    /// <summary>
+    /// Request approval for blocking instrument
+    /// Creates AdminRequest with Action=Block, Status=Pending
+    /// Block doesn't take effect until another admin approves the request
+    /// </summary>
+    /// <param name="id">Instrument ID to block</param>
+    /// <param name="request">Block request with reason</param>
+    /// <response code="201">Block request created successfully, awaiting approval</response>
+    /// <response code="400">Invalid request data or instrument already blocked</response>
+    /// <response code="401">User not authenticated</response>
+    /// <response code="403">User is not an admin</response>
+    /// <response code="404">Instrument not found</response>
+    [HttpPost("instruments/{id}/request-block")]
+    [ProducesResponseType(typeof(InstrumentDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<InstrumentDto>> RequestBlockInstrument(
+        Guid id,
+        [FromBody] CreateBlockRequestRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var adminId = GetAdminIdFromToken();
+            _logger.LogInformation("Admin {AdminId} requesting block for instrument {InstrumentId}", adminId, id);
+
+            var instrument = await _instrumentService.RequestBlockAsync(id, request.Reason, adminId, cancellationToken);
+            return CreatedAtAction(nameof(GetInstrument), new { id = instrument.Id }, instrument);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation for instrument block request");
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error requesting instrument block {InstrumentId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to request instrument block" });
+        }
+    }
+
+    /// <summary>
+    /// Request approval for unblocking instrument
+    /// Creates AdminRequest with Action=Unblock, Status=Pending
+    /// Unblock doesn't take effect until another admin approves the request
+    /// </summary>
+    /// <param name="id">Instrument ID to unblock</param>
+    /// <param name="request">Unblock request with reason</param>
+    /// <response code="201">Unblock request created successfully, awaiting approval</response>
+    /// <response code="400">Invalid request data or instrument not blocked</response>
+    /// <response code="401">User not authenticated</response>
+    /// <response code="403">User is not an admin</response>
+    /// <response code="404">Instrument not found</response>
+    [HttpPost("instruments/{id}/request-unblock")]
+    [ProducesResponseType(typeof(InstrumentDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<InstrumentDto>> RequestUnblockInstrument(
+        Guid id,
+        [FromBody] CreateUnblockRequestRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var adminId = GetAdminIdFromToken();
+            _logger.LogInformation("Admin {AdminId} requesting unblock for instrument {InstrumentId}", adminId, id);
+
+            var instrument = await _instrumentService.RequestUnblockAsync(id, request.Reason, adminId, cancellationToken);
+            return CreatedAtAction(nameof(GetInstrument), new { id = instrument.Id }, instrument);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation for instrument unblock request");
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error requesting instrument unblock {InstrumentId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to request instrument unblock" });
+        }
+    }
+
+    /// <summary>
+    /// EMERGENCY PATH: Blocks instrument immediately without approval (for compliance/emergency).
+    /// CRITICAL: Only SuperAdmin or specially-privileged admins should have access to this endpoint.
+    /// Requires explicit role check in authorization middleware.
+    /// </summary>
+    [HttpPost("{id}/block-immediate")]
+    public async Task<ActionResult<InstrumentDto>> BlockInstrumentImmediate(
+        Guid id,
+        [FromBody] CreateBlockRequestRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var adminId = GetAdminIdFromToken();
+            _logger.LogWarning("EMERGENCY BLOCK initiated by admin {AdminId} for instrument {InstrumentId}. Reason: {Reason}", adminId, id, request.Reason);
+
+            var instrument = await _instrumentService.BlockInstrumentImmediateAsync(id, request.Reason, adminId, cancellationToken);
+            return Ok(instrument);  // 200 OK instead of CreatedAtAction since it's immediate
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation for emergency instrument block");
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error executing emergency block for instrument {InstrumentId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to execute emergency block" });
+        }
+    }
+
+    /// <summary>
+    /// Update existing instrument (ADMIN only) - DEPRECATED, use /request-update instead
+    /// Fields are optional — only provided fields will be updated
+    /// Optimistic concurrency control via RowVersion
+    /// </summary>
+    /// <param name="id">Instrument ID</param>
+    /// <param name="request">Update request with optional fields</param>
+    /// <response code="200">Instrument updated successfully</response>
+    /// <response code="400">Invalid request data or concurrency conflict</response>
+    /// <response code="401">User not authenticated</response>
+    /// <response code="403">User is not an admin</response>
+    /// <response code="404">Instrument not found</response>
     [HttpGet("users")]
-    [ProducesResponseType(typeof(IEnumerable<UserListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<UserListItemDto>>> GetAllUsers(CancellationToken cancellationToken)
@@ -197,118 +367,6 @@ public sealed class AdminController : ControllerBase
         {
             _logger.LogError(ex, "Error retrieving users");
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to retrieve users" });
-        }
-    }
-
-    /// <summary>
-    /// Delete instrument (ADMIN only)
-    /// Removes instrument entirely from database
-    /// </summary>
-    /// <param name="id">Instrument ID to delete</param>
-    /// <response code="204">Instrument deleted successfully</response>
-    /// <response code="401">User not authenticated</response>
-    /// <response code="403">User is not an admin</response>
-    /// <response code="404">Instrument not found</response>
-    [HttpDelete("instruments/{id}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> DeleteInstrument(Guid id, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var adminId = GetAdminIdFromToken();
-            _logger.LogInformation("Admin {AdminId} deleting instrument {InstrumentId}", adminId, id);
-
-            var exists = await _instrumentService.GetByIdAsync(id, cancellationToken);
-            if (exists == null)
-                return NotFound(new { error = "Instrument not found" });
-
-            await _instrumentService.DeleteAsync(id, adminId, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Invalid operation for instrument deletion");
-            return BadRequest(new { error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting instrument {InstrumentId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to delete instrument" });
-        }
-    }
-
-    /// <summary>
-    /// Block instrument (ADMIN only)
-    /// Sets IsBlocked=true, instrument becomes unavailable
-    /// </summary>
-    /// <param name="id">Instrument ID to block</param>
-    /// <response code="200">Instrument blocked successfully</response>
-    /// <response code="401">User not authenticated</response>
-    /// <response code="403">User is not an admin</response>
-    /// <response code="404">Instrument not found</response>
-    [HttpPatch("instruments/{id}/block")]
-    [ProducesResponseType(typeof(InstrumentDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<InstrumentDto>> BlockInstrument(Guid id, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var adminId = GetAdminIdFromToken();
-            _logger.LogInformation("Admin {AdminId} blocking instrument {InstrumentId}", adminId, id);
-
-            var instrument = await _instrumentService.BlockAsync(id, adminId, cancellationToken);
-            return Ok(instrument);
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Invalid operation for instrument block");
-            return NotFound(new { error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error blocking instrument {InstrumentId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to block instrument" });
-        }
-    }
-
-    /// <summary>
-    /// Unblock instrument (ADMIN only)
-    /// Sets IsBlocked=false, instrument becomes available again
-    /// </summary>
-    /// <param name="id">Instrument ID to unblock</param>
-    /// <response code="200">Instrument unblocked successfully</response>
-    /// <response code="401">User not authenticated</response>
-    /// <response code="403">User is not an admin</response>
-    /// <response code="404">Instrument not found or not blocked</response>
-    [HttpPatch("instruments/{id}/unblock")]
-    [ProducesResponseType(typeof(InstrumentDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<InstrumentDto>> UnblockInstrument(Guid id, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var adminId = GetAdminIdFromToken();
-            _logger.LogInformation("Admin {AdminId} unblocking instrument {InstrumentId}", adminId, id);
-
-            var instrument = await _instrumentService.UnblockAsync(id, adminId, cancellationToken);
-            return Ok(instrument);
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Invalid operation for instrument unblock");
-            return NotFound(new { error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error unblocking instrument {InstrumentId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to unblock instrument" });
         }
     }
 
@@ -361,120 +419,6 @@ public sealed class AdminController : ControllerBase
         {
             _logger.LogError(ex, "Error retrieving pending requests");
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to retrieve pending requests" });
-        }
-    }
-
-    /// <summary>
-    /// Create a block request for an instrument
-    /// Request must be approved by another admin before taking effect
-    /// </summary>
-    /// <param name="instrumentId">ID of the instrument to block</param>
-    /// <param name="request">Request body with reason</param>
-    /// <response code="201">Block request created successfully</response>
-    /// <response code="400">Invalid request data</response>
-    /// <response code="401">User not authenticated</response>
-    /// <response code="403">User is not an admin or not connected via VPN</response>
-    /// <response code="404">Instrument not found</response>
-    [HttpPost("instruments/{instrumentId}/request-block")]
-    [ProducesResponseType(typeof(AdminRequestDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<AdminRequestDto>> RequestBlockInstrument(
-        Guid instrumentId,
-        [FromBody] CreateBlockRequestRequest request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var adminId = GetAdminIdFromToken();
-            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
-            _logger.LogInformation(
-                "Admin {AdminId} from {IpAddress} requesting block for instrument {InstrumentId}",
-                adminId,
-                ipAddress,
-                instrumentId);
-
-            var blockRequest = await _adminService.CreateBlockRequestAsync(
-                instrumentId,
-                request.Reason,
-                adminId,
-                ipAddress,
-                cancellationToken);
-
-            return CreatedAtAction(nameof(GetPendingRequests), blockRequest);
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Invalid operation for block request");
-            return NotFound(new { error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating block request");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to create block request" });
-        }
-    }
-
-    /// <summary>
-    /// Create an unblock request for an instrument
-    /// Request must be approved by another admin before taking effect
-    /// </summary>
-    /// <param name="instrumentId">ID of the instrument to unblock</param>
-    /// <param name="request">Request body with reason</param>
-    /// <response code="201">Unblock request created successfully</response>
-    /// <response code="400">Invalid request data</response>
-    /// <response code="401">User not authenticated</response>
-    /// <response code="403">User is not an admin or not connected via VPN</response>
-    /// <response code="404">Instrument not found or not blocked</response>
-    [HttpPost("instruments/{instrumentId}/request-unblock")]
-    [ProducesResponseType(typeof(AdminRequestDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<AdminRequestDto>> RequestUnblockInstrument(
-        Guid instrumentId,
-        [FromBody] CreateUnblockRequestRequest request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var adminId = GetAdminIdFromToken();
-            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
-            _logger.LogInformation(
-                "Admin {AdminId} from {IpAddress} requesting unblock for instrument {InstrumentId}",
-                adminId,
-                ipAddress,
-                instrumentId);
-
-            var unblockRequest = await _adminService.CreateUnblockRequestAsync(
-                instrumentId,
-                request.Reason,
-                adminId,
-                ipAddress,
-                cancellationToken);
-
-            return CreatedAtAction(nameof(GetPendingRequests), unblockRequest);
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Invalid operation for unblock request");
-            return NotFound(new { error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating unblock request");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to create unblock request" });
         }
     }
 

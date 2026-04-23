@@ -9,10 +9,11 @@
 import { httpClient } from './http/HttpClient';
 import { ApiError, getErrorMessage } from './http/ApiError';
 import { API_CONFIG } from '../config/apiConfig';
+import type { Instrument as AdminInstrument } from '../types/admin';
 import type { HealthStatus, MarketAsset } from '../types';
 
 /**
- * Instrument type
+ * Instrument type - basic market instrument
  */
 export interface Instrument {
   id: string;
@@ -31,7 +32,7 @@ class MarketDataService {
   async getHealth(): Promise<HealthStatus> {
     try {
       return await httpClient.fetch<HealthStatus>({
-        url: API_CONFIG.endpoints.market.health,
+        url: API_CONFIG.endpoints.health.public,
         method: 'GET',
       });
     } catch (error) {
@@ -45,7 +46,7 @@ class MarketDataService {
   async getAllAssets(): Promise<MarketAsset[]> {
     try {
       return await httpClient.fetch<MarketAsset[]>({
-        url: API_CONFIG.endpoints.market.assets,
+        url: API_CONFIG.endpoints.market.all,
         method: 'GET',
       });
     } catch (error) {
@@ -59,7 +60,7 @@ class MarketDataService {
   async getAssetBySymbol(symbol: string): Promise<MarketAsset> {
     try {
       return await httpClient.fetch<MarketAsset>({
-        url: API_CONFIG.endpoints.market.asset(symbol),
+        url: API_CONFIG.endpoints.market.bySymbol(symbol),
         method: 'GET',
       });
     } catch (error) {
@@ -73,7 +74,26 @@ class MarketDataService {
   async getInstruments(): Promise<Instrument[]> {
     try {
       return await httpClient.fetch<Instrument[]>({
-        url: API_CONFIG.endpoints.market.instruments,
+        url: API_CONFIG.endpoints.instruments.all,
+        method: 'GET',
+      });
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Get available instruments for users (active, non-blocked, approved)
+   * Endpoint: GET /api/instruments/active
+   * Returns only instruments that are:
+   * - Status: Approved
+   * - isBlocked: false
+   * - isActive: true
+   */
+  async getAvailableInstruments(): Promise<AdminInstrument[]> {
+    try {
+      return await httpClient.fetch<AdminInstrument[]>({
+        url: API_CONFIG.endpoints.instruments.active,
         method: 'GET',
       });
     } catch (error) {

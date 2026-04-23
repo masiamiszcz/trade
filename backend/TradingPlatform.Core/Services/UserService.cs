@@ -33,6 +33,7 @@ public sealed class UserService : IUserService
 
     public async Task<UserDto> RegisterAsync(RegisterRequest registerRequest, CancellationToken cancellationToken = default)
     {
+        // Validate input
         var validationResult = await _registerValidator.ValidateAsync(registerRequest, cancellationToken);
         if (!validationResult.IsValid)
         {
@@ -40,55 +41,73 @@ public sealed class UserService : IUserService
             throw new ArgumentException(errorMessage);
         }
 
+        // Check if username already exists
         var existingByUserName = await _userRepository.GetByUserNameAsync(registerRequest.UserName, cancellationToken);
         if (existingByUserName is not null)
             throw new InvalidOperationException("Username is already taken.");
 
+        // Check if email already exists
         var existingByEmail = await _userRepository.GetByEmailAsync(registerRequest.Email, cancellationToken);
         if (existingByEmail is not null)
             throw new InvalidOperationException("Email is already registered.");
 
+        // Create new user
         var user = new User(
-            Guid.NewGuid(),
-            registerRequest.UserName.Trim(),
-            registerRequest.Email.Trim(),
-            registerRequest.FirstName.Trim(),
-            registerRequest.LastName.Trim(),
-            UserRole.User,
-            false,
-            false,
-            string.Empty,
-            string.Empty,
-            UserStatus.Active,
-            registerRequest.BaseCurrency.ToUpper(),
-            DateTimeOffset.UtcNow);
+            Id: Guid.NewGuid(),
+            UserName: registerRequest.UserName.Trim(),
+            Email: registerRequest.Email.Trim(),
+            FirstName: registerRequest.FirstName.Trim(),
+            LastName: registerRequest.LastName.Trim(),
+            Role: UserRole.User,
+            EmailConfirmed: false,
+            TwoFactorEnabled: false,
+            TwoFactorSecret: string.Empty,
+            BackupCodes: string.Empty,
+            Status: UserStatus.Active,
+            BaseCurrency: registerRequest.BaseCurrency.ToUpper(),
+            CreatedAtUtc: DateTimeOffset.UtcNow);
 
+        // Hash password and store user
         var passwordHash = _hasher.HashPassword(user, registerRequest.Password);
         await _userRepository.AddAsync(user, passwordHash, cancellationToken);
         await _userRepository.SaveChangesAsync(cancellationToken);
 
-        await _accountService.CreateMainAccountAsync(user.Id, user.BaseCurrency, initialBalance: 10000, cancellationToken);
+        // Create main account for user
+        await _accountService.CreateMainAccountAsync(
+            user.Id, 
+            user.BaseCurrency, 
+            initialBalance: 10000, 
+            cancellationToken);
 
+        // Return user DTO
         return _mapper.Map<UserDto>(user);
     }
 
     public async Task<string> LoginAsync(LoginRequest loginRequest, CancellationToken cancellationToken = default)
     {
+        // Validate input
         if (string.IsNullOrWhiteSpace(loginRequest.UserNameOrEmail) || string.IsNullOrWhiteSpace(loginRequest.Password))
             throw new ArgumentException("Username/Email and Password are required.");
 
-        var (user, hashedPassword) = await _userRepository.GetByUserNameOrEmailWithPasswordHashAsync(loginRequest.UserNameOrEmail, cancellationToken);
+        // Get user and password hash from repository
+        var (user, hashedPassword) = await _userRepository.GetByUserNameOrEmailWithPasswordHashAsync(
+            loginRequest.UserNameOrEmail, 
+            cancellationToken);
 
+        // Check if user exists and has password
         if (user is null || string.IsNullOrWhiteSpace(hashedPassword))
             throw new UnauthorizedAccessException("Invalid credentials.");
 
+        // Check if user is active
         if (user.Status != UserStatus.Active)
             throw new UnauthorizedAccessException("User is not active.");
 
-        var verify = _hasher.VerifyHashedPassword(user, hashedPassword, loginRequest.Password);
-        if (verify == PasswordVerificationResult.Failed)
+        // Verify password
+        var verifyResult = _hasher.VerifyHashedPassword(user, hashedPassword, loginRequest.Password);
+        if (verifyResult == PasswordVerificationResult.Failed)
             throw new UnauthorizedAccessException("Invalid credentials.");
 
+        // Generate and return JWT token
         var token = _jwtTokenGenerator.GenerateToken(user);
         return token;
     }

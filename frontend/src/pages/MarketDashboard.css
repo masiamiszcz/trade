@@ -1,0 +1,184 @@
+.market-dashboard {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 50%, #16213e 100%);
+  padding: 2rem 1rem 80px 1rem;
+}
+
+.dashboard-header {
+  max-width: 1400px;
+  margin: 0 auto 2rem;
+  text-align: center;
+}
+
+.dashboard-header h1 {
+  background: linear-gradient(135deg, #00d4ff 0%, #ff1493 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.dashboard-header .subtitle {
+  color: #b0b0b0;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.content-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.datatable-container {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.03) 0%, rgba(255, 20, 147, 0.03) 100%);
+  border-radius: 12px;
+  border: 2px solid rgba(0, 212, 255, 0.4);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 212, 255, 0.15), inset 0 0 1px rgba(255, 20, 147, 0.1), inset 0 0 20px rgba(255, 20, 147, 0.05);
+}
+
+/* DataTable Custom Styles */
+.datatable-container .datatable {
+  margin: 0;
+}
+
+.datatable-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.datatable-container thead {
+  background: rgba(0, 212, 255, 0.05);
+  border-bottom: 2px solid rgba(0, 212, 255, 0.2);
+}
+
+.datatable-container th {
+  padding: 1rem;
+  color: #00d4ff;
+  font-weight: 600;
+  text-align: left;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.datatable-container tbody tr {
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  transition: background 0.2s ease;
+}
+
+.datatable-container tbody tr:hover {
+  background: rgba(0, 212, 255, 0.05);
+  cursor: pointer;
+}
+
+.datatable-container td {
+  padding: 1rem;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+}
+
+/* Price Cell Styling */
+.price-cell {
+  font-weight: 600;
+  color: #ffffff;
+  font-family: 'Courier New', monospace;
+}
+
+/* Change Cell Styling */
+.change-cell {
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.change-cell.positive {
+  color: #1de9b6;
+}
+
+.change-cell.negative {
+  color: #ff9bbf;
+}
+
+/* Spread Cell */
+.spread-cell {
+  color: #ffd700;
+  font-weight: 500;
+}
+
+.datatable-loading,
+.datatable-empty {
+  padding: 3rem;
+  text-align: center;
+  color: #b0b0b0;
+  font-size: 1rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1200px) {
+  .market-dashboard {
+    padding: 1.5rem 0.75rem 80px 0.75rem;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .datatable-container th,
+  .datatable-container td {
+    padding: 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .datatable-container th {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .market-dashboard {
+    padding: 1rem 0.5rem 80px 0.5rem;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .datatable-container th,
+  .datatable-container td {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .datatable-container th {
+    font-size: 0.65rem;
+  }
+
+  .price-cell,
+  .change-cell,
+  .spread-cell {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .market-dashboard {
+    padding: 0.75rem 0.5rem 80px 0.5rem;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .datatable-container th,
+  .datatable-container td {
+    padding: 0.4rem;
+    font-size: 0.65rem;
+  }
+
+  .datatable-container th {
+    font-size: 0.6rem;
+  }
+}

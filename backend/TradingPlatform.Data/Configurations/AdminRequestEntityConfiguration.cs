@@ -34,7 +34,8 @@ public sealed class AdminRequestEntityConfiguration : IEntityTypeConfiguration<A
 
         builder.Property(x => x.Action)
             .HasMaxLength(50)
-            .IsRequired();
+            .IsRequired()
+            .HasConversion<string>();  // CRITICAL: Store enum as string name, not int value
 
         builder.Property(x => x.Reason)
             .HasMaxLength(1000)
@@ -42,7 +43,8 @@ public sealed class AdminRequestEntityConfiguration : IEntityTypeConfiguration<A
 
         builder.Property(x => x.Status)
             .HasMaxLength(20)
-            .IsRequired();
+            .IsRequired()
+            .HasConversion<string>();  // CRITICAL: Store enum as string name, not int value
 
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired()

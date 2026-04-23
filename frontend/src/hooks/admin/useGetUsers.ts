@@ -1,5 +1,6 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { httpClient } from '../../services/http/HttpClient';
+import { API_CONFIG } from '../../config/apiConfig';
 import { useAdminAuth } from './useAdminAuth';
 
 export interface UserListItem {
@@ -35,7 +36,7 @@ export const useGetUsers = () => {
 
     try {
       const data: UserListItem[] = await httpClient.fetch<UserListItem[]>({
-        url: '/admin/users',
+        url: API_CONFIG.endpoints.adminUsers.all,
         method: 'GET',
       });
 

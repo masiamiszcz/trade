@@ -6,6 +6,10 @@ import { UserRegisterPage } from './pages/UserRegisterPage';
 import { UserSetup2FAPage } from './pages/UserSetup2FAPage';
 import { UserVerify2FAPage } from './pages/UserVerify2FAPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { AccountPage } from './pages/AccountPage';
+import { StockDashboard } from './pages/StockDashboard';
+import { CryptoDashboard } from './pages/CryptoDashboard';
+import { CFDDashboard } from './pages/CFDDashboard';
 import { useAuth } from './hooks/useAuth';
 
 // ===== ADMIN AUTH SYSTEM =====
@@ -60,6 +64,42 @@ const App: React.FC = () => {
           }
         />
 
+        {/* Account Page - Konto i Transakcje */}
+        <Route
+          path="/dashboard/account"
+          element={
+            <MainLayout>
+              <AccountPage />
+            </MainLayout>
+          }
+        />
+
+        {/* Market Dashboards - Stock, Crypto, CFD */}
+        <Route
+          path="/dashboard/stock"
+          element={
+            <MainLayout>
+              <StockDashboard />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/dashboard/crypto"
+          element={
+            <MainLayout>
+              <CryptoDashboard />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/dashboard/cfd"
+          element={
+            <MainLayout>
+              <CFDDashboard />
+            </MainLayout>
+          }
+        />
+
         {/* ===== ADMIN AUTH ROUTES ===== */}
         {/* Admin registration - bootstrap (no token) or invitation (with token) */}
         <Route
@@ -104,9 +144,9 @@ const App: React.FC = () => {
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AdminAuthProvider>
-  );
-};
+        </Routes>
+      </AdminAuthProvider>
+    );
+  };
 
-export default App;
+  export default App;

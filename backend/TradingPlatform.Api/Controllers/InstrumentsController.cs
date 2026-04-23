@@ -7,9 +7,8 @@ using TradingPlatform.Core.Dtos;
 using TradingPlatform.Core.Interfaces;
 
 
-
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/instruments")]
 [Authorize]
 public sealed class InstrumentsController : ControllerBase
 {
@@ -20,107 +19,70 @@ public sealed class InstrumentsController : ControllerBase
         _instrumentService = instrumentService;
     }
 
-    /// <summary>
-    /// Get all instruments (including blocked ones)
-    /// </summary>
+    // ===== READ =====
+
     [HttpGet]
     [AllowAnonymous]
-    public async Task<ActionResult<IEnumerable<InstrumentDto>>> GetAll(CancellationToken cancellationToken)
-    {
-        var instruments = await _instrumentService.GetAllAsync(page: 1, pageSize: 50, cancellationToken: cancellationToken);
-        return Ok(instruments);
-    }
+    public async Task<IActionResult> GetAll(CancellationToken ct)
+        => Ok(await _instrumentService.GetAllAsync(ct));
 
-    /// <summary>
-    /// Get only active and not blocked instruments
-    /// </summary>
     [HttpGet("active")]
     [AllowAnonymous]
-    public async Task<ActionResult<IEnumerable<InstrumentDto>>> GetAllActive(CancellationToken cancellationToken)
-    {
-        var instruments = await _instrumentService.GetAllActiveAsync(cancellationToken);
-        return Ok(instruments);
-    }
+    public async Task<IActionResult> GetActive(CancellationToken ct)
+        => Ok(await _instrumentService.GetAllActiveAsync(ct));
 
-    /// <summary>
-    /// Get instrument by ID
-    /// </summary>
     [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<ActionResult<InstrumentDto>> GetById(Guid id, CancellationToken cancellationToken)
-    {
-        var instrument = await _instrumentService.GetByIdAsync(id, cancellationToken);
-        return Ok(instrument);
-    }
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+        => Ok(await _instrumentService.GetByIdAsync(id, ct));
 
-    /// <summary>
-    /// Get instrument by symbol
-    /// </summary>
-    [HttpGet("symbol/{symbol}")]
-    [AllowAnonymous]
-    public async Task<ActionResult<InstrumentDto>> GetBySymbol(string symbol, CancellationToken cancellationToken)
-    {
-        var instrument = await _instrumentService.GetBySymbolAsync(symbol, cancellationToken);
-        return Ok(instrument);
-    }
+    // ===== REQUESTS (NO APPROVAL HERE) =====
 
-    /// <summary>
-    /// Create new instrument (ADMIN only)
-    /// </summary>
     [HttpPost]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<InstrumentDto>> Create([FromBody] CreateInstrumentRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(CreateInstrumentRequest request, CancellationToken ct)
     {
-        var adminId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new InvalidOperationException("User ID not found in token"));
-        var instrument = await _instrumentService.CreateAsync(request, adminId, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = instrument.Id }, instrument);
+        var adminId = GetUserId();
+        await _instrumentService.RequestCreateAsync(request, adminId, ct);
+        return Accepted();
     }
 
-    /// <summary>
-    /// Update instrument (ADMIN only)
-    /// </summary>
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<InstrumentDto>> Update(Guid id, [FromBody] UpdateInstrumentRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> RequestUpdate(Guid id, UpdateInstrumentRequest request, CancellationToken ct)
     {
-        var adminId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new InvalidOperationException("User ID not found in token"));
-        var instrument = await _instrumentService.UpdateAsync(id, request, adminId, cancellationToken);
-        return Ok(instrument);
+        var adminId = GetUserId();
+        await _instrumentService.RequestUpdateAsync(id, request, adminId, ct);
+        return Accepted();
     }
 
-    /// <summary>
-    /// Block instrument - users cannot buy/sell (ADMIN only)
-    /// </summary>
     [HttpPatch("{id}/block")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<InstrumentDto>> Block(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> RequestBlock(Guid id, AdminRequestReasonRequest req, CancellationToken ct)
     {
-        var adminId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new InvalidOperationException("Unable to extract admin ID from token"));
-        var instrument = await _instrumentService.BlockAsync(id, adminId, cancellationToken);
-        return Ok(instrument);
+        var adminId = GetUserId();
+        await _instrumentService.RequestBlockAsync(id, req.Reason, adminId, ct);
+        return Accepted();
     }
 
-    /// <summary>
-    /// Unblock instrument - users can buy/sell again (ADMIN only)
-    /// </summary>
     [HttpPatch("{id}/unblock")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<InstrumentDto>> Unblock(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> RequestUnblock(Guid id, AdminRequestReasonRequest req, CancellationToken ct)
     {
-        var adminId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new InvalidOperationException("Unable to extract admin ID from token"));
-        var instrument = await _instrumentService.UnblockAsync(id, adminId, cancellationToken);
-        return Ok(instrument);
+        var adminId = GetUserId();
+        await _instrumentService.RequestUnblockAsync(id, req.Reason, adminId, ct);
+        return Accepted();
     }
 
-    /// <summary>
-    /// Delete instrument (ADMIN only)
-    /// </summary>
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> RequestDelete(Guid id, CancellationToken ct)
     {
-        var adminId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new InvalidOperationException("Unable to extract admin ID from token"));
-        await _instrumentService.DeleteAsync(id, adminId, cancellationToken);
-        return NoContent();
+        var adminId = GetUserId();
+        await _instrumentService.RequestDeleteAsync(id, adminId, ct);
+        return Accepted();
     }
+
+    private Guid GetUserId()
+        => Guid.Parse(User.FindFirst("sub")!.Value);
 }

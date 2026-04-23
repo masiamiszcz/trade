@@ -1,7 +1,18 @@
 /**
- * API Configuration
- * Centralized configuration for all API endpoints
+ * API Configuration - COMPLETE ENDPOINT REGISTRY
+ * Centralized configuration for ALL API endpoints
  * Supports multiple environments: development, staging, production
+ * 
+ * Organized by functional area:
+ * - health: System health checks
+ * - account: User account management
+ * - auth: User authentication
+ * - adminAuth: Admin authentication (separate from user auth)
+ * - instruments: User-facing instrument endpoints (GET, POST, PATCH, DELETE)
+ * - admin.instruments: Admin instrument management
+ * - admin.requests: Admin approval workflow
+ * - admin.users: Admin user management
+ * - admin.audit: Admin audit logging
  * 
  * Environment Variables:
  * - REACT_APP_API_BASE_URL: Base URL for API (default: /api for same-origin)
@@ -39,48 +50,109 @@ export const API_CONFIG = {
     'Content-Type': 'application/json',
   },
   
-  // Endpoints mapping for type safety
+  // ============================================================
+  // COMPLETE ENDPOINT MAPPING (All backend endpoints)
+  // ============================================================
   endpoints: {
-    // Authentication
+    // ==================== HEALTH & INFO ====================
+    health: {
+      public: '/health',
+      info: '/info',
+      admin: '/auth/admin/health',
+    },
+
+    // ==================== ACCOUNT ====================
+    account: {
+      profile: '/account',
+      main: '/account/main',
+    },
+
+    // ==================== USER AUTHENTICATION ====================
     auth: {
       login: '/auth/login',
       register: '/auth/register',
       logout: '/auth/logout',
-      refresh: '/auth/refresh',
     },
-    
-    // User
-    user: {
-      profile: '/user/profile',
-      settings: '/user/settings',
-      accounts: '/user/accounts',
-    },
-    
-    // Market Data
-    market: {
-      health: '/health',
-      assets: '/market',
-      asset: (symbol: string) => `/market/${symbol}`,
-      instruments: '/market/instruments',
-    },
-    
-    // Admin
-    admin: {
+
+    // ==================== ADMIN AUTHENTICATION ====================
+    adminAuth: {
       bootstrap: '/auth/admin/bootstrap',
+      register: '/auth/admin/register',
       login: '/auth/admin-login',
+      invite: '/auth/admin/invite',
       verify2fa: '/auth/admin/verify-2fa',
+      backup2faRegenerate: '/auth/admin/backup-codes/regenerate',
       setup2faGenerate: '/auth/admin/setup-2fa/generate',
       setup2faEnable: '/auth/admin/setup-2fa/enable',
       setup2faDisable: '/auth/admin/setup-2fa/disable',
-      backupCodesRegenerate: '/auth/admin/backup-codes/regenerate',
-      invite: '/auth/admin/invite',
-      register: '/auth/admin/register',
-      health: '/auth/admin/health',
+    },
+
+    // ==================== MARKET DATA ====================
+    market: {
+      all: '/market',
+      bySymbol: (symbol: string) => `/market/${symbol}`,
+    },
+
+    // ==================== USER INSTRUMENTS (Public/Read-Only Endpoints) ====================
+    instruments: {
+      // GET endpoints (read-only, no approval needed)
+      all: '/instruments',
+      active: '/instruments/active',
+      byId: (id: string) => `/instruments/${id}`,
+      bySymbol: (symbol: string) => `/instruments/symbol/${symbol}`,
+      
+      // POST/PATCH/DELETE endpoints (require approval workflow)
+      create: '/instruments',
+      requestApproval: (id: string) => `/instruments/${id}/request-approval`,
+      approve: (id: string) => `/instruments/${id}/approve`,
+      reject: (id: string) => `/instruments/${id}/reject`,
+      retrySubmission: (id: string) => `/instruments/${id}/retry-submission`,
+      archive: (id: string) => `/instruments/${id}/archive`,
+      block: (id: string) => `/instruments/${id}/block`,
+      unblock: (id: string) => `/instruments/${id}/unblock`,
+      delete: (id: string) => `/instruments/${id}`,
+    },
+
+    // ==================== ADMIN: INSTRUMENTS ====================
+    adminInstruments: {
+      // GET endpoints
+      all: '/admin/instruments',
+      byId: (id: string) => `/admin/instruments/${id}`,
+      
+      // POST endpoints (Request* methods create AdminRequest, awaiting approval)
+      create: '/admin/instruments',
+      requestUpdate: (id: string) => `/admin/instruments/${id}/request-update`,
+      requestDelete: (id: string) => `/admin/instruments/${id}/request-delete`,
+      requestBlock: (id: string) => `/admin/instruments/${id}/request-block`,
+      requestUnblock: (id: string) => `/admin/instruments/${id}/request-unblock`,
+      
+      // Immediate execution (bypasses approval if permitted)
+      blockImmediate: (id: string) => `/admin/instruments/${id}/block-immediate`,
+    },
+
+    // ==================== ADMIN: APPROVAL REQUESTS WORKFLOW ====================
+    adminRequests: {
+      all: '/admin/requests',
+      pending: '/admin/requests/pending',
+      byId: (id: string) => `/admin/requests/${id}`,
+      approve: (id: string) => `/admin/requests/${id}/approve`,
+      reject: (id: string) => `/admin/requests/${id}/reject`,
+    },
+
+    // ==================== ADMIN: USER MANAGEMENT ====================
+    adminUsers: {
+      all: '/admin/users',
+    },
+
+    // ==================== ADMIN: AUDIT LOGGING ====================
+    adminAudit: {
+      byEntity: (entityType: string, entityId: string) => `/admin/audit-logs/entity/${entityType}/${entityId}`,
+      history: '/admin/audit-history',
     },
   },
 } as const;
 
-// Type-safe endpoint getter
+// Type-safe endpoint getter for complex cases
 export const getEndpoint = <T extends keyof typeof API_CONFIG.endpoints>(
   section: T,
   key: keyof typeof API_CONFIG.endpoints[T]

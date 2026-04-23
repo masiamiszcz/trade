@@ -1,0 +1,101 @@
+.user-account-dropdown {
+  position: relative;
+  z-index: 1001;
+}
+
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #00d4ff 0%, #00a8cc 50%, #ff1493 100%);
+  background-size: 300% 300%;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.3);
+}
+
+.dropdown-trigger:hover {
+  background-position: right center;
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.dropdown-trigger:active {
+  transform: translateY(0);
+}
+
+.account-icon {
+  font-size: 1.2rem;
+  display: inline-block;
+}
+
+.user-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-arrow {
+  font-size: 0.7rem;
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #1a1a2e;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 8px;
+  padding: 0.5rem 0;
+  min-width: 150px;
+  z-index: 1000;
+  margin-top: 0.5rem;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 0.75rem 1.2rem;
+  background: none;
+  border: none;
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.dropdown-item:hover {
+  background: rgba(0, 212, 255, 0.1);
+  color: #00d4ff;
+  padding-left: 1.5rem;
+}
+
+.dropdown-item:active {
+  background: rgba(0, 212, 255, 0.2);
+}

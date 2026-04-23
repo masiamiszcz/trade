@@ -7,6 +7,8 @@
   background: transparent;
   color: #ffffff;
   position: relative;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .menu-toggle {
@@ -31,21 +33,84 @@
 .app-brand {
   font-size: 1.25rem;
   font-weight: 700;
-  flex: 1;
+  flex: 0 0 auto;
 }
 
-.brand-link,
-.nav-link,
-.nav-button {
+.brand-link {
+  background: linear-gradient(135deg, #00d4ff, #ff1493);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: background-position 0.3s ease;
+}
+
+.brand-link:hover {
+  background-position: right center;
+}
+
+/* Market Navigation */
+.market-nav {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex: 0 0 auto;
+  margin: 0 1.5rem;
+}
+
+.market-button {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(255, 20, 147, 0.08) 100%);
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  color: #00d4ff;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.market-button:hover {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(255, 20, 147, 0.15) 100%);
+  border-color: rgba(0, 212, 255, 0.6);
+  color: #ffffff;
+  box-shadow: 0 2px 12px rgba(0, 212, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.market-button.active {
+  background: linear-gradient(135deg, #00d4ff 0%, #ff1493 100%);
+  border-color: #ff1493;
+  color: #1a1a2e;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.4), 0 0 12px rgba(255, 20, 147, 0.3);
+}
+
+.brand-link {
   color: #ffffff;
   text-decoration: none;
-  transition: opacity 0.2s ease;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #00d4ff, #ff1493);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
 }
 
+.brand-link:hover {
+  background-position: right center;
+}
+
+/* Navigation Links Container */
 .nav-links {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex: 1;
+  justify-content: flex-end;
   flex-shrink: 0;
 }
 
@@ -70,48 +135,145 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* Wallet Section */
+.wallet-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1.6rem;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(255, 20, 147, 0.08) 100%);
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 8px;
+  color: #00d4ff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.wallet-section.active {
+  background: linear-gradient(135deg, #00d4ff 0%, #ff1493 100%);
+  border-color: #ff1493;
+  color: #1a1a2e;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.4), 0 0 12px rgba(255, 20, 147, 0.3);
+}
+
+.wallet-section.active .wallet-label,
+.wallet-section.active .wallet-amount,
+.wallet-section.active .wallet-currency {
+  color: #1a1a2e;
+}
+
+.wallet-section:hover {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(255, 20, 147, 0.15) 100%);
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.wallet-section.active:hover {
+  background: linear-gradient(135deg, #00d4ff 0%, #ff1493 100%);
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.5), 0 0 16px rgba(255, 20, 147, 0.4);
+}
+
+.wallet-section:active {
+  transform: translateY(0px);
+}
+
+.wallet-label {
+  color: #00d4ff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.wallet-amount {
+  color: #1de9b6;
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.wallet-currency {
+  font-size: 0.75rem;
+  color: #00d4ff;
+  margin-left: 0.25rem;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .app-nav {
     padding: 1rem 1.5rem;
+    justify-content: flex-start;
   }
 
   .menu-toggle {
     display: flex;
   }
 
-  .nav-links {
-    gap: 0.75rem;
+  .app-brand {
+    flex: 1;
   }
 
-  .nav-link,
-  .nav-button {
-    font-size: 0.875rem;
-    padding: 0.5rem 0.75rem;
+  .market-nav {
+    display: none;
+    order: 2;
+  }
+
+  .nav-links {
+    width: 100%;
+    gap: 1rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    order: 3;
+  }
+
+  .wallet-section {
+    min-width: unset;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+  }
+
+  .wallet-amount {
+    font-size: 0.9rem;
   }
 }
 
 @media (max-width: 480px) {
   .app-nav {
-    padding: 1rem 1rem;
+    padding: 0.75rem 1rem;
   }
 
   .app-brand {
-    font-size: 1.1rem;
+    font-size: 1rem;
+  }
+
+  .market-button {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.75rem;
   }
 
   .nav-links {
+    width: 100%;
+    justify-content: center;
     gap: 0.5rem;
   }
 
-  .nav-button {
-    padding: 0.5rem 0.6rem;
-    font-size: 0.8rem;
-    min-width: auto;
+  .wallet-section {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    min-width: unset;
   }
 
-  .nav-link {
-    font-size: 0.8rem;
+  .wallet-label {
+    display: none;
   }
 }
 

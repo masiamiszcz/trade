@@ -224,7 +224,7 @@ export class AuthenticationService {
   ): Promise<{ token: string; invitationCode: string }> {
     try {
       const response = await httpClient.fetch<{ token: string; invitationCode: string }>({
-        url: API_CONFIG.endpoints.admin.bootstrap,
+        url: API_CONFIG.endpoints.adminAuth.bootstrap,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -260,7 +260,7 @@ export class AuthenticationService {
         requiresTwoFactor?: boolean;
         sessionId?: string;
       }>({
-        url: API_CONFIG.endpoints.admin.login,
+        url: API_CONFIG.endpoints.adminAuth.login,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -304,7 +304,7 @@ export class AuthenticationService {
   ): Promise<{ token: string }> {
     try {
       const response = await httpClient.fetch<{ token: string }>({
-        url: API_CONFIG.endpoints.admin.verify2fa,
+        url: API_CONFIG.endpoints.adminAuth.verify2fa,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -340,7 +340,7 @@ export class AuthenticationService {
   async adminGenerateSetup2FA(): Promise<any> {
     try {
       return await httpClient.fetch<any>({
-        url: API_CONFIG.endpoints.admin.setup2faGenerate,
+        url: API_CONFIG.endpoints.adminAuth.setup2faGenerate,
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -361,7 +361,7 @@ export class AuthenticationService {
   async adminEnableSetup2FA(request: AdminSetup2FARequest): Promise<any> {
     try {
       return await httpClient.fetch<any>({
-        url: API_CONFIG.endpoints.admin.setup2faEnable,
+        url: API_CONFIG.endpoints.adminAuth.setup2faEnable,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -377,40 +377,41 @@ export class AuthenticationService {
    * Admin disable 2FA
    * POST /auth/admin/setup-2fa/disable
    */
-  async adminDisable2FA(request: any, token: string): Promise<any> {
-    try {
-      return await httpClient.fetch<any>({
-        url: API_CONFIG.endpoints.admin.setup2faDisable,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
-    } catch (error) {
-      throw this.handleError(error);
-    }
-  }
+  // async adminDisable2FA(request: any, token: string): Promise<any> {
+  //   try {
+  //     return await httpClient.fetch<any>({
+  //       url: API_CONFIG.endpoints.admin.setup2faDisable,
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         ...(token && { 'Authorization': `Bearer ${token}` }),
+  //       },
+  //       body: JSON.stringify(request),
+  //     });
+  //   } catch (error) {
+  //     throw this.handleError(error);
+  //   }
+  // }
 
   /**
    * Admin regenerate backup codes
    * POST /auth/admin/backup-codes/regenerate
    */
-  async adminRegenerateBackupCodes(request: any, token: string): Promise<any> {
-    try {
-      return await httpClient.fetch<any>({
-        url: API_CONFIG.endpoints.admin.backupCodesRegenerate,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-        body: JSON.stringify(request),
-      });
-    } catch (error) {
-      throw this.handleError(error);
-    }
-  }
+  // async adminRegenerateBackupCodes(request: any, token: string): Promise<any> {
+  //   try {
+  //     return await httpClient.fetch<any>({
+  //       url: API_CONFIG.endpoints.adminAuth.backupCodesRegenerate,
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         ...(token && { 'Authorization': `Bearer ${token}` }),
+  //       },
+  //       body: JSON.stringify(request),
+  //     });
+  //   } catch (error) {
+  //     throw this.handleError(error);
+  //   }
+  // }
 
   /**
    * Admin register via invitation
@@ -420,7 +421,7 @@ export class AuthenticationService {
   ): Promise<{ token: string }> {
     try {
       const response = await httpClient.fetch<{ token: string }>({
-        url: API_CONFIG.endpoints.admin.register,
+        url: API_CONFIG.endpoints.adminAuth.register,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -452,7 +453,7 @@ export class AuthenticationService {
       // Admin session is managed automatically by httpClient
       // No need to manually add Authorization header
       return await httpClient.fetch<{ invitationCode: string }>({
-        url: API_CONFIG.endpoints.admin.invite,
+        url: API_CONFIG.endpoints.adminAuth.invite,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -471,7 +472,7 @@ export class AuthenticationService {
   async adminInvite(request: AdminInviteRequest, token: string): Promise<any> {
     try {
       return await httpClient.fetch<any>({
-        url: API_CONFIG.endpoints.admin.invite,
+        url: API_CONFIG.endpoints.adminAuth.invite,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -493,7 +494,7 @@ export class AuthenticationService {
   async userRegisterInitial(request: UserRegisterInitialRequest): Promise<UserRegistrationInitialResponse> {
     try {
       const response = await httpClient.fetch<UserRegistrationInitialResponse>({
-        url: '/user/register',
+        url: API_CONFIG.endpoints.auth.register,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -501,10 +502,12 @@ export class AuthenticationService {
         body: JSON.stringify(request),
       });
 
-      // If response includes temp token, store it separately
-      // DO NOT store as main token!
-      if (response.token && response.sessionId) {
-        this.setUserTempToken(response.token, response.sessionId);
+      // CRITICAL: If token is returned, ALWAYS store it as temp token
+      // DO NOT condition on sessionId - token must be preserved
+      if (response.token) {
+        const sessionId = response.sessionId || '';
+        this.setUserTempToken(response.token, sessionId);
+        console.log('[AuthService] 🔐 User TEMP token stored (registration, 2FA pending)');
       }
 
       return response;
@@ -671,37 +674,37 @@ export class AuthenticationService {
 
   /**
    * User disables 2FA
-   */
-  async userDisable2FA(request: UserDisable2FARequest): Promise<UserTwoFactorDisableResponse> {
-    try {
-      // httpClient will automatically inject final token
-      return await httpClient.fetch<UserTwoFactorDisableResponse>({
-        url: '/user/2fa-disable',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
-    } catch (error) {
-      throw this.handleError(error);
-    }
-  }
+  //  */
+  // async userDisable2FA(request: UserDisable2FARequest): Promise<UserTwoFactorDisableResponse> {
+  //   try {
+  //     // httpClient will automatically inject final token
+  //     return await httpClient.fetch<UserTwoFactorDisableResponse>({
+  //       url: '/user/2fa-disable',
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify(request),
+  //     });
+  //   } catch (error) {
+  //     throw this.handleError(error);
+  //   }
+  // }
 
-  /**
-   * Check user's 2FA status
-   */
-  async userGet2FAStatus(): Promise<UserTwoFactorStatusResponse> {
-    try {
-      const token = this.getUserToken();
-      return await httpClient.fetch<UserTwoFactorStatusResponse>({
-        url: '/user/2fa-status',
-        method: 'GET',
-      });
-    } catch (error) {
-      throw this.handleError(error);
-    }
-  }
+  // /**
+  //  * Check user's 2FA status
+  //  */
+  // async userGet2FAStatus(): Promise<UserTwoFactorStatusResponse> {
+  //   try {
+  //     const token = this.getUserToken();
+  //     return await httpClient.fetch<UserTwoFactorStatusResponse>({
+  //       url: '/user/2fa-status',
+  //       method: 'GET',
+  //     });
+  //   } catch (error) {
+  //     throw this.handleError(error);
+  //   }
+  // }
 
   /**
    * Handle and normalize errors

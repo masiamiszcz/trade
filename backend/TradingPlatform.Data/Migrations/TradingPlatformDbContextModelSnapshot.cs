@@ -353,6 +353,9 @@ namespace TradingPlatform.Data.Migrations
                     b.Property<Guid>("InstrumentId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("PayloadJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Reason")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -363,10 +366,8 @@ namespace TradingPlatform.Data.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("Pending");
+                        .HasColumnType("nvarchar(20)");
 
                     b.HasKey("Id");
 

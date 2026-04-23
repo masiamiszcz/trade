@@ -56,6 +56,11 @@ public sealed class AdminRequestEntity
     /// </summary>
     public DateTimeOffset? ApprovedAtUtc { get; set; }
 
+    /// <summary>
+    /// JSON payload containing the data for this request (for audit trail and execution)
+    /// </summary>
+    public string? PayloadJson { get; set; }
+
     // Navigation properties
     public UserEntity? RequestedByAdmin { get; set; }
     public UserEntity? ApprovedByAdmin { get; set; }

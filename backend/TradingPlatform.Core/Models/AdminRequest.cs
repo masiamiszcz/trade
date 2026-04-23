@@ -17,4 +17,5 @@ public sealed record AdminRequest(
     string Reason,                      // Context/notes/rejection reason
     AdminRequestStatus Status,          // Pending | Approved | Rejected
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset? ApprovedAtUtc);
+    DateTimeOffset? ApprovedAtUtc,
+    string? PayloadJson = null);        // Full request payload as JSON for audit trail

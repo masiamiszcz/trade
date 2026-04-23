@@ -1,4 +1,5 @@
 import { httpClient } from '../http/HttpClient';
+import { API_CONFIG } from '../../config/apiConfig';
 import {
   Instrument,
   CreateInstrumentRequest,
@@ -26,7 +27,7 @@ import {
  */
 export const getAll = async (): Promise<Instrument[]> => {
   return httpClient.fetch<Instrument[]>({
-    url: '/admin/instruments',
+    url: API_CONFIG.endpoints.adminInstruments.all,
     method: 'GET',
   });
 };
@@ -37,7 +38,7 @@ export const getAll = async (): Promise<Instrument[]> => {
  */
 export const getById = async (id: string): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: `/admin/instruments/${id}`,
+    url: API_CONFIG.endpoints.adminInstruments.byId(id),
     method: 'GET',
   });
 };
@@ -50,7 +51,7 @@ export const getById = async (id: string): Promise<Instrument> => {
  */
 export const create = async (request: CreateInstrumentRequest): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: '/admin/instruments',
+    url: API_CONFIG.endpoints.adminInstruments.create,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -65,7 +66,7 @@ export const create = async (request: CreateInstrumentRequest): Promise<Instrume
  */
 export const update = async (id: string, request: UpdateInstrumentRequest): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: `/admin/instruments/${id}`,
+    url: API_CONFIG.endpoints.adminInstruments.byId(id),
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -79,7 +80,7 @@ export const update = async (id: string, request: UpdateInstrumentRequest): Prom
  */
 export const delete_ = async (id: string): Promise<void> => {
   await httpClient.fetch({
-    url: `/admin/instruments/${id}`,
+    url: API_CONFIG.endpoints.adminInstruments.byId(id),
     method: 'DELETE',
   });
 };
@@ -95,27 +96,27 @@ export const delete_ = async (id: string): Promise<void> => {
  */
 export const requestApproval = async (id: string): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: `/admin/instruments/${id}/request-approval`,
+    url: API_CONFIG.endpoints.adminInstruments.requestUpdate(id),
     method: 'POST',
   });
 };
 
 /**
- * POST /api/admin/instruments/{id}/approve
- * Approve pending instrument
+ * POST /api/admin/requests/{id}/approve
+ * Approve pending admin request (instrument workflow)
  * Transition: PendingApproval → Approved
  * Backend validates: approver ≠ creator (no self-approval)
  */
 export const approve = async (id: string): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: `/admin/instruments/${id}/approve`,
+    url: API_CONFIG.endpoints.adminRequests.approve(id),
     method: 'POST',
   });
 };
 
 /**
- * POST /api/admin/instruments/{id}/reject
- * Reject pending instrument with reason
+ * POST /api/admin/requests/{id}/reject
+ * Reject pending admin request (instrument workflow) with reason
  * Transition: PendingApproval → Rejected
  * Backend validates: approver ≠ creator, reason ≥10 chars
  */
@@ -124,7 +125,7 @@ export const reject = async (
   request: RejectInstrumentRequest
 ): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: `/admin/instruments/${id}/reject`,
+    url: API_CONFIG.endpoints.adminRequests.reject(id),
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -138,7 +139,7 @@ export const reject = async (
  */
 export const retrySubmission = async (id: string): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: `/admin/instruments/${id}/retry-submission`,
+    url: API_CONFIG.endpoints.adminInstruments.requestUpdate(id),
     method: 'POST',
   });
 };
@@ -150,7 +151,7 @@ export const retrySubmission = async (id: string): Promise<Instrument> => {
  */
 export const archive = async (id: string): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: `/admin/instruments/${id}/archive`,
+    url: API_CONFIG.endpoints.adminInstruments.requestDelete(id),
     method: 'POST',
   });
 };
@@ -158,25 +159,25 @@ export const archive = async (id: string): Promise<Instrument> => {
 // ============ ADMINISTRATIVE OPERATIONS ============
 
 /**
- * POST /api/admin/instruments/{id}/block
- * Block instrument (administrative override, prevent trading)
- * Sets IsBlocked=true
+ * POST /api/admin/instruments/{id}/request-block
+ * Request block of instrument (administrative override, prevent trading)
+ * Sets IsBlocked=true after approval
  */
 export const block = async (id: string): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: `/admin/instruments/${id}/block`,
+    url: API_CONFIG.endpoints.adminInstruments.requestBlock(id),
     method: 'POST',
   });
 };
 
 /**
- * POST /api/admin/instruments/{id}/unblock
- * Unblock instrument (administrative override)
- * Sets IsBlocked=false
+ * POST /api/admin/instruments/{id}/request-unblock
+ * Request unblock of instrument (administrative override)
+ * Sets IsBlocked=false after approval
  */
 export const unblock = async (id: string): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: `/admin/instruments/${id}/unblock`,
+    url: API_CONFIG.endpoints.adminInstruments.requestUnblock(id),
     method: 'POST',
   });
 };
@@ -184,34 +185,34 @@ export const unblock = async (id: string): Promise<Instrument> => {
 // ============ ADMIN REQUEST (AUDIT TRAIL) ============
 
 /**
- * GET /api/admin/admin-requests
+ * GET /api/admin/requests
  * Get all admin requests (audit trail for instruments)
  */
 export const getAllAdminRequests = async (): Promise<AdminRequest[]> => {
   return httpClient.fetch<AdminRequest[]>({
-    url: '/admin/admin-requests',
+    url: API_CONFIG.endpoints.adminRequests.all,
     method: 'GET',
   });
 };
 
 /**
- * GET /api/admin/admin-requests/pending
+ * GET /api/admin/requests/pending
  * Get pending admin requests (not yet approved)
  */
 export const getPendingAdminRequests = async (): Promise<AdminRequest[]> => {
   return httpClient.fetch<AdminRequest[]>({
-    url: '/admin/admin-requests/pending',
+    url: API_CONFIG.endpoints.adminRequests.pending,
     method: 'GET',
   });
 };
 
 /**
- * GET /api/admin/admin-requests/{id}
+ * GET /api/admin/requests/{id}
  * Get single admin request by ID
  */
 export const getAdminRequestById = async (id: string): Promise<AdminRequestDto> => {
   return httpClient.fetch<AdminRequestDto>({
-    url: `/admin/admin-requests/${id}`,
+    url: API_CONFIG.endpoints.adminRequests.byId(id),
     method: 'GET',
   });
 };

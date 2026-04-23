@@ -82,12 +82,14 @@ public enum AdminRequestActionType
 {
     Create = 1,             // Initial creation (audit only)
     RequestApproval = 2,    // Draft → PendingApproval (admin requests review)
-    Approve = 3,            // PendingApproval → Approved (admin approves)
-    Reject = 4,             // PendingApproval → Rejected (admin rejects)
-    Block = 5,              // Approved → Blocked (admin blocks trading)
-    Unblock = 6,            // Blocked → Approved (admin unblocks trading)
-    Archive = 7,            // Approved → Archived (admin archives)
-    RetrySubmission = 8     // Rejected → Draft (admin/creator resubmits)
+    Update = 3,             // Update instrument (requires approval)
+    Delete = 4,             // Delete instrument (requires approval)
+    Approve = 5,            // PendingApproval → Approved (admin approves)
+    Reject = 6,             // PendingApproval → Rejected (admin rejects)
+    Block = 7,              // Approved → Blocked (admin blocks trading)
+    Unblock = 8,            // Blocked → Approved (admin unblocks trading)
+    Archive = 9,            // Approved → Archived (admin archives)
+    RetrySubmission = 10    // Rejected → Draft (admin/creator resubmits)
 }
 
 /// <summary>

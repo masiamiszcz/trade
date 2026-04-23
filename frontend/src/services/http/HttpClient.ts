@@ -114,7 +114,7 @@ class HttpClient {
       // Ignore parse errors
     }
 
-    // 2FA verification endpoints require TEMP TOKEN
+    // 2FA verification endpoints require TEMP or ACTIVE TOKEN
     const is2FAEndpoint =
       path.includes('/verify-2fa') ||
       path.includes('/verify-login-2fa') ||
@@ -123,27 +123,31 @@ class HttpClient {
       path.includes('/setup-2fa/enable');
 
     if (is2FAEndpoint) {
-      // Check for user temp token first
-      const tempToken = localStorage.getItem('trading-platform-temp-token');
-      if (tempToken) {
-        console.log('[HttpClient] Using TEMP TOKEN for 2FA endpoint:', path);
-        return tempToken;
+      // PRIORITY 1: Admin session token (temp or final) - MUST have priority over user token
+      // ⭐ CRITICAL: If user token exists in localStorage AND admin is registering,
+      // admin temp token MUST be used, NOT user token!
+      if (adminSession?.token) {
+        const tokenType = adminSession.isTempToken ? 'TEMP' : 'FINAL';
+        console.log(`[HttpClient] Using ADMIN ${tokenType} TOKEN for 2FA endpoint:`, path);
+        return adminSession.token;
       }
 
-      // For admin, temp token is stored in admin session
-      if (adminSession?.isTempToken && adminSession?.token) {
-        console.log('[HttpClient] Using ADMIN TEMP TOKEN for 2FA endpoint:', path);
-        return adminSession.token;
+      // PRIORITY 2: User temp token (for user 2FA registration/login)
+      const userTempToken = localStorage.getItem('trading-platform-temp-token');
+      if (userTempToken) {
+        console.log('[HttpClient] Using USER TEMP TOKEN for 2FA endpoint:', path);
+        return userTempToken;
       }
     }
 
-    // FINAL TOKEN usage - regular API calls
+    // FINAL TOKEN usage - regular API calls (non-2FA)
     // Priority: Admin final token > User final token
     if (adminSession?.token && !adminSession.isTempToken) {
       console.log('[HttpClient] Using ADMIN FINAL TOKEN for:', path);
       return adminSession.token;
     }
 
+    // Fallback to user token (if admin session doesn't exist or is temp)
     const userToken = localStorage.getItem('auth_token');
     if (userToken) {
       console.log('[HttpClient] Using USER FINAL TOKEN for:', path);

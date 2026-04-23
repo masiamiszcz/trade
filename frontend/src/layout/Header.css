@@ -12,8 +12,9 @@
 .header-content {
   width: 100%;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
 }

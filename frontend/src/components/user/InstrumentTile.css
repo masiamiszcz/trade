@@ -1,0 +1,177 @@
+.instrument-tile {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  border-top: 4px solid #00d4ff;
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.instrument-tile:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 24px rgba(0, 212, 255, 0.2);
+  border-top-color: #00a8cc;
+}
+
+.tile-header {
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.category-badge {
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.customize-btn {
+  background: rgba(0, 212, 255, 0.2);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.customize-btn:hover {
+  background: rgba(0, 212, 255, 0.3);
+  border-color: rgba(0, 212, 255, 0.5);
+}
+
+.tile-content {
+  padding: 1rem;
+  flex: 1;
+}
+
+.instrument-info {
+  margin-bottom: 1rem;
+}
+
+.instrument-symbol {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #00d4ff;
+  font-weight: 700;
+}
+
+.instrument-name {
+  margin: 0.5rem 0 0 0;
+  color: #b0b0b0;
+  font-size: 0.9rem;
+}
+
+.instrument-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.current-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.change-percent {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.change-percent.positive {
+  color: #1de9b6;
+}
+
+.change-percent.negative {
+  color: #ff6b9d;
+}
+
+.timeframe-section {
+  text-align: right;
+}
+
+.timeframe-label {
+  display: block;
+  color: #808080;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.tile-chart-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  min-height: 120px;
+  background: rgba(0, 212, 255, 0.03);
+  border-top: 1px solid rgba(0, 212, 255, 0.1);
+  position: relative;
+}
+
+.chart-background {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.chart-background svg {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  opacity: 0.6;
+}
+
+.chart-label {
+  position: relative;
+  z-index: 1;
+  color: #808080;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .instrument-tile {
+    border-top-width: 3px;
+  }
+
+  .tile-header {
+    padding: 0.75rem;
+  }
+
+  .tile-content {
+    padding: 0.75rem;
+  }
+
+  .instrument-symbol {
+    font-size: 1.25rem;
+  }
+
+  .current-price {
+    font-size: 1rem;
+  }
+}

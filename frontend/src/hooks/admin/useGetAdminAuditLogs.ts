@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { httpClient } from '../../services/http/HttpClient';
+import { API_CONFIG } from '../../config/apiConfig';
 
 export interface AdminAuditLog {
   id: string;
@@ -34,7 +35,7 @@ export const useGetAdminAuditLogs = (): UseGetAdminAuditLogsReturn => {
 
     try {
       const data = await httpClient.fetch<AdminAuditLog[]>({
-        url: '/admin/audit-history',
+        url: API_CONFIG.endpoints.adminAudit.history,
         method: 'GET',
       });
 

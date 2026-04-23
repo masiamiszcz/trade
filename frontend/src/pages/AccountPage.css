@@ -1,0 +1,201 @@
+.account-page {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 50%, #16213e 100%);
+  padding: 2rem 0;
+}
+
+.account-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+}
+
+/* Account Card Section */
+.account-card-section {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.account-card {
+  width: 100%;
+  padding: 2rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 212, 255, 0.1);
+  text-align: center;
+  transition: all 0.3s ease;
+  position: sticky;
+  top: 80px;
+}
+
+.account-card:hover {
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 12px 32px rgba(0, 212, 255, 0.2), 0 0 20px rgba(255, 20, 147, 0.1);
+  transform: translateY(-4px);
+}
+
+.account-card h2 {
+  margin: 0 0 1.5rem 0;
+  background: linear-gradient(135deg, #00d4ff 0%, #ff1493 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.balance-label {
+  font-size: 0.85rem;
+  color: #b0b0b0;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.balance-amount {
+  margin: 0 0 0.5rem 0;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #00d4ff;
+  background: linear-gradient(135deg, #00d4ff 0%, #00a8cc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.currency-label {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1de9b6;
+}
+
+.account-details {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(0, 212, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-label {
+  color: #b0b0b0;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.detail-value {
+  color: #ffffff;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* Transaction Section */
+.transaction-section {
+  width: 100%;
+}
+
+.transaction-section h2 {
+  background: linear-gradient(135deg, #00d4ff 0%, #1de9b6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem 0;
+}
+
+.loading-text,
+.error-text {
+  margin: 1.5rem 0 0 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.error-text {
+  color: #ff9bbf;
+}
+
+.loading-text {
+  color: #b0b0b0;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1024px) {
+  .account-container {
+    grid-template-columns: 1fr;
+  }
+
+  .account-card {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .account-page {
+    padding: 1.5rem 0;
+  }
+
+  .account-container {
+    padding: 0 0.5rem;
+    gap: 1.5rem;
+  }
+
+  .account-card {
+    padding: 1.5rem;
+  }
+
+  .balance-amount {
+    font-size: 2rem;
+  }
+
+  .account-details {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .detail-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .account-page {
+    padding: 1rem 0;
+  }
+
+  .account-container {
+    padding: 0 0.5rem;
+    gap: 1rem;
+  }
+
+  .account-card {
+    padding: 1rem;
+  }
+
+  .account-card h2 {
+    font-size: 1.25rem;
+  }
+
+  .balance-amount {
+    font-size: 1.75rem;
+  }
+
+  .transaction-section h2 {
+    font-size: 1.25rem;
+  }
+}

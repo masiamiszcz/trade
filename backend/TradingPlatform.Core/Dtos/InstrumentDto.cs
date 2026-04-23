@@ -49,3 +49,10 @@ public sealed record UpdateInstrumentRequest(
 /// </summary>
 public sealed record RejectInstrumentRequest(
     string Reason);
+
+/// <summary>
+/// Generic Request DTO - Reason/comment for administrative actions
+/// Used for block/unblock requests
+/// </summary>
+public sealed record AdminRequestReasonRequest(
+    string Reason);

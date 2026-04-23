@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
 import { httpClient } from '../services/http/HttpClient';
+import { API_CONFIG } from '../config/apiConfig';
 import { ApiResponse, AccountDto } from '../types';
 
 export const useAccount = () => {
@@ -21,7 +22,7 @@ export const useAccount = () => {
 
     try {
       const response = await httpClient.fetch<AccountDto | ApiResponse<AccountDto>>({
-        url: '/account/main',
+        url: API_CONFIG.endpoints.account.main,
         method: 'GET',
       });
 

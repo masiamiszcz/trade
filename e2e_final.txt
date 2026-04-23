@@ -1,0 +1,14 @@
+﻿[STEP 1] POST /request-update
+Status: 201
+Instrument returned - this is expected
+
+[STEP 2] GET /pending - to get AdminRequest IDs
+Status: 200
+Found AdminRequest ID: 2bb5e80e-b03b-445d-9c3c-a7408d35e345
+
+[STEP 3] PATCH /approve - THIS WAS 500, SHOULD NOW BE 200!
+Status: 200
+✅ SUCCESS! Approval endpoint works!
+{"id":"2bb5e80e-b03b-445d-9c3c-a7408d35e345","instrumentId":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","requestedByAdminId":"62a436c0-4e0e-49b6-9776-fafc1905a83b","approvedByAdminId":"62a436c0-4e0e-49b6-9776-fafc1905a83b","action":"Update","reason":"Requested update by admin 62a436c0-4e0e-49b6-9776-fafc1905a83b","status":"Approved","createdAtUtc":"2026-04-23T16:29:01.5912646+00:00","approvedAtUtc":"2026-04-23T16:30:36.4994061+00:00"}
+
+[TEST COMPLETE]

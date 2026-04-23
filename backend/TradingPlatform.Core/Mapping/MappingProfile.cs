@@ -22,5 +22,13 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.Type, opt => opt.MapFrom(s => s.Type.ToString()))
             .ForMember(d => d.Pillar, opt => opt.MapFrom(s => s.Pillar.ToString()))
             .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()));
+
+        CreateMap<AdminRequest, AdminRequestDto>()
+            .ForMember(d => d.Action, opt => opt.MapFrom(s => s.Action.ToString()))
+            .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()));
+
+        CreateMap<User, UserListItemDto>()
+            .ForMember(d => d.Role, opt => opt.MapFrom(s => s.Role.ToString()))
+            .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()));
     }
 }

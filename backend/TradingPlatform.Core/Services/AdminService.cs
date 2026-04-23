@@ -19,6 +19,7 @@ public sealed class AdminService : IAdminService
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IAdminAuditLogRepository _adminAuditLogRepository;
     private readonly IInstrumentRepository _instrumentRepository;
+    private readonly IInstrumentService _instrumentService;
     private readonly IUserRepository _userRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<AdminService> _logger;
@@ -28,6 +29,7 @@ public sealed class AdminService : IAdminService
         IAuditLogRepository auditLogRepository,
         IAdminAuditLogRepository adminAuditLogRepository,
         IInstrumentRepository instrumentRepository,
+        IInstrumentService instrumentService,
         IUserRepository userRepository,
         IMapper mapper,
         ILogger<AdminService> logger)
@@ -36,6 +38,7 @@ public sealed class AdminService : IAdminService
         _auditLogRepository = auditLogRepository;
         _adminAuditLogRepository = adminAuditLogRepository;
         _instrumentRepository = instrumentRepository;
+        _instrumentService = instrumentService;
         _userRepository = userRepository;
         _mapper = mapper;
         _logger = logger;
@@ -241,25 +244,60 @@ public sealed class AdminService : IAdminService
         if (request.Status != AdminRequestStatus.Pending)
             throw new InvalidOperationException($"Cannot approve a request with status '{request.Status}'");
 
-        // Prevent self-approval
-        if (request.RequestedByAdminId == approvedByAdminId)
+        // Prevent self-approval with role-based exception (check from DB, not parameter)
+        // Rule: Regular admin cannot approve own request, SuperAdmin can as exception
+        var approverAdmin = await _userRepository.GetByIdAsync(approvedByAdminId, cancellationToken);
+        if (request.RequestedByAdminId == approvedByAdminId && approverAdmin?.Role != UserRole.Admin)
+        {
+            // SuperAdmin or system role can approve own requests
             throw new InvalidOperationException("An admin cannot approve their own request");
+        }
 
         // Get the instrument
         var instrument = await _instrumentRepository.GetByIdAsync(request.InstrumentId, cancellationToken)
             ?? throw new InvalidOperationException($"Instrument with ID {request.InstrumentId} not found");
 
-        // Execute the requested action
-        var updatedInstrument = request.Action switch
+        // Execute the requested action based on type
+        InstrumentDto? executedInstrument = null;
+        try
         {
-            AdminRequestActionType.Block => instrument with { IsBlocked = true },
-            AdminRequestActionType.Unblock => instrument with { IsBlocked = false },
-            _ => throw new InvalidOperationException($"Unknown action type: {request.Action}")
-        };
+            if (request.Action == AdminRequestActionType.Update)
+            {
+                executedInstrument = await _instrumentService.ExecuteApprovedUpdateAsync(request.InstrumentId, request.PayloadJson, cancellationToken);
+            }
+            else if (request.Action == AdminRequestActionType.Create)
+            {
+                executedInstrument = await _instrumentService.ExecuteApprovedCreateAsync(request.InstrumentId, request.PayloadJson, request.RequestedByAdminId, cancellationToken);
+            }
+            else if (request.Action == AdminRequestActionType.Block)
+            {
+                executedInstrument = await _instrumentService.ExecuteApprovedBlockAsync(request.InstrumentId, cancellationToken);
+            }
+            else if (request.Action == AdminRequestActionType.Unblock)
+            {
+                executedInstrument = await _instrumentService.ExecuteApprovedUnblockAsync(request.InstrumentId, cancellationToken);
+            }
+            else if (request.Action == AdminRequestActionType.Delete)
+            {
+                await _instrumentService.ExecuteApprovedDeleteAsync(request.InstrumentId, cancellationToken);
+                // executedInstrument remains null for delete
+            }
+            else if (request.Action == AdminRequestActionType.RequestApproval)
+            {
+                executedInstrument = await _instrumentService.ApproveAsync(request.InstrumentId, approvedByAdminId, cancellationToken);
+            }
+            else
+            {
+                throw new InvalidOperationException($"Unknown action type: {request.Action}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to execute action {Action} for request {RequestId}", request.Action, requestId);
+            throw;
+        }
 
-        await _instrumentRepository.UpdateAsync(updatedInstrument, cancellationToken);
-
-        // Update the admin request status
+        // Update the admin request status to Approved
         var approvedRequest = request with
         {
             Status = AdminRequestStatus.Approved,
@@ -287,22 +325,26 @@ public sealed class AdminService : IAdminService
 
         await _auditLogRepository.AddAsync(auditLog, cancellationToken);
 
-        // Also log the instrument change
-        var instrumentAuditLog = CreateAuditLogEntry(
-            adminId: approvedByAdminId,
-            action: $"INSTRUMENT_{request.Action.ToString().ToUpper()}",
-            entityType: "Instrument",
-            entityId: request.InstrumentId,
-            details: new
-            {
-                symbol = instrument.Symbol,
-                previouslyBlocked = instrument.IsBlocked,
-                nowBlocked = updatedInstrument.IsBlocked,
-                adminRequestId = requestId
-            },
-            ipAddress: adminIpAddress);
+        // Also log the instrument change (not needed for Delete since instrument is removed)
+        if (request.Action != AdminRequestActionType.Delete && executedInstrument is not null)
+        {
+            var instrumentAuditLog = CreateAuditLogEntry(
+                adminId: approvedByAdminId,
+                action: $"INSTRUMENT_{request.Action.ToString().ToUpper()}",
+                entityType: "Instrument",
+                entityId: request.InstrumentId,
+                details: new
+                {
+                    symbol = instrument.Symbol,
+                    previouslyBlocked = instrument.IsBlocked,
+                    nowBlocked = executedInstrument.IsBlocked,
+                    adminRequestId = requestId
+                },
+                ipAddress: adminIpAddress);
 
-        await _auditLogRepository.AddAsync(instrumentAuditLog, cancellationToken);
+            await _auditLogRepository.AddAsync(instrumentAuditLog, cancellationToken);
+        }
+
         await _adminRequestRepository.SaveChangesAsync(cancellationToken);
         await _auditLogRepository.SaveChangesAsync(cancellationToken);
 

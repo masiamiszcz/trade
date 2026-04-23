@@ -92,7 +92,8 @@ public sealed class SqlAdminRequestRepository : IAdminRequestRepository
             Reason = request.Reason,
             Status = request.Status,
             CreatedAtUtc = request.CreatedAtUtc,
-            ApprovedAtUtc = request.ApprovedAtUtc
+            ApprovedAtUtc = request.ApprovedAtUtc,
+            PayloadJson = request.PayloadJson
         };
 
         _dbContext.AdminRequests.Add(entity);
@@ -126,5 +127,6 @@ public sealed class SqlAdminRequestRepository : IAdminRequestRepository
             entity.Reason,
             entity.Status,
             entity.CreatedAtUtc,
-            entity.ApprovedAtUtc);
+            entity.ApprovedAtUtc,
+            entity.PayloadJson);
 }

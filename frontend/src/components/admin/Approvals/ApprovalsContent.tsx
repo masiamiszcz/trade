@@ -2,22 +2,14 @@
 import React, { useState } from 'react';
 import { useAdminRequests } from '../../../hooks/admin/useAdminRequests';
 import { AdminRequest } from '../../../types/admin';
-import { DataTable, Column } from '../../common/DataTable';
 import { ApprovalActionModal } from './ApprovalActionModal';
 import './ApprovalsContent.css';
 
 export const ApprovalsContent: React.FC = () => {
   const {
     requests,
-    totalCount,
-    currentPage,
-    totalPages,
     loading,
     error,
-    page,
-    pageSize,
-    setPage,
-    setPageSize,
     approveRequest,
     rejectRequest
   } = useAdminRequests();
@@ -53,86 +45,93 @@ export const ApprovalsContent: React.FC = () => {
     }
   };
 
-  const columns: Column<AdminRequest>[] = [
-    {
-      key: 'id',
-      label: 'ID',
-      width: '80px',
-      render: (value) => <span className="id-cell">{String(value).substring(0, 8)}</span>
-    },
-    {
-      key: 'requestedBy',
-      label: 'Użytkownik',
-      width: '130px'
-    },
-    {
-      key: 'action',
-      label: 'Akcja',
-      width: '100px',
-      render: (value) => <span className="action-badge">{value}</span>
-    },
-    {
-      key: 'entityType',
-      label: 'Typ',
-      width: '100px'
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      width: '110px',
-      render: (value) => {
-        const statusClass = `status-badge status-${value}`;
-        const statusLabel = {
-          pending: 'Oczekujący',
-          approved: 'Zatwierdzony',
-          rejected: 'Odrzucony'
-        }[value as string] || value;
-        return <span className={statusClass}>{statusLabel}</span>;
-      }
-    },
-    {
-      key: 'createdAt',
-      label: 'Data',
-      width: '150px',
-      render: (value) => new Date(value).toLocaleString('pl-PL')
-    }
-  ];
-
-  const getRowActions = (request: AdminRequest) => (
-    <div className="action-buttons">
-      {request.status === 'pending' ? (
-        <>
-          <button className="btn-approve" onClick={() => handleApprove(request)}>
-            ✅ Zatwierdź
-          </button>
-          <button className="btn-reject" onClick={() => handleReject(request)}>
-            ❌ Odrzuć
-          </button>
-        </>
-      ) : (
-        <span className="action-done">Zakończono</span>
-      )}
-    </div>
-  );
-
   return (
     <div className="approvals-content">
       <h2>📋 Zatwierdzenia</h2>
 
       {error && <div className="error-banner">{error}</div>}
 
-      <DataTable
-        columns={columns}
-        data={requests}
-        totalCount={totalCount}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        loading={loading}
-        actions={getRowActions}
-      />
+      {loading ? (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#00d4ff' }}>
+          ⏳ Ładowanie wniosków...
+        </div>
+      ) : requests.length === 0 ? (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#a4b5d6' }}>
+          Brak wniosków do zatwierdzenia ✅
+        </div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid rgba(0, 212, 255, 0.2)' }}>
+                <th style={{ width: '80px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>ID</th>
+                <th style={{ width: '130px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Użytkownik</th>
+                <th style={{ width: '100px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Akcja</th>
+                <th style={{ width: '100px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Typ</th>
+                <th style={{ width: '110px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Status</th>
+                <th style={{ width: '150px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Data</th>
+                <th style={{ padding: '12px', textAlign: 'right', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Akcje</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((request) => (
+                <tr
+                  key={request.id}
+                  style={{
+                    borderBottom: '1px solid rgba(0, 212, 255, 0.1)',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = 'rgba(0, 212, 255, 0.05)')
+                  }
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <td style={{ width: '80px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
+                    <span className="id-cell">{String(request.id).substring(0, 8)}</span>
+                  </td>
+                  <td style={{ width: '130px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
+                    {request.requestedBy || '-'}
+                  </td>
+                  <td style={{ width: '100px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
+                    <span className="action-badge">{request.action || '-'}</span>
+                  </td>
+                  <td style={{ width: '100px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
+                    {request.entityType || '-'}
+                  </td>
+                  <td style={{ width: '110px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
+                    <span className={`status-badge status-${request.status}`}>
+                      {request.status === 'pending' && '⏳ Oczekujący'}
+                      {request.status === 'approved' && '✅ Zatwierdzony'}
+                      {request.status === 'rejected' && '❌ Odrzucony'}
+                    </span>
+                  </td>
+                  <td style={{ width: '150px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
+                    {new Date(request.createdAt).toLocaleString('pl-PL')}
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    {request.status === 'pending' ? (
+                      <>
+                        <button
+                          className="btn-approve"
+                          onClick={() => handleApprove(request)}
+                          style={{ marginRight: '4px' }}
+                        >
+                          ✅ Zatwierdź
+                        </button>
+                        <button className="btn-reject" onClick={() => handleReject(request)}>
+                          ❌ Odrzuć
+                        </button>
+                      </>
+                    ) : (
+                      <span className="action-done">Zakończono</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {modalType && selectedRequest && (
         <ApprovalActionModal
