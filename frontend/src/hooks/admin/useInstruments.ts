@@ -126,7 +126,7 @@ export const useInstruments = () => {
         setLoading(true);
         setError(null);
         
-        await instrumentsService.delete_(id);
+        await instrumentsService.delete(id);
         
         // Remove from list (optimistic update)
         setInstruments(prev => prev.filter(inst => inst.id !== id));
@@ -265,12 +265,12 @@ export const useInstruments = () => {
 
   // ============ ADMINISTRATIVE: BLOCK ============
   const blockInstrument = useCallback(
-    async (id: string): Promise<Instrument | null> => {
+    async (id: string, reason: string = 'Zablokowano przez administratora'): Promise<Instrument | null> => {
       try {
         setLoading(true);
         setError(null);
         
-        const updated = await instrumentsService.block(id);
+        const updated = await instrumentsService.block(id, reason);
         
         setInstruments(prev =>
           prev.map(inst => (inst.id === id ? updated : inst))
@@ -289,12 +289,12 @@ export const useInstruments = () => {
 
   // ============ ADMINISTRATIVE: UNBLOCK ============
   const unblockInstrument = useCallback(
-    async (id: string): Promise<Instrument | null> => {
+    async (id: string, reason: string = 'Odblokowano przez administratora'): Promise<Instrument | null> => {
       try {
         setLoading(true);
         setError(null);
         
-        const updated = await instrumentsService.unblock(id);
+        const updated = await instrumentsService.unblock(id, reason);
         
         setInstruments(prev =>
           prev.map(inst => (inst.id === id ? updated : inst))

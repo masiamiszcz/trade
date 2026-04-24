@@ -57,12 +57,19 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditLogRepository, SqlAuditLogRepository>();
         services.AddScoped<IAdminAuditLogRepository, SqlAdminAuditLogRepository>();
         services.AddScoped<IInstrumentRepository, SqlInstrumentRepository>();
-        services.AddScoped<IInstrumentService, InstrumentService>();
         
-        // Register admin auth services and repositories
+        // Register admin auth repositories FIRST (needed by ApprovalService)
         services.AddScoped<IAdminAuthRepository, AdminAuthRepository>();
         services.AddScoped<IAdminInvitationRepository, AdminInvitationRepository>();
         services.AddScoped<IAdminRegistrationLogRepository, AdminRegistrationLogRepository>();
+        
+        // Register approval workflow service (uses IAdminAuthRepository for self-approval check)
+        services.AddScoped<IApprovalService, ApprovalService>();
+        
+        // Register instrument service (uses IApprovalService for requests)
+        services.AddScoped<IInstrumentService, InstrumentService>();
+        
+        // Register remaining admin services
         services.AddScoped<IAdminInvitationService, AdminInvitationService>();
         services.AddScoped<IAdminAuthService, AdminAuthService>();
         services.AddScoped<IAdminService, AdminService>();

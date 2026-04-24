@@ -17,7 +17,9 @@ export const InstrumentsContent: React.FC = () => {
     fetchInstruments,
     createInstrument,
     updateInstrument,
-    deleteInstrument
+    deleteInstrument,
+    blockInstrument,
+    unblockInstrument
   } = useInstruments();
 
   useEffect(() => {
@@ -26,6 +28,9 @@ export const InstrumentsContent: React.FC = () => {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingInstrument, setEditingInstrument] = useState<Instrument | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [blockLoading, setBlockLoading] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleAdd = () => {
     setEditingInstrument(null);
@@ -52,14 +57,64 @@ export const InstrumentsContent: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Czy napewno chcesz usunąć ten instrument?')) {
-      try {
-        await deleteInstrument(id);
-        await fetchInstruments();
-      } catch (err) {
-        console.error('Error:', err);
-      }
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (!window.confirm('Czy napewno chcesz usunąć ten instrument?')) {
+      return;
+    }
+
+    setDeleteLoading(id);
+    try {
+      await deleteInstrument(id);
+      setSuccessMessage('Instrument został usunięty ✅');
+      setTimeout(() => setSuccessMessage(null), 3000);
+      await fetchInstruments();
+    } catch (err) {
+      console.error('Error deleting instrument:', err);
+    } finally {
+      setDeleteLoading(null);
+    }
+  };
+
+  const handleBlock = async (id: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    setBlockLoading(id);
+    try {
+      await blockInstrument(id);
+      setSuccessMessage('Instrument został zablokowany ✅');
+      setTimeout(() => setSuccessMessage(null), 3000);
+      await fetchInstruments();
+    } catch (err) {
+      console.error('Error blocking instrument:', err);
+    } finally {
+      setBlockLoading(null);
+    }
+  };
+
+  const handleUnblock = async (id: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    setBlockLoading(id);
+    try {
+      await unblockInstrument(id);
+      setSuccessMessage('Instrument został odblokowany ✅');
+      setTimeout(() => setSuccessMessage(null), 3000);
+      await fetchInstruments();
+    } catch (err) {
+      console.error('Error unblocking instrument:', err);
+    } finally {
+      setBlockLoading(null);
     }
   };
 
@@ -142,6 +197,7 @@ export const InstrumentsContent: React.FC = () => {
       </div>
 
       {error && <div className="error-banner">{error}</div>}
+      {successMessage && <div className="success-banner">{successMessage}</div>}
 
       {loading ? (
         <div style={{ padding: '20px', textAlign: 'center', color: '#00d4ff' }}>
@@ -218,18 +274,48 @@ export const InstrumentsContent: React.FC = () => {
                       textAlign: 'right',
                       display: 'flex',
                       gap: '8px',
-                      justifyContent: 'flex-end'
+                      justifyContent: 'flex-end',
+                      flexWrap: 'wrap'
                     }}
                   >
                     <button
                       className="btn-edit"
-                      onClick={() => handleEdit(instrument)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleEdit(instrument);
+                      }}
+                      disabled={loading || deleteLoading === instrument.id || blockLoading === instrument.id}
                       style={{ marginRight: '4px' }}
                     >
                       ✏️ Edytuj
                     </button>
-                    <button className="btn-delete" onClick={() => handleDelete(instrument.id)}>
-                      🗑️ Usuń
+                    
+                    {instrument.isBlocked ? (
+                      <button 
+                        className="btn-unblock"
+                        onClick={(e) => handleUnblock(instrument.id, e)}
+                        disabled={blockLoading === instrument.id}
+                        style={{ marginRight: '4px' }}
+                      >
+                        {blockLoading === instrument.id ? '⏳' : '🔓'} Odblokuj
+                      </button>
+                    ) : (
+                      <button 
+                        className="btn-block"
+                        onClick={(e) => handleBlock(instrument.id, e)}
+                        disabled={blockLoading === instrument.id}
+                        style={{ marginRight: '4px' }}
+                      >
+                        {blockLoading === instrument.id ? '⏳' : '🔒'} Zablokuj
+                      </button>
+                    )}
+
+                    <button 
+                      className="btn-delete" 
+                      onClick={(e) => handleDelete(instrument.id, e)}
+                      disabled={deleteLoading === instrument.id}
+                    >
+                      {deleteLoading === instrument.id ? '⏳' : '🗑️'} Usuń
                     </button>
                   </td>
                 </tr>

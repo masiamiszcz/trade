@@ -7,6 +7,7 @@ namespace TradingPlatform.Core.Interfaces;
 /// <summary>
 /// Repository interface for managing AdminRequest persistence.
 /// Provides CRUD operations and query methods for admin requests.
+/// Generic design: supports any entity type via EntityType + EntityId.
 /// </summary>
 public interface IAdminRequestRepository
 {
@@ -21,7 +22,12 @@ public interface IAdminRequestRepository
     Task<IEnumerable<AdminRequest>> GetPendingAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get all admin requests for a specific instrument
+    /// Get all admin requests for a specific entity (generic: supports any EntityType)
+    /// </summary>
+    Task<IEnumerable<AdminRequest>> GetByEntityAsync(string entityType, Guid? entityId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get all admin requests for a specific instrument (backward compat - calls GetByEntityAsync)
     /// </summary>
     Task<IEnumerable<AdminRequest>> GetByInstrumentIdAsync(Guid instrumentId, CancellationToken cancellationToken = default);
 

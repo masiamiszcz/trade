@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Instrument, InstrumentType } from '../../../types/admin';
+import { Instrument, ACCOUNT_PILLARS, AccountPillar} from '../../../types/admin';
 
 interface InstrumentModalProps {
   isOpen: boolean;
@@ -14,7 +14,7 @@ export const InstrumentModal: React.FC<InstrumentModalProps> = ({ isOpen, instru
     name: '',
     description: '',
     type: 'Stock',
-    pillar: 'Trading',
+    pillar: 'Stocks',
     baseCurrency: 'USD',
     quoteCurrency: 'USD'
   });
@@ -30,7 +30,7 @@ export const InstrumentModal: React.FC<InstrumentModalProps> = ({ isOpen, instru
         name: '',
         description: '',
         type: 'Stock',
-        pillar: 'Trading',
+        pillar: 'Stocks',
         baseCurrency: 'USD',
         quoteCurrency: 'USD'
       });
@@ -132,14 +132,15 @@ export const InstrumentModal: React.FC<InstrumentModalProps> = ({ isOpen, instru
                 <label>Pillar</label>
                 <select
                   name="pillar"
-                  value={formData.pillar || 'Trading'}
+                  value={formData.pillar || 'General'}
                   onChange={handleChange}
                   disabled={loading}
                 >
-                  <option value="Primary">Primary</option>
-                  <option value="Secondary">Secondary</option>
-                  <option value="Trading">Trading</option>
-                  <option value="Investment">Investment</option>
+                  {ACCOUNT_PILLARS.map(pillar => (
+                    <option key={pillar} value={pillar}>
+                      {pillar}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

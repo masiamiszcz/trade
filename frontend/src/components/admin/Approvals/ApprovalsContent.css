@@ -116,6 +116,29 @@
   transform: translateY(-2px);
 }
 
+.btn-open-modal {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: linear-gradient(135deg, #00d4ff 0%, #0084ff 100%);
+  color: white;
+}
+
+.btn-open-modal:hover {
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.action-done {
+  color: #4caf50;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .empty-state {
   text-align: center;
   color: #a4b5d6;
@@ -280,6 +303,48 @@
   color: #00d4ff;
   font-size: 12px;
   font-weight: 600;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 0.35rem 0.7rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  display: inline-block;
+}
+
+.status-pending {
+  background: rgba(0, 212, 255, 0.2);
+  color: #00d4ff;
+}
+
+.status-pending:hover {
+  background: rgba(0, 212, 255, 0.3);
+}
+
+.status-approved {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.status-approved:hover {
+  background: rgba(76, 175, 80, 0.3);
+}
+
+.status-rejected {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.status-rejected:hover {
+  background: rgba(244, 67, 54, 0.3);
+}
+
+.status-unknown {
+  background: rgba(158, 158, 158, 0.2);
+  color: #a4b5d6;
 }
 
 .action-buttons {

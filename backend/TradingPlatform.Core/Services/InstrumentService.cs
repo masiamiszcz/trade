@@ -14,17 +14,20 @@ public sealed class InstrumentService : IInstrumentService
 {
     private readonly IInstrumentRepository _instrumentRepository;
     private readonly IAdminRequestRepository _adminRequestRepository;
+    private readonly IApprovalService _approvalService;
     private readonly IMapper _mapper;
     private readonly ILogger<InstrumentService> _logger;
 
     public InstrumentService(
         IInstrumentRepository instrumentRepository,
         IAdminRequestRepository adminRequestRepository,
+        IApprovalService approvalService,
         IMapper mapper,
         ILogger<InstrumentService> logger)
     {
         _instrumentRepository = instrumentRepository;
         _adminRequestRepository = adminRequestRepository;
+        _approvalService = approvalService;
         _mapper = mapper;
         _logger = logger;
     }
@@ -74,26 +77,24 @@ public sealed class InstrumentService : IInstrumentService
 
     public async Task<InstrumentDto> RequestCreateAsync(CreateInstrumentRequest request, Guid adminId, CancellationToken cancellationToken = default)
     {
-        // 1. Check if instrument with this symbol already exists
+        _logger.LogInformation("Requesting creation for new instrument {Symbol} by admin {AdminId}", request.Symbol, adminId);
+
+        // Check if instrument with this symbol already exists
         var existing = await _instrumentRepository.GetBySymbolAsync(request.Symbol, cancellationToken);
         if (existing is not null)
             throw new InvalidOperationException($"Instrument with symbol {request.Symbol} already exists.");
 
-        // 2. Validate enum values early
+        // Validate enum values early
         if (!Enum.TryParse<InstrumentType>(request.Type, true, out var instrumentType))
             throw new ArgumentException($"Invalid instrument type: {request.Type}");
 
         if (!Enum.TryParse<AccountPillar>(request.Pillar, true, out var pillar))
             throw new ArgumentException($"Invalid pillar: {request.Pillar}");
 
-        // 3. Generate ID upfront (will be used in AdminRequest and later in actual creation)
+        // Generate ID upfront (will be used in AdminRequest and later in actual creation)
         var instrumentId = Guid.NewGuid();
 
-        // 4. Idempotency check: compare payload JSON strings directly
-        var existingRequests = await _adminRequestRepository.GetByInstrumentIdAsync(instrumentId, cancellationToken);
-        var existingCreateRequest = existingRequests.FirstOrDefault(r => r.Status == AdminRequestStatus.Pending && r.Action == AdminRequestActionType.Create);
-
-        // Prepare payload for comparison (MUST match exactly what will be stored)
+        // Prepare payload
         var payloadJson = JsonSerializer.Serialize(new
         {
             symbol = request.Symbol.ToUpper(),
@@ -105,48 +106,22 @@ public sealed class InstrumentService : IInstrumentService
             quoteCurrency = request.QuoteCurrency.ToUpper()
         });
 
-        if (existingCreateRequest is not null)
-        {
-            if (payloadJson == existingCreateRequest.PayloadJson)
-            {
-                _logger.LogInformation("Idempotent create request reused for instrument {InstrumentId}", instrumentId);
-                // Return DTO for pending instrument (not yet created in DB)
-                return new InstrumentDto(
-                    Id: instrumentId,
-                    Symbol: request.Symbol.ToUpper(),
-                    Name: request.Name,
-                    Description: request.Description ?? string.Empty,
-                    Type: instrumentType.ToString(),
-                    Pillar: pillar.ToString(),
-                    BaseCurrency: request.BaseCurrency.ToUpper(),
-                    QuoteCurrency: request.QuoteCurrency.ToUpper(),
-                    Status: InstrumentStatus.Draft.ToString(),
-                    IsBlocked: false,
-                    CreatedBy: adminId,
-                    CreatedAtUtc: DateTimeOffset.UtcNow
-                );
-            }
-        }
+        // Generate readable reason with creation details
+        var creationReason = $"Requested creation: symbol: '{request.Symbol.ToUpper()}', name: '{request.Name}', type: '{instrumentType}', pillar: '{pillar}', baseCurrency: '{request.BaseCurrency.ToUpper()}', quoteCurrency: '{request.QuoteCurrency.ToUpper()}'";
 
-        // 5. Create approval request (instrument will be created after approval)
-        var adminRequest = new AdminRequest(
-            Id: Guid.NewGuid(),
-            InstrumentId: instrumentId,
-            RequestedByAdminId: adminId,
-            ApprovedByAdminId: null,
-            Action: AdminRequestActionType.Create,
-            Reason: $"Requested creation by admin {adminId}",
-            Status: AdminRequestStatus.Pending,
-            CreatedAtUtc: DateTimeOffset.UtcNow,
-            ApprovedAtUtc: null,
-            PayloadJson: payloadJson
-        );
+        // Delegate to ApprovalService to create the request
+        // This handles idempotency and audit logging
+        await _approvalService.CreateRequestAsync(
+            entityType: "Instrument",
+            entityId: null,
+            action: AdminRequestActionType.Create,
+            requestedByAdminId: adminId,
+            reason: creationReason,
+            payloadJson: payloadJson,
+            cancellationToken: cancellationToken);
 
-        await _adminRequestRepository.AddAsync(adminRequest, cancellationToken);
-        await _instrumentRepository.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Create request created for new instrument {InstrumentId}", instrumentId);
 
-        _logger.LogInformation("Created approval request for new instrument {InstrumentId}", instrumentId);
-        
         return new InstrumentDto(
             Id: instrumentId,
             Symbol: request.Symbol.ToUpper(),
@@ -167,39 +142,34 @@ public sealed class InstrumentService : IInstrumentService
 
     public async Task<InstrumentDto> RequestApprovalAsync(Guid id, Guid adminId, CancellationToken cancellationToken = default)
     {
-        // 1. Fetch and validate
+        _logger.LogInformation("Requesting approval for instrument {InstrumentId} by admin {AdminId}", id, adminId);
+
+        // Fetch and validate instrument
         var instrument = await _instrumentRepository.GetByIdAsync(id, cancellationToken);
         if (instrument is null)
             throw new InvalidOperationException($"Instrument with ID {id} not found.");
 
-        // 2. Validate transition: Draft → PendingApproval
+        // Validate state machine transition: Draft → PendingApproval
         ValidateTransition(instrument.Status, InstrumentStatus.PendingApproval);
 
-        // 3. Validate preconditions
+        // Validate preconditions
         if (string.IsNullOrWhiteSpace(instrument.Description))
             throw new InvalidOperationException("Instrument description is required before requesting approval.");
 
-        // 4. IDEMPOTENCY CHECK: Return existing pending request with same payload
-        var existingRequests = await _adminRequestRepository.GetByInstrumentIdAsync(id, cancellationToken);
-        var existingPendingRequest = existingRequests.FirstOrDefault(r => r.Status == AdminRequestStatus.Pending);
+        // Delegate to ApprovalService to create the request
+        // This handles idempotency and audit logging
+        var payloadJson = JsonSerializer.Serialize(new { }); // RequestApproval has no business data
         
-        if (existingPendingRequest is not null)
-        {
-            // Compare payloads: if same action with same structure → reuse (idempotent)
-            // Payload format: { "action": "RequestApproval", "instrumentId": "...", "requestedBy": "..." }
-            var currentPayloadHash = ComputePayloadHash(new { action = "RequestApproval", instrumentId = id, requestedByAdminId = adminId });
-            var existingPayloadHash = ComputePayloadHash(existingPendingRequest.PayloadJson);
-            
-            if (currentPayloadHash == existingPayloadHash)
-            {
-                // Same action, same payload → return existing (idempotent)
-                _logger.LogInformation("Idempotent request reused for instrument {InstrumentId}", id);
-                return _mapper.Map<InstrumentDto>(instrument);
-            }
-            // Different payload → allow new request (different operation)
-        }
+        await _approvalService.CreateRequestAsync(
+            entityType: "Instrument",
+            entityId: id,
+            action: AdminRequestActionType.RequestApproval,
+            requestedByAdminId: adminId,
+            reason: $"Requested approval by admin {adminId}",
+            payloadJson: payloadJson,
+            cancellationToken: cancellationToken);
 
-        // 5. Update status
+        // Update instrument status to PendingApproval
         var updated = instrument with
         {
             Status = InstrumentStatus.PendingApproval,
@@ -208,206 +178,141 @@ public sealed class InstrumentService : IInstrumentService
         };
 
         await _instrumentRepository.UpdateAsync(updated, cancellationToken);
-        
-        // 6. Create AdminRequest for audit trail with payload JSON
-        // Payload contains ONLY business data (no timestamp, no requestedByAdminId - those are in AdminRequest)
-        var payloadJson = JsonSerializer.Serialize(new { });  // RequestApproval has no business data
-        
-        var adminRequest = new AdminRequest(
-            Id: Guid.NewGuid(),
-            InstrumentId: id,
-            RequestedByAdminId: adminId,
-            ApprovedByAdminId: null,
-            Action: AdminRequestActionType.RequestApproval,
-            Reason: $"Requested approval by admin {adminId}",
-            Status: AdminRequestStatus.Pending,
-            CreatedAtUtc: DateTimeOffset.UtcNow,
-            ApprovedAtUtc: null,
-            PayloadJson: payloadJson  // Full payload for audit
-        );
-
-        await _adminRequestRepository.AddAsync(adminRequest, cancellationToken);
         await _instrumentRepository.SaveChangesAsync(cancellationToken);
 
+        _logger.LogInformation("Approval request created for instrument {InstrumentId}", id);
         return _mapper.Map<InstrumentDto>(updated);
     }
 
     public async Task<InstrumentDto> RequestUpdateAsync(Guid id, UpdateInstrumentRequest request, Guid adminId, CancellationToken cancellationToken = default)
     {
-        // 1. Fetch and validate
+        _logger.LogInformation("Requesting update for instrument {InstrumentId} by admin {AdminId}", id, adminId);
+
+        // Fetch and validate
         var instrument = await _instrumentRepository.GetByIdAsync(id, cancellationToken);
         if (instrument is null)
             throw new InvalidOperationException($"Instrument with ID {id} not found.");
 
-        // 2. Idempotency check: compare payload JSON strings directly
-        var existingRequests = await _adminRequestRepository.GetByInstrumentIdAsync(id, cancellationToken);
-        var existingUpdateRequest = existingRequests.FirstOrDefault(r => r.Status == AdminRequestStatus.Pending && r.Action == AdminRequestActionType.Update);
-        
-        // Prepare payload for comparison (MUST match exactly what will be stored)
-        var payloadJson = JsonSerializer.Serialize(new { 
+        // Prepare payload
+        var payloadJson = JsonSerializer.Serialize(new
+        {
             name = request.Name,
             description = request.Description,
             baseCurrency = request.BaseCurrency,
             quoteCurrency = request.QuoteCurrency
         });
+
+        // Generate readable reason with diff of changes
+        var changes = new List<string>();
+        if (instrument.Name != request.Name)
+            changes.Add($"name: '{instrument.Name}' → '{request.Name}'");
+        if (instrument.Description != request.Description)
+            changes.Add($"description: '{instrument.Description}' → '{request.Description}'");
+        if (instrument.BaseCurrency != request.BaseCurrency)
+            changes.Add($"baseCurrency: '{instrument.BaseCurrency}' → '{request.BaseCurrency}'");
+        if (instrument.QuoteCurrency != request.QuoteCurrency)
+            changes.Add($"quoteCurrency: '{instrument.QuoteCurrency}' → '{request.QuoteCurrency}'");
         
-        if (existingUpdateRequest is not null)
-        {
-            if (payloadJson == existingUpdateRequest.PayloadJson)
-            {
-                _logger.LogInformation("Idempotent update request reused for instrument {InstrumentId}", id);
-                return _mapper.Map<InstrumentDto>(instrument);
-            }
-        }
+        var updateReason = changes.Count > 0 
+            ? $"Requested update: {string.Join(", ", changes)}"
+            : "Requested update: no changes detected";
 
-        // 3. Create approval request
-        // payloadJson already prepared above for idempotency check
-        var adminRequest = new AdminRequest(
-            Id: Guid.NewGuid(),
-            InstrumentId: id,
-            RequestedByAdminId: adminId,
-            ApprovedByAdminId: null,
-            Action: AdminRequestActionType.Update,
-            Reason: $"Requested update by admin {adminId}",
-            Status: AdminRequestStatus.Pending,
-            CreatedAtUtc: DateTimeOffset.UtcNow,
-            ApprovedAtUtc: null,
-            PayloadJson: payloadJson
-        );
+        // Delegate to ApprovalService to create the request
+        // This handles idempotency and audit logging
+        await _approvalService.CreateRequestAsync(
+            entityType: "Instrument",
+            entityId: id,
+            action: AdminRequestActionType.Update,
+            requestedByAdminId: adminId,
+            reason: updateReason,
+            payloadJson: payloadJson,
+            cancellationToken: cancellationToken);
 
-        await _adminRequestRepository.AddAsync(adminRequest, cancellationToken);
-        await _instrumentRepository.SaveChangesAsync(cancellationToken);
-
+        _logger.LogInformation("Update request created for instrument {InstrumentId}", id);
         return _mapper.Map<InstrumentDto>(instrument);
     }
 
     public async Task<InstrumentDto> RequestDeleteAsync(Guid id, Guid adminId, CancellationToken cancellationToken = default)
     {
-        // 1. Fetch and validate
+        _logger.LogInformation("Requesting deletion for instrument {InstrumentId} by admin {AdminId}", id, adminId);
+
+        // Fetch and validate
         var instrument = await _instrumentRepository.GetByIdAsync(id, cancellationToken);
         if (instrument is null)
             throw new InvalidOperationException($"Instrument with ID {id} not found.");
 
-        // 2. Idempotency check
-        var existingRequests = await _adminRequestRepository.GetByInstrumentIdAsync(id, cancellationToken);
-        var existingDeleteRequest = existingRequests.FirstOrDefault(r => r.Status == AdminRequestStatus.Pending && r.Action == AdminRequestActionType.Delete);
-        
-        if (existingDeleteRequest is not null)
-        {
-            _logger.LogInformation("Idempotent delete request reused for instrument {InstrumentId}", id);
-            return _mapper.Map<InstrumentDto>(instrument);
-        }
+        // Prepare payload
+        var payloadJson = JsonSerializer.Serialize(new { }); // Delete has no business data
 
-        // 3. Create approval request
-        // Payload contains ONLY business data for Delete (no timestamp, no requestedByAdminId - those are in AdminRequest)
-        var payloadJson = JsonSerializer.Serialize(new { });  // Delete has no business data to store
-        
-        var adminRequest = new AdminRequest(
-            Id: Guid.NewGuid(),
-            InstrumentId: id,
-            RequestedByAdminId: adminId,
-            ApprovedByAdminId: null,
-            Action: AdminRequestActionType.Delete,
-            Reason: $"Requested deletion by admin {adminId}",
-            Status: AdminRequestStatus.Pending,
-            CreatedAtUtc: DateTimeOffset.UtcNow,
-            ApprovedAtUtc: null,
-            PayloadJson: payloadJson
-        );
+        // Generate readable reason with entity being deleted
+        var deletionReason = $"Requested deletion: {instrument.Symbol} ({instrument.Name})";
 
-        await _adminRequestRepository.AddAsync(adminRequest, cancellationToken);
-        await _instrumentRepository.SaveChangesAsync(cancellationToken);
+        // Delegate to ApprovalService to create the request
+        // This handles idempotency and audit logging
+        await _approvalService.CreateRequestAsync(
+            entityType: "Instrument",
+            entityId: id,
+            action: AdminRequestActionType.Delete,
+            requestedByAdminId: adminId,
+            reason: deletionReason,
+            payloadJson: payloadJson,
+            cancellationToken: cancellationToken);
 
+        _logger.LogInformation("Delete request created for instrument {InstrumentId}", id);
         return _mapper.Map<InstrumentDto>(instrument);
     }
 
     public async Task<InstrumentDto> RequestBlockAsync(Guid id, string reason, Guid adminId, CancellationToken cancellationToken = default)
     {
-        // 1. Fetch and validate
+        _logger.LogInformation("Requesting block for instrument {InstrumentId} by admin {AdminId}", id, adminId);
+
+        // Fetch and validate
         var instrument = await _instrumentRepository.GetByIdAsync(id, cancellationToken);
         if (instrument is null)
             throw new InvalidOperationException($"Instrument with ID {id} not found.");
 
-        if (instrument.IsBlocked)
-            throw new InvalidOperationException("Instrument is already blocked");
+        // Prepare payload
+        var payloadJson = JsonSerializer.Serialize(new { reason = reason });
 
-        // 2. Idempotency check
-        var existingRequests = await _adminRequestRepository.GetByInstrumentIdAsync(id, cancellationToken);
-        var existingBlockRequest = existingRequests.FirstOrDefault(r => r.Status == AdminRequestStatus.Pending && r.Action == AdminRequestActionType.Block);
-        
-        if (existingBlockRequest is not null)
-        {
-            _logger.LogInformation("Idempotent block request reused for instrument {InstrumentId}", id);
-            return _mapper.Map<InstrumentDto>(instrument);
-        }
+        // Delegate to ApprovalService to create the request
+        // This handles idempotency and audit logging
+        await _approvalService.CreateRequestAsync(
+            entityType: "Instrument",
+            entityId: id,
+            action: AdminRequestActionType.Block,
+            requestedByAdminId: adminId,
+            reason: reason,
+            payloadJson: payloadJson,
+            cancellationToken: cancellationToken);
 
-        // 3. Create approval request
-        // Payload contains ONLY business data for Block (no timestamp, no requestedByAdminId - those are in AdminRequest)
-        var payloadJson = JsonSerializer.Serialize(new { 
-            reason = reason
-        });
-        
-        var adminRequest = new AdminRequest(
-            Id: Guid.NewGuid(),
-            InstrumentId: id,
-            RequestedByAdminId: adminId,
-            ApprovedByAdminId: null,
-            Action: AdminRequestActionType.Block,
-            Reason: reason,
-            Status: AdminRequestStatus.Pending,
-            CreatedAtUtc: DateTimeOffset.UtcNow,
-            ApprovedAtUtc: null,
-            PayloadJson: payloadJson
-        );
-
-        await _adminRequestRepository.AddAsync(adminRequest, cancellationToken);
-        await _instrumentRepository.SaveChangesAsync(cancellationToken);
-
+        _logger.LogInformation("Block request created for instrument {InstrumentId}", id);
         return _mapper.Map<InstrumentDto>(instrument);
     }
 
     public async Task<InstrumentDto> RequestUnblockAsync(Guid id, string reason, Guid adminId, CancellationToken cancellationToken = default)
     {
-        // 1. Fetch and validate
+        _logger.LogInformation("Requesting unblock for instrument {InstrumentId} by admin {AdminId}", id, adminId);
+
+        // Fetch and validate
         var instrument = await _instrumentRepository.GetByIdAsync(id, cancellationToken);
         if (instrument is null)
             throw new InvalidOperationException($"Instrument with ID {id} not found.");
 
-        if (!instrument.IsBlocked)
-            throw new InvalidOperationException("Instrument is not blocked");
+        // Prepare payload
+        var payloadJson = JsonSerializer.Serialize(new { reason = reason });
 
-        // 2. Idempotency check
-        var existingRequests = await _adminRequestRepository.GetByInstrumentIdAsync(id, cancellationToken);
-        var existingUnblockRequest = existingRequests.FirstOrDefault(r => r.Status == AdminRequestStatus.Pending && r.Action == AdminRequestActionType.Unblock);
-        
-        if (existingUnblockRequest is not null)
-        {
-            _logger.LogInformation("Idempotent unblock request reused for instrument {InstrumentId}", id);
-            return _mapper.Map<InstrumentDto>(instrument);
-        }
+        // Delegate to ApprovalService to create the request
+        // This handles idempotency and audit logging
+        await _approvalService.CreateRequestAsync(
+            entityType: "Instrument",
+            entityId: id,
+            action: AdminRequestActionType.Unblock,
+            requestedByAdminId: adminId,
+            reason: reason,
+            payloadJson: payloadJson,
+            cancellationToken: cancellationToken);
 
-        // 3. Create approval request
-        // Payload contains ONLY business data for Unblock (no timestamp, no requestedByAdminId - those are in AdminRequest)
-        var payloadJson = JsonSerializer.Serialize(new { 
-            reason = reason
-        });
-        
-        var adminRequest = new AdminRequest(
-            Id: Guid.NewGuid(),
-            InstrumentId: id,
-            RequestedByAdminId: adminId,
-            ApprovedByAdminId: null,
-            Action: AdminRequestActionType.Unblock,
-            Reason: reason,
-            Status: AdminRequestStatus.Pending,
-            CreatedAtUtc: DateTimeOffset.UtcNow,
-            ApprovedAtUtc: null,
-            PayloadJson: payloadJson
-        );
-
-        await _adminRequestRepository.AddAsync(adminRequest, cancellationToken);
-        await _instrumentRepository.SaveChangesAsync(cancellationToken);
-
+        _logger.LogInformation("Unblock request created for instrument {InstrumentId}", id);
         return _mapper.Map<InstrumentDto>(instrument);
     }
 
@@ -437,7 +342,8 @@ public sealed class InstrumentService : IInstrumentService
         // 5. Update/Create AdminRequest for audit trail
         var adminRequest = new AdminRequest(
             Id: Guid.NewGuid(),
-            InstrumentId: id,
+            EntityType: "Instrument",
+            EntityId: id,
             RequestedByAdminId: approverAdminId,
             ApprovedByAdminId: approverAdminId,
             Action: AdminRequestActionType.Approve,
@@ -483,7 +389,8 @@ public sealed class InstrumentService : IInstrumentService
         // 6. Create AdminRequest for audit trail (stores rejection reason)
         var adminRequest = new AdminRequest(
             Id: Guid.NewGuid(),
-            InstrumentId: id,
+            EntityType: "Instrument",
+            EntityId: id,
             RequestedByAdminId: rejectedByAdminId,
             ApprovedByAdminId: rejectedByAdminId,
             Action: AdminRequestActionType.Reject,
@@ -522,7 +429,8 @@ public sealed class InstrumentService : IInstrumentService
         // 4. Create AdminRequest for audit trail
         var adminRequest = new AdminRequest(
             Id: Guid.NewGuid(),
-            InstrumentId: id,
+            EntityType: "Instrument",
+            EntityId: id,
             RequestedByAdminId: adminId,
             ApprovedByAdminId: null,
             Action: AdminRequestActionType.RetrySubmission,
@@ -561,7 +469,8 @@ public sealed class InstrumentService : IInstrumentService
         // 4. Create AdminRequest for audit trail
         var adminRequest = new AdminRequest(
             Id: Guid.NewGuid(),
-            InstrumentId: id,
+            EntityType: "Instrument",
+            EntityId: id,
             RequestedByAdminId: adminId,
             ApprovedByAdminId: adminId,
             Action: AdminRequestActionType.Archive,
@@ -760,7 +669,8 @@ public sealed class InstrumentService : IInstrumentService
         // 4. Create audit log entry (retroactive - after immediate execution)
         var auditRequest = new AdminRequest(
             Id: Guid.NewGuid(),
-            InstrumentId: id,
+            EntityType: "Instrument",
+            EntityId: id,
             RequestedByAdminId: adminId,
             ApprovedByAdminId: adminId,  // Self-approved emergency action
             Action: AdminRequestActionType.Block,

@@ -23,8 +23,16 @@ export type AdminRequestActionType =
 // AdminRequestStatus (matches backend - 3 states)
 export type AdminRequestStatus = 'Pending' | 'Approved' | 'Rejected';
 
-// AccountPillar (if needed on frontend)
-export type AccountPillar = 'Primary' | 'Secondary' | 'Trading' | 'Investment';
+// === DATA TRANSFER OBJECTS (DTOs) ===
+
+export const ACCOUNT_PILLARS = [
+  'General',
+  'Stocks',
+  'Crypto',
+  'Cfd',
+] as const;
+
+export type AccountPillar = typeof ACCOUNT_PILLARS[number];
 
 export type UserRole = 'User' | 'Admin' | 'SuperAdmin';
 
@@ -35,7 +43,7 @@ export interface Instrument {
   name: string;                // e.g., "Apple Inc."
   description: string;         // Admin notes
   type: InstrumentType;        // Stock|Crypto|Cfd|Etf|Forex
-  pillar: AccountPillar;       // Primary|Secondary|Trading|Investment
+  pillar: AccountPillar;       // General|Stocks|Crypto|Cfd
   baseCurrency: string;        // e.g., "USD", "EUR"
   quoteCurrency: string;       // e.g., "USD", "EUR"
   status: InstrumentStatus;    // Draft|PendingApproval|Approved|Rejected|Blocked|Archived
@@ -72,27 +80,29 @@ export interface RejectInstrumentRequest {
 // === ADMIN REQUEST (AUDIT LOG) ===
 export interface AdminRequest {
   id: string;
-  instrumentId: string;
-  requestedByAdminId: string;
-  approvedByAdminId?: string;
-  action: AdminRequestActionType;
-  status: AdminRequestStatus;  // Pending|Approved|Rejected (confusing - means "request status", not instrument status)
-  reason?: string;             // rejection reason or other metadata
-  createdAtUtc: string;        // ISO datetime
-  approvedAtUtc?: string;      // ISO datetime when approved
+  entityType: string;              // Type of entity (e.g., "Instrument")
+  entityId?: string | null;        // ID of entity, nullable for Create operations
+  requestedByAdminId: string;      // Admin who made the request
+  approvedByAdminId?: string | null; // Admin who approved it
+  action: AdminRequestActionType;  // Create, Update, Delete, Block, Unblock
+  status: AdminRequestStatus;      // Pending|Approved|Rejected
+  reason?: string;                 // Rejection reason or metadata
+  createdAtUtc: string;            // ISO datetime
+  approvedAtUtc?: string | null;   // ISO datetime when approved
 }
 
 // === ADMIN RESPONSE DTOs ===
 export interface AdminRequestDto {
   id: string;
-  instrumentId: string;
+  entityType: string;
+  entityId?: string | null;
   requestedByAdminId: string;
-  approvedByAdminId?: string;
+  approvedByAdminId?: string | null;
   action: AdminRequestActionType;
   status: AdminRequestStatus;
   reason?: string;
   createdAtUtc: string;
-  approvedAtUtc?: string;
+  approvedAtUtc?: string | null;
 }
 
 // === HEALTH STATUS ===

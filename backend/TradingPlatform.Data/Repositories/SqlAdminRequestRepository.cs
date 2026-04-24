@@ -41,15 +41,21 @@ public sealed class SqlAdminRequestRepository : IAdminRequestRepository
         return entities.Select(MapToDomain);
     }
 
-    public async Task<IEnumerable<AdminRequest>> GetByInstrumentIdAsync(Guid instrumentId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<AdminRequest>> GetByEntityAsync(string entityType, Guid? entityId, CancellationToken cancellationToken = default)
     {
         var entities = await _dbContext.AdminRequests
             .AsNoTracking()
-            .Where(x => x.InstrumentId == instrumentId)
+            .Where(x => x.EntityType == entityType && x.EntityId == entityId)
             .OrderByDescending(x => x.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
         return entities.Select(MapToDomain);
+    }
+
+    public async Task<IEnumerable<AdminRequest>> GetByInstrumentIdAsync(Guid instrumentId, CancellationToken cancellationToken = default)
+    {
+        // Backward compatibility: Instrument requests use EntityType = "Instrument" and EntityId = instrumentId
+        return await GetByEntityAsync("Instrument", instrumentId, cancellationToken);
     }
 
     public async Task<IEnumerable<AdminRequest>> GetByRequestedByAdminIdAsync(Guid adminId, CancellationToken cancellationToken = default)
@@ -85,7 +91,8 @@ public sealed class SqlAdminRequestRepository : IAdminRequestRepository
         var entity = new AdminRequestEntity
         {
             Id = request.Id,
-            InstrumentId = request.InstrumentId,
+            EntityType = request.EntityType,
+            EntityId = request.EntityId,
             RequestedByAdminId = request.RequestedByAdminId,
             ApprovedByAdminId = request.ApprovedByAdminId,
             Action = request.Action,
@@ -120,7 +127,8 @@ public sealed class SqlAdminRequestRepository : IAdminRequestRepository
     private static AdminRequest MapToDomain(AdminRequestEntity entity)
         => new AdminRequest(
             entity.Id,
-            entity.InstrumentId,
+            entity.EntityType,
+            entity.EntityId,
             entity.RequestedByAdminId,
             entity.ApprovedByAdminId,
             entity.Action,

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdminRequests } from '../../../hooks/admin/useAdminRequests';
 import { AdminRequest } from '../../../types/admin';
 import { ApprovalActionModal } from './ApprovalActionModal';
@@ -11,43 +11,107 @@ export const ApprovalsContent: React.FC = () => {
     loading,
     error,
     approveRequest,
-    rejectRequest
+    rejectRequest,
+    addComment,
+    refetch,
+    fetchPendingRequests,
+    fetchAllRequests,
+    getRequestById,
   } = useAdminRequests();
 
+  const [viewMode, setViewMode] = useState<'pending' | 'all'>('pending');
   const [selectedRequest, setSelectedRequest] = useState<AdminRequest | null>(null);
-  const [modalType, setModalType] = useState<'approve' | 'reject' | null>(null);
-  const [reason, setReason] = useState('');
 
-  const handleApprove = (request: AdminRequest) => {
-    setSelectedRequest(request);
-    setModalType('approve');
-  };
+  useEffect(() => {
+    if (viewMode === 'pending') {
+      fetchPendingRequests();
+    } else {
+      fetchAllRequests();
+    }
+  }, [viewMode, fetchPendingRequests, fetchAllRequests]);
 
-  const handleReject = (request: AdminRequest) => {
-    setSelectedRequest(request);
-    setModalType('reject');
-  };
-
-  const handleConfirm = async () => {
-    if (!selectedRequest) return;
-
-    try {
-      if (modalType === 'approve') {
-        await approveRequest(selectedRequest.id, reason);
-      } else if (modalType === 'reject') {
-        await rejectRequest(selectedRequest.id, reason);
+  const handleRowClick = async (request: AdminRequest) => {
+    if (viewMode === 'pending') {
+      // Pending mode: only allow clicking on pending requests
+      if (request.status.toLowerCase() === 'pending') {
+        setSelectedRequest(request);
       }
-      setReason('');
-      setSelectedRequest(null);
-      setModalType(null);
-    } catch (err) {
-      console.error('Error:', err);
+    } else {
+      // All mode: load full details from API
+      const detailed = await getRequestById(request.id);
+      if (detailed) {
+        setSelectedRequest(detailed);
+      }
+    }
+  };
+
+  const handleApprove = async (id: string, comment?: string) => {
+    await approveRequest(id, comment);
+    setSelectedRequest(null);
+    await refetch();
+  };
+
+  const handleReject = async (id: string, reason: string) => {
+    await rejectRequest(id, reason);
+    setSelectedRequest(null);
+    await refetch();
+  };
+
+  const handleComment = async (id: string, text: string) => {
+    await addComment(id, text);
+    // Keep modal open so user can add more comments or take other actions
+    await refetch();
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return { emoji: '⏳', label: 'Oczekujący', class: 'status-pending' };
+      case 'approved':
+        return { emoji: '✅', label: 'Zatwierdzony', class: 'status-approved' };
+      case 'rejected':
+        return { emoji: '❌', label: 'Odrzucony', class: 'status-rejected' };
+      default:
+        return { emoji: '❓', label: status, class: 'status-unknown' };
     }
   };
 
   return (
     <div className="approvals-content">
       <h2>📋 Zatwierdzenia</h2>
+
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '8px' }}>
+        <button
+          onClick={() => setViewMode('pending')}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '6px',
+            border: viewMode === 'pending' ? '2px solid #00d4ff' : '1px solid #a4b5d6',
+            background: viewMode === 'pending' ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
+            color: viewMode === 'pending' ? '#00d4ff' : '#a4b5d6',
+            fontWeight: viewMode === 'pending' ? 600 : 400,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+        >
+          ⏳ Zatwierdzenia
+        </button>
+        <button
+          onClick={() => setViewMode('all')}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '6px',
+            border: viewMode === 'all' ? '2px solid #00d4ff' : '1px solid #a4b5d6',
+            background: viewMode === 'all' ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
+            color: viewMode === 'all' ? '#00d4ff' : '#a4b5d6',
+            fontWeight: viewMode === 'all' ? 600 : 400,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+        >
+          📚 Wszystkie wnioski
+        </button>
+      </div>
 
       {error && <div className="error-banner">{error}</div>}
 
@@ -65,86 +129,83 @@ export const ApprovalsContent: React.FC = () => {
             <thead>
               <tr style={{ borderBottom: '2px solid rgba(0, 212, 255, 0.2)' }}>
                 <th style={{ width: '80px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>ID</th>
-                <th style={{ width: '130px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Użytkownik</th>
+                <th style={{ width: '150px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Admin przez</th>
                 <th style={{ width: '100px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Akcja</th>
                 <th style={{ width: '100px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Typ</th>
                 <th style={{ width: '110px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Status</th>
-                <th style={{ width: '150px', padding: '12px', textAlign: 'left', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Data</th>
-                <th style={{ padding: '12px', textAlign: 'right', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Akcje</th>
+                <th style={{ width: '180px', padding: '12px', textAlign: 'right', color: '#00d4ff', fontWeight: 600, fontSize: '13px' }}>Data i Godzina</th>
               </tr>
             </thead>
             <tbody>
-              {requests.map((request) => (
-                <tr
-                  key={request.id}
-                  style={{
-                    borderBottom: '1px solid rgba(0, 212, 255, 0.1)',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = 'rgba(0, 212, 255, 0.05)')
-                  }
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <td style={{ width: '80px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
-                    <span className="id-cell">{String(request.id).substring(0, 8)}</span>
-                  </td>
-                  <td style={{ width: '130px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
-                    {request.requestedBy || '-'}
-                  </td>
-                  <td style={{ width: '100px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
-                    <span className="action-badge">{request.action || '-'}</span>
-                  </td>
-                  <td style={{ width: '100px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
-                    {request.entityType || '-'}
-                  </td>
-                  <td style={{ width: '110px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
-                    <span className={`status-badge status-${request.status}`}>
-                      {request.status === 'pending' && '⏳ Oczekujący'}
-                      {request.status === 'approved' && '✅ Zatwierdzony'}
-                      {request.status === 'rejected' && '❌ Odrzucony'}
-                    </span>
-                  </td>
-                  <td style={{ width: '150px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
-                    {new Date(request.createdAt).toLocaleString('pl-PL')}
-                  </td>
-                  <td style={{ padding: '12px', textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                    {request.status === 'pending' ? (
-                      <>
-                        <button
-                          className="btn-approve"
-                          onClick={() => handleApprove(request)}
-                          style={{ marginRight: '4px' }}
-                        >
-                          ✅ Zatwierdź
-                        </button>
-                        <button className="btn-reject" onClick={() => handleReject(request)}>
-                          ❌ Odrzuć
-                        </button>
-                      </>
-                    ) : (
-                      <span className="action-done">Zakończono</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {requests.map((request) => {
+                const statusInfo = getStatusBadge(request.status);
+                const isPending = request.status.toLowerCase() === 'pending';
+                const isClickable = viewMode === 'all' || isPending;
+
+                return (
+                  <tr
+                    key={request.id}
+                    onClick={() => {
+                      if (isClickable) {
+                        handleRowClick(request);
+                      }
+                    }}
+                    style={{
+                      borderBottom: '1px solid rgba(0, 212, 255, 0.1)',
+                      transition: 'background-color 0.2s',
+                      cursor: isClickable ? 'pointer' : 'default',
+                      backgroundColor: isClickable ? undefined : 'transparent'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isClickable) {
+                        e.currentTarget.style.backgroundColor = 'rgba(0, 212, 255, 0.08)';
+                      }
+                    }}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <td style={{ width: '80px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
+                      <span className="id-cell">{String(request.id).substring(0, 8)}</span>
+                    </td>
+                    <td style={{ width: '150px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
+                      {request.requestedByAdminId ? String(request.requestedByAdminId).substring(0, 8) : '-'}
+                    </td>
+                    <td style={{ width: '100px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
+                      <span className="action-badge">{request.action || '-'}</span>
+                    </td>
+                    <td style={{ width: '100px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
+                      {request.entityType || '-'}
+                    </td>
+                    <td style={{ width: '110px', padding: '12px', color: '#a4b5d6', fontSize: '13px' }}>
+                      <span className={`status-badge ${statusInfo.class}`}>
+                        {statusInfo.emoji} {statusInfo.label}
+                      </span>
+                    </td>
+                    <td style={{ width: '180px', padding: '12px', color: '#a4b5d6', fontSize: '13px', textAlign: 'right' }}>
+                      {new Date(request.createdAtUtc).toLocaleString('pl-PL', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                      })}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {modalType && selectedRequest && (
+      {selectedRequest && (
         <ApprovalActionModal
-          type={modalType}
           request={selectedRequest}
-          reason={reason}
-          onReasonChange={setReason}
-          onConfirm={handleConfirm}
-          onCancel={() => {
-            setModalType(null);
-            setSelectedRequest(null);
-            setReason('');
-          }}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          onComment={handleComment}
+          onClose={() => setSelectedRequest(null)}
+          readOnlyMode={viewMode === 'all'}
         />
       )}
     </div>

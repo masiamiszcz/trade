@@ -5,9 +5,10 @@ namespace TradingPlatform.Data.Entities;
 
 
 /// <summary>
-/// Represents an administrative request to perform an action on a trading instrument.
+/// Represents an administrative request to perform an action on any entity (Instrument, User, Account, etc).
 /// Used in a two-step approval workflow where an admin creates a request
 /// and another admin (approver) must approve it before execution.
+/// Generic design: EntityType + EntityId replace entity-specific foreign keys.
 /// </summary>
 public sealed class AdminRequestEntity
 {
@@ -17,9 +18,14 @@ public sealed class AdminRequestEntity
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The instrument this request is associated with
+    /// Type of entity being managed: "Instrument", "User", "Account", etc.
     /// </summary>
-    public Guid InstrumentId { get; set; }
+    public string EntityType { get; set; } = default!;
+
+    /// <summary>
+    /// The entity ID being managed. Null for CREATE actions (before entity exists).
+    /// </summary>
+    public Guid? EntityId { get; set; }
 
     /// <summary>
     /// The admin user who created this request
@@ -37,9 +43,9 @@ public sealed class AdminRequestEntity
     public AdminRequestActionType Action { get; set; }
 
     /// <summary>
-    /// The reason for this request (for audit trail)
+    /// The reason for this request (for audit trail). Optional.
     /// </summary>
-    public string Reason { get; set; } = string.Empty;
+    public string? Reason { get; set; }
 
     /// <summary>
     /// Current status: Pending, Approved, Rejected
@@ -64,5 +70,4 @@ public sealed class AdminRequestEntity
     // Navigation properties
     public UserEntity? RequestedByAdmin { get; set; }
     public UserEntity? ApprovedByAdmin { get; set; }
-    public InstrumentEntity? Instrument { get; set; }
 }

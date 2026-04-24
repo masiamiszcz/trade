@@ -46,8 +46,9 @@ export const useAdminRequests = () => {
       
       await httpClient.fetch<AdminRequest>({
         url: API_CONFIG.endpoints.adminRequests.approve(requestId),
-        method: 'PATCH',
-        body: JSON.stringify({ comment }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: comment ? JSON.stringify({ comment }) : JSON.stringify({}),
       });
 
       // Refetch to update list (remove approved request from pending)
@@ -65,19 +66,20 @@ export const useAdminRequests = () => {
   /**
    * Reject a request
    */
-  const rejectRequest = useCallback(async (requestId: string, comment: string) => {
+  const rejectRequest = useCallback(async (requestId: string, reason: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      if (!comment || comment.length < 10) {
+      if (!reason || reason.length < 10) {
         throw new Error('Reason must be at least 10 characters long');
       }
 
       await httpClient.fetch<AdminRequest>({
         url: API_CONFIG.endpoints.adminRequests.reject(requestId),
-        method: 'PATCH',
-        body: JSON.stringify({ comment }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
       });
 
       // Refetch to update list (remove rejected request from pending)
@@ -91,6 +93,83 @@ export const useAdminRequests = () => {
       setLoading(false);
     }
   }, [fetchPendingRequests]);
+
+  /**
+   * Add comment to a request (without changing status)
+   */
+  const addComment = useCallback(async (requestId: string, text: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!text || text.trim().length === 0) {
+        throw new Error('Comment cannot be empty');
+      }
+
+      await httpClient.fetch({
+        url: API_CONFIG.endpoints.adminRequests.comment(requestId),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
+      // Refetch to update list with new comment
+      await fetchPendingRequests();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to add comment';
+      setError(message);
+      console.error('Error adding comment:', message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchPendingRequests]);
+
+  /**
+   * Fetch ALL admin requests (all statuses: pending, approved, rejected)
+   */
+  const fetchAllRequests = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await httpClient.fetch<AdminRequest[]>({
+        url: API_CONFIG.endpoints.adminRequests.all,
+        method: 'GET',
+      });
+      setRequests(response || []);
+      setTotalCount(response?.length || 0);
+      setTotalPages(Math.ceil((response?.length || 0) / pageSize));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch all requests';
+      setError(message);
+      console.error('Error fetching all requests:', message);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [pageSize]);
+
+  /**
+   * Get single request by ID (detailed view)
+   */
+  const getRequestById = useCallback(async (requestId: string): Promise<AdminRequest | null> => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await httpClient.fetch<AdminRequest>({
+        url: API_CONFIG.endpoints.adminRequests.byId(requestId),
+        method: 'GET',
+      });
+      return response || null;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch request details';
+      setError(message);
+      console.error('Error fetching request details:', message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Fetch pending requests on mount
   useEffect(() => {
@@ -113,6 +192,10 @@ export const useAdminRequests = () => {
     setPageSize,
     approveRequest,
     rejectRequest,
+    addComment,
     refetch: fetchPendingRequests,
+    fetchPendingRequests,
+    fetchAllRequests,
+    getRequestById,
   };
 };

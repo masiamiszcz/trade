@@ -10,6 +10,7 @@ using TradingPlatform.Data.Entities;
 /// <summary>
 /// Entity Framework Core configuration for AdminRequestEntity.
 /// Defines table structure, indexes, relationships, and constraints.
+/// Generic design: supports any entity type via EntityType + EntityId (no FK constraints).
 /// </summary>
 public sealed class AdminRequestEntityConfiguration : IEntityTypeConfiguration<AdminRequestEntity>
 {
@@ -23,8 +24,12 @@ public sealed class AdminRequestEntityConfiguration : IEntityTypeConfiguration<A
         builder.Property(x => x.Id)
             .ValueGeneratedNever();
 
-        builder.Property(x => x.InstrumentId)
+        builder.Property(x => x.EntityType)
+            .HasMaxLength(100)
             .IsRequired();
+
+        builder.Property(x => x.EntityId)
+            .IsRequired(false);  // Null for CREATE actions
 
         builder.Property(x => x.RequestedByAdminId)
             .IsRequired();
@@ -39,7 +44,7 @@ public sealed class AdminRequestEntityConfiguration : IEntityTypeConfiguration<A
 
         builder.Property(x => x.Reason)
             .HasMaxLength(1000)
-            .IsRequired();
+            .IsRequired(false);  // Optional reason
 
         builder.Property(x => x.Status)
             .HasMaxLength(20)
@@ -53,12 +58,18 @@ public sealed class AdminRequestEntityConfiguration : IEntityTypeConfiguration<A
         builder.Property(x => x.ApprovedAtUtc)
             .IsRequired(false);
 
+        builder.Property(x => x.PayloadJson)
+            .IsRequired(false);
+
         // Indexes for query performance
         builder.HasIndex(x => x.Status)
             .HasDatabaseName("IX_AdminRequest_Status");
 
-        builder.HasIndex(x => x.InstrumentId)
-            .HasDatabaseName("IX_AdminRequest_InstrumentId");
+        builder.HasIndex(x => x.EntityType)
+            .HasDatabaseName("IX_AdminRequest_EntityType");
+
+        builder.HasIndex(x => x.EntityId)
+            .HasDatabaseName("IX_AdminRequest_EntityId");
 
         builder.HasIndex(x => x.RequestedByAdminId)
             .HasDatabaseName("IX_AdminRequest_RequestedByAdminId");
@@ -69,7 +80,7 @@ public sealed class AdminRequestEntityConfiguration : IEntityTypeConfiguration<A
         builder.HasIndex(x => x.CreatedAtUtc)
             .HasDatabaseName("IX_AdminRequest_CreatedAtUtc");
 
-        // Relationships
+        // Relationships - only to Admin users, NO FK to specific entity types
         builder.HasOne(x => x.RequestedByAdmin)
             .WithMany()
             .HasForeignKey(x => x.RequestedByAdminId)
@@ -78,11 +89,6 @@ public sealed class AdminRequestEntityConfiguration : IEntityTypeConfiguration<A
         builder.HasOne(x => x.ApprovedByAdmin)
             .WithMany()
             .HasForeignKey(x => x.ApprovedByAdminId)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        builder.HasOne(x => x.Instrument)
-            .WithMany()
-            .HasForeignKey(x => x.InstrumentId)
             .OnDelete(DeleteBehavior.NoAction);
     }
 }

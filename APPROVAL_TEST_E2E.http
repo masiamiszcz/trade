@@ -1,0 +1,84 @@
+### SuperAdmin token
+@baseUrl = http://localhost
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjkwYjhkZGUwLTVjMjktNGQ4Zi1hNzQ3LWM0ZjQ0MWQ0MTVjNSIsInN1YiI6IjkwYjhkZGUwLTVjMjktNGQ4Zi1hNzQ3LWM0ZjQ0MWQ0MTVjNSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJtYXNpYW1pc3pjeiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6Im1hc2lhbWlzemN6QGdtYWlsLmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluIiwidXNlcklkIjoiOTBiOGRkZTAtNWMyOS00ZDhmLWE3NDctYzRmNDQxZDQxNWM1IiwiaXNfc3VwZXJfYWRtaW4iOiJ0cnVlIiwiZXhwIjoxNzc3MDI3NzYwLCJpc3MiOiJUcmFkaW5nUGxhdGZvcm0iLCJhdWQiOiJUcmFkaW5nUGxhdGZvcm1Vc2VycyJ9.OD7FPqHzr0rZmQr8BfuPwFy6piVsPcDQuSkSG6tqthY
+@superAdminId = 90b8dde0-5c29-4d8f-a747-c4f441d4115c5
+
+### Test 1: Get all pending approval requests
+GET {{baseUrl}}/api/approvals/pending
+Authorization: Bearer {{token}}
+
+### Test 2: Create new instrument (will trigger approval request with Action=Create)
+POST {{baseUrl}}/api/instruments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "symbol": "TEST001",
+  "name": "Test Instrument 001",
+  "description": "Testing approval flow"
+}
+
+### Test 3: Update instrument (will trigger approval request with Action=Update)
+PUT {{baseUrl}}/api/instruments/{{instrumentId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "symbol": "TEST001_RENAMED",
+  "name": "Test Instrument 001 Renamed",
+  "description": "Updated description"
+}
+
+### Test 4: Block instrument (will trigger approval request with Action=Block)
+PATCH {{baseUrl}}/api/instruments/{{instrumentId}}/block
+Authorization: Bearer {{token}}
+
+### Test 5: Unblock instrument (will trigger approval request with Action=Unblock)
+PATCH {{baseUrl}}/api/instruments/{{instrumentId}}/unblock
+Authorization: Bearer {{token}}
+
+### Test 6: Delete instrument (will trigger approval request with Action=Delete)
+DELETE {{baseUrl}}/api/instruments/{{instrumentId}}
+Authorization: Bearer {{token}}
+
+### Test 7: SuperAdmin approves own Create request
+POST {{baseUrl}}/api/approvals/{{createRequestId}}/approve
+Authorization: Bearer {{token}}
+
+### Test 8: SuperAdmin approves own Update request  
+POST {{baseUrl}}/api/approvals/{{updateRequestId}}/approve
+Authorization: Bearer {{token}}
+
+### Test 9: SuperAdmin approves own Block request
+POST {{baseUrl}}/api/approvals/{{blockRequestId}}/approve
+Authorization: Bearer {{token}}
+
+### Test 10: SuperAdmin approves own Unblock request
+POST {{baseUrl}}/api/approvals/{{unblockRequestId}}/approve
+Authorization: Bearer {{token}}
+
+### Test 11: SuperAdmin approves own Delete request
+POST {{baseUrl}}/api/approvals/{{deleteRequestId}}/approve
+Authorization: Bearer {{token}}
+
+### Test 12: Reject a pending request
+POST {{baseUrl}}/api/approvals/{{requestIdToReject}}/reject
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "reason": "Test rejection - needs review"
+}
+
+### Test 13: Add comment to request
+POST {{baseUrl}}/api/approvals/{{requestId}}/comment
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comment": "This request needs further investigation"
+}
+
+### Test 14: Check all requests after approvals
+GET {{baseUrl}}/api/approvals
+Authorization: Bearer {{token}}

@@ -123,20 +123,20 @@ export const API_CONFIG = {
       create: '/admin/instruments',
       requestUpdate: (id: string) => `/admin/instruments/${id}/request-update`,
       requestDelete: (id: string) => `/admin/instruments/${id}/request-delete`,
-      requestBlock: (id: string) => `/admin/instruments/${id}/request-block`,
-      requestUnblock: (id: string) => `/admin/instruments/${id}/request-unblock`,
       
-      // Immediate execution (bypasses approval if permitted)
-      blockImmediate: (id: string) => `/admin/instruments/${id}/block-immediate`,
+      // PATCH endpoints (Administrative operations - immediate execution with reason)
+      block: (id: string) => `/admin/instruments/${id}/block`,
+      unblock: (id: string) => `/admin/instruments/${id}/unblock`,
     },
 
     // ==================== ADMIN: APPROVAL REQUESTS WORKFLOW ====================
     adminRequests: {
-      all: '/admin/requests',
-      pending: '/admin/requests/pending',
-      byId: (id: string) => `/admin/requests/${id}`,
-      approve: (id: string) => `/admin/requests/${id}/approve`,
-      reject: (id: string) => `/admin/requests/${id}/reject`,
+      all: '/admin/approvals',
+      pending: '/admin/approvals/pending',
+      byId: (id: string) => `/admin/approvals/${id}`,
+      approve: (id: string) => `/admin/approvals/${id}/approve`,
+      reject: (id: string) => `/admin/approvals/${id}/reject`,
+      comment: (id: string) => `/admin/approvals/${id}/comment`,
     },
 
     // ==================== ADMIN: USER MANAGEMENT ====================

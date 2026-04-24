@@ -133,6 +133,24 @@ export const reject = async (
 };
 
 /**
+ * POST /api/admin/requests/{id}/comment
+ * Add comment to admin request
+ * Request remains in pending status - allows discussion without approval/rejection
+ * Backend validates: comment text not empty
+ */
+export const comment = async (
+  id: string,
+  text: string
+): Promise<void> => {
+  await httpClient.fetch({
+    url: API_CONFIG.endpoints.adminRequests.comment(id),
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+};
+
+/**
  * POST /api/admin/instruments/{id}/retry-submission
  * Retry rejected instrument (move back to Draft for re-editing)
  * Transition: Rejected → Draft
@@ -159,26 +177,32 @@ export const archive = async (id: string): Promise<Instrument> => {
 // ============ ADMINISTRATIVE OPERATIONS ============
 
 /**
- * POST /api/admin/instruments/{id}/request-block
- * Request block of instrument (administrative override, prevent trading)
- * Sets IsBlocked=true after approval
+ * PATCH /api/admin/instruments/{id}/block
+ * Block instrument (administrative override, prevent trading)
+ * Sets IsBlocked=true immediately
+ * Body: { "reason": "reason for blocking" }
  */
-export const block = async (id: string): Promise<Instrument> => {
+export const block = async (id: string, reason: string = 'Administrative block'): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: API_CONFIG.endpoints.adminInstruments.requestBlock(id),
-    method: 'POST',
+    url: API_CONFIG.endpoints.adminInstruments.block(id),
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
   });
 };
 
 /**
- * POST /api/admin/instruments/{id}/request-unblock
- * Request unblock of instrument (administrative override)
- * Sets IsBlocked=false after approval
+ * PATCH /api/admin/instruments/{id}/unblock
+ * Unblock instrument (administrative override)
+ * Sets IsBlocked=false immediately
+ * Body: { "reason": "reason for unblocking" }
  */
-export const unblock = async (id: string): Promise<Instrument> => {
+export const unblock = async (id: string, reason: string = 'Administrative unblock'): Promise<Instrument> => {
   return httpClient.fetch<Instrument>({
-    url: API_CONFIG.endpoints.adminInstruments.requestUnblock(id),
-    method: 'POST',
+    url: API_CONFIG.endpoints.adminInstruments.unblock(id),
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
   });
 };
 
@@ -230,6 +254,7 @@ export const instrumentsService = {
   requestApproval,
   approve,
   reject,
+  comment,
   retrySubmission,
   archive,
 

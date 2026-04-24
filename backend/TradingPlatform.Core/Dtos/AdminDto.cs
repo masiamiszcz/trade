@@ -4,14 +4,16 @@ namespace TradingPlatform.Core.Dtos;
 /// <summary>
 /// Data Transfer Object for AdminRequest
 /// Used in API responses and service layer
+/// Generic design: supports any entity type via EntityType + EntityId
 /// </summary>
 public sealed record AdminRequestDto(
     Guid Id,
-    Guid InstrumentId,
+    string EntityType,
+    Guid? EntityId,
     Guid RequestedByAdminId,
     Guid? ApprovedByAdminId,
     string Action,
-    string Reason,
+    string? Reason,
     string Status,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? ApprovedAtUtc);

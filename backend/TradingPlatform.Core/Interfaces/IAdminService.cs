@@ -41,52 +41,7 @@ public interface IAdminService
     /// </summary>
     Task<IEnumerable<InstrumentDto>> GetAllInstrumentsAsync(CancellationToken cancellationToken = default);
 
-    // REQUEST CREATION
 
-    /// <summary>
-    /// Create a new block request for an instrument
-    /// Does not immediately block - requires approval
-    /// </summary>
-    Task<AdminRequestDto> CreateBlockRequestAsync(
-        Guid instrumentId,
-        string reason,
-        Guid requestedByAdminId,
-        string adminIpAddress,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Create a new unblock request for an instrument
-    /// Does not immediately unblock - requires approval
-    /// </summary>
-    Task<AdminRequestDto> CreateUnblockRequestAsync(
-        Guid instrumentId,
-        string reason,
-        Guid requestedByAdminId,
-        string adminIpAddress,
-        CancellationToken cancellationToken = default);
-
-    // APPROVAL/REJECTION OPERATIONS
-
-    /// <summary>
-    /// Approve an admin request
-    /// If approved, executes the requested action (block/unblock/delete)
-    /// Creates audit log entry
-    /// </summary>
-    Task<AdminRequestDto> ApproveRequestAsync(
-        Guid requestId,
-        Guid approvedByAdminId,
-        string adminIpAddress,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Reject an admin request without executing the action
-    /// Creates audit log entry
-    /// </summary>
-    Task<AdminRequestDto> RejectRequestAsync(
-        Guid requestId,
-        Guid rejectedByAdminId,
-        string adminIpAddress,
-        CancellationToken cancellationToken = default);
 
     // AUDIT LOG OPERATIONS
 

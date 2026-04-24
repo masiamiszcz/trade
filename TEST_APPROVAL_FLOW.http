@@ -1,0 +1,95 @@
+@baseUrl = http://localhost
+@superAdminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjkwYjhkZGUwLTVjMjktNGQ4Zi1hNzQ3LWM0ZjQ0MWQ0MTVjNSIsInN1YiI6IjkwYjhkZGUwLTVjMjktNGQ4Zi1hNzQ3LWM0ZjQ0MWQ0MTVjNSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJtYXNpYW1pc3pjeiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6Im1hc2lhbWlzemN6QGdtYWlsLmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluIiwidXNlcklkIjoiOTBiOGRkZTAtNWMyOS00ZDhmLWE3NDctYzRmNDQxZDQxNWM1IiwiaXNfc3VwZXJfYWRtaW4iOiJ0cnVlIiwiZXhwIjoxNzc3MDI3NzYwLCJpc3MiOiJUcmFkaW5nUGxhdGZvcm0iLCJhdWQiOiJUcmFkaW5nUGxhdGZvcm1Vc2VycyJ9.OD7FPqHzr0rZmQr8BfuPwFy6piVsPcDQuSkSG6tqthY
+
+### 1. GET - Pokaż wszystkie requesty
+GET {{baseUrl}}/api/approvals HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+### 2. GET - Pokaż pending requesty
+GET {{baseUrl}}/api/approvals/pending HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+### 3. CREATE - Instrument z REQUEST_CHANGE (Change Name)
+POST {{baseUrl}}/api/instruments HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "Test Instrument 1",
+  "symbol": "TEST1",
+  "description": "Test instrument for approval flow",
+  "baseCurrency": "USD",
+  "quoteCurrency": "EUR",
+  "type": "FX",
+  "pillar": "STANDARD"
+}
+
+### 4. UPDATE - Zmień nazwę (tworzy AdminRequest)
+PUT {{baseUrl}}/api/instruments/replace_with_id HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "Test Instrument 1 RENAMED",
+  "symbol": "TEST1",
+  "description": "Test instrument for approval flow - UPDATED",
+  "baseCurrency": "USD",
+  "quoteCurrency": "EUR",
+  "type": "FX",
+  "pillar": "STANDARD"
+}
+
+### 5. CREATE NEW - Tworzy AdminRequest
+POST {{baseUrl}}/api/instruments HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "New Instrument",
+  "symbol": "NEWINST",
+  "description": "Brand new instrument",
+  "baseCurrency": "USD",
+  "quoteCurrency": "GBP",
+  "type": "FX",
+  "pillar": "STANDARD"
+}
+
+### 6. BLOCK - Zablokuj instrument (tworzy AdminRequest)
+PATCH {{baseUrl}}/api/instruments/replace_with_id/block HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+### 7. UNBLOCK - Odblokuj instrument (tworzy AdminRequest)
+PATCH {{baseUrl}}/api/instruments/replace_with_id/unblock HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+### 8. DELETE - Usuń instrument (tworzy AdminRequest)
+DELETE {{baseUrl}}/api/instruments/replace_with_id HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+### 9. APPROVE - Zatwierdź request (replace_request_id z kroku 2 lub 4)
+POST {{baseUrl}}/api/approvals/replace_request_id/approve HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+### 10. REJECT - Odrzuć request
+POST {{baseUrl}}/api/approvals/replace_request_id/reject HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{
+  "reason": "Nie odpowiada strategii"
+}
+
+### 11. ADD COMMENT - Dodaj komentarz do requestu
+POST {{baseUrl}}/api/approvals/replace_request_id/comment HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{
+  "comment": "Czekamy na więcej informacji"
+}
