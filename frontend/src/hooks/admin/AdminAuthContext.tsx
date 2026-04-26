@@ -223,6 +223,36 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => clearTimeout(timeout);
   }, [token, isTokenExpired, decodeJwtPayload]);
 
+  // ===== SYNC WITH AUTHENTICATIONSERVICE UPDATES =====
+  // Listen for 'adminSessionUpdated' event from AuthenticationService
+  // This ensures AdminAuthContext stays in sync when login/2FA happens
+  useEffect(() => {
+    const handleSessionUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const sessionData = customEvent.detail?.session;
+      
+      if (sessionData) {
+        console.log('[AdminAuth] 🔄 Session updated via adminSessionUpdated event:', {
+          isTempToken: sessionData.isTempToken,
+          requiresTwoFactor: sessionData.requiresTwoFactor,
+          hasToken: !!sessionData.token,
+        });
+        
+        // Update all state from the new session data
+        setTokenState(sessionData.token || null);
+        setSessionIdState(sessionData.sessionId || null);
+        setAdminIdState(sessionData.adminId || null);
+        setUsernameState(sessionData.username || null);
+        setEmailState(sessionData.email || null);
+        setIsTempTokenState(sessionData.isTempToken ?? false);
+        setRequiresTwoFactorState(sessionData.requiresTwoFactor ?? false);
+      }
+    };
+
+    window.addEventListener('adminSessionUpdated', handleSessionUpdate);
+    return () => window.removeEventListener('adminSessionUpdated', handleSessionUpdate);
+  }, []);
+
   // ===== CALLBACK: Save session to state + localStorage =====
   const setSession = useCallback((sessionData: AdminSessionData) => {
     // Parse JWT to extract is_super_admin claim

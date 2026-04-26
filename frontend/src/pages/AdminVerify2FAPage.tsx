@@ -21,6 +21,27 @@ export const AdminVerify2FAPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [attempts, setAttempts] = useState(0);
 
+  // ===== DEBUG: Verify we're in temp token state =====
+  // This ensures the 2FA form displays (not immediate redirect to dashboard)
+  useEffect(() => {
+    console.log('[AdminVerify2FA] Page mounted - Auth state:', {
+      hasToken: !!token,
+      isTempToken,
+      isAuthenticated,
+      hasState: !!state,
+    });
+
+    // If somehow isAuthenticated is true, that's wrong - we should be temp token
+    if (isAuthenticated) {
+      console.warn('[AdminVerify2FA] ⚠️ isAuthenticated is TRUE but should be FALSE for temp token!');
+      console.warn('[AdminVerify2FA] isTempToken value:', isTempToken);
+    }
+
+    if (isTempToken) {
+      console.log('[AdminVerify2FA] ✅ Correct state: temporary token, ready for 2FA input');
+    }
+  }, [token, isTempToken, isAuthenticated, state]);
+
   // Redirect to dashboard when authenticated (after setSession completes)
   useEffect(() => {
     if (isAuthenticated && !loading) {

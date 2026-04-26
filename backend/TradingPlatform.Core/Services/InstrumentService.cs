@@ -202,20 +202,8 @@ public sealed class InstrumentService : IInstrumentService
             quoteCurrency = request.QuoteCurrency
         });
 
-        // Generate readable reason with diff of changes
-        var changes = new List<string>();
-        if (instrument.Name != request.Name)
-            changes.Add($"name: '{instrument.Name}' → '{request.Name}'");
-        if (instrument.Description != request.Description)
-            changes.Add($"description: '{instrument.Description}' → '{request.Description}'");
-        if (instrument.BaseCurrency != request.BaseCurrency)
-            changes.Add($"baseCurrency: '{instrument.BaseCurrency}' → '{request.BaseCurrency}'");
-        if (instrument.QuoteCurrency != request.QuoteCurrency)
-            changes.Add($"quoteCurrency: '{instrument.QuoteCurrency}' → '{request.QuoteCurrency}'");
-        
-        var updateReason = changes.Count > 0 
-            ? $"Requested update: {string.Join(", ", changes)}"
-            : "Requested update: no changes detected";
+        // Generate readable reason with full payload details
+        var updateReason = $"Requested update: name: '{request.Name}', description: '{request.Description}', baseCurrency: '{request.BaseCurrency}', quoteCurrency: '{request.QuoteCurrency}'";
 
         // Delegate to ApprovalService to create the request
         // This handles idempotency and audit logging
@@ -244,8 +232,8 @@ public sealed class InstrumentService : IInstrumentService
         // Prepare payload
         var payloadJson = JsonSerializer.Serialize(new { }); // Delete has no business data
 
-        // Generate readable reason with entity being deleted
-        var deletionReason = $"Requested deletion: {instrument.Symbol} ({instrument.Name})";
+        // Generate readable reason - consistent with block/unblock style
+        var deletionReason = $"Requested deletion: symbol: '{instrument.Symbol}', name: '{instrument.Name}'";
 
         // Delegate to ApprovalService to create the request
         // This handles idempotency and audit logging

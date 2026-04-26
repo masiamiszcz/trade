@@ -71,7 +71,16 @@ export const AdminLoginPage: React.FC = () => {
       }
 
       if (result.requiresTwoFactor) {
-        // 2FA required - navigate to 2FA verification
+        // 2FA required - update context AND navigate to verification
+        // This ensures AdminAuthContext is synced with isTempToken: true BEFORE page loads
+        setSession({
+          token: result.token,
+          sessionId: result.sessionId,
+          isTempToken: true,
+          requiresTwoFactor: true,
+          username: loginData.usernameOrEmail,
+        });
+
         navigate('/admin/verify-2fa', {
           state: {
             sessionId: result.sessionId,
@@ -79,7 +88,14 @@ export const AdminLoginPage: React.FC = () => {
           },
         });
       } else {
-        // No 2FA, redirect to dashboard
+        // No 2FA, update context and redirect to dashboard
+        setSession({
+          token: result.token,
+          isTempToken: false,
+          requiresTwoFactor: false,
+          username: loginData.usernameOrEmail,
+        });
+
         navigate('/admin/dashboard', { replace: true });
       }
     } catch (err: any) {
