@@ -250,6 +250,13 @@ public sealed class AdminUserService : IAdminUserService
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException($"User with ID {userId} not found");
 
+        // Validate: cannot delete an already deleted user
+        if (user.IsDeleted)
+        {
+            _logger.LogWarning("❌ [DELETE-APPROVAL] Cannot delete already deleted user {UserId}", userId);
+            throw new InvalidOperationException("User not found");
+        }
+
         // Prevent self-deletion (only SuperAdmin can delete their own account via approval)
         if (userId == requestedByAdminId)
         {
@@ -288,6 +295,13 @@ public sealed class AdminUserService : IAdminUserService
         // Get the user
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException($"User with ID {userId} not found");
+
+        // Validate: cannot delete an already deleted user
+        if (user.IsDeleted)
+        {
+            _logger.LogWarning("❌ [EXECUTE-DELETE] Cannot delete already deleted user {UserId}", userId);
+            throw new InvalidOperationException("User not found");
+        }
 
         // Perform soft delete
         var deletedUser = user with

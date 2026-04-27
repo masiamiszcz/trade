@@ -142,15 +142,15 @@ export const UsersContent = () => {
                             🔒 Zablokuj
                           </button>
                         )}
+                        <button
+                          className="btn-action btn-delete"
+                          onClick={() => handleDeleteClick(user)}
+                          title="Usuń użytkownika"
+                        >
+                          🗑️ Usuń
+                        </button>
                       </>
                     )}
-                    <button
-                      className="btn-action btn-delete"
-                      onClick={() => handleDeleteClick(user)}
-                      title="Usuń użytkownika"
-                    >
-                      🗑️ Usuń
-                    </button>
                   </td>
                 </tr>
               ))

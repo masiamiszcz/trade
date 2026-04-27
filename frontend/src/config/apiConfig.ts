@@ -97,7 +97,7 @@ export const API_CONFIG = {
     instruments: {
       // GET endpoints (read-only, no approval needed)
       all: '/instruments',
-      active: '/instruments/active',
+      active: '/admin/instruments/active',
       byId: (id: string) => `/instruments/${id}`,
       bySymbol: (symbol: string) => `/instruments/symbol/${symbol}`,
       
