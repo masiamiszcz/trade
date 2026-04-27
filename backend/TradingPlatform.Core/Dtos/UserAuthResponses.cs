@@ -124,3 +124,34 @@ public sealed record UserTwoFactorStatusResponse(
     /// <summary>Number of remaining backup codes (if 2FA enabled)</summary>
     int? RemainingBackupCodes = null
 );
+
+/// <summary>
+/// User profile response with current account status information
+/// 
+/// ✨ PHASE 3: User Status Information
+/// Frontend uses IsBlocked + BlockedUntilUtc + BlockReason to show warnings
+/// Status field is: Active, Blocked, Deleted, Suspended
+/// 
+/// Important: This is the authoritative source for blocked state
+/// NOT JWT (which could be stale snapshot)
+/// </summary>
+public sealed record UserAuthProfileResponse(
+    Guid Id,
+    string UserName,
+    string Email,
+    string FirstName,
+    string LastName,
+    /// <summary>User status: Active, Blocked, Deleted, Suspended</summary>
+    string Status,
+    /// <summary>True if Status == Blocked (convenience flag for frontend)</summary>
+    bool IsBlocked,
+    /// <summary>If blocked, when the block expires</summary>
+    DateTimeOffset? BlockedUntilUtc,
+    /// <summary>Reason for blocking</summary>
+    string? BlockReason,
+    /// <summary>Account creation timestamp</summary>
+    DateTimeOffset CreatedAtUtc,
+    /// <summary>User's base trading currency</summary>
+    string BaseCurrency
+);
+

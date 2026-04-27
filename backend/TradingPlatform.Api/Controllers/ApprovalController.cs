@@ -11,13 +11,11 @@ namespace TradingPlatform.Api.Controllers;
 public sealed class ApprovalController : ControllerBase
 {
     private readonly IApprovalService _approvalService;
-    private readonly IInstrumentService _instrumentService;
     private readonly ILogger<ApprovalController> _logger;
 
-    public ApprovalController(IApprovalService approvalService, IInstrumentService instrumentService, ILogger<ApprovalController> logger)
+    public ApprovalController(IApprovalService approvalService, ILogger<ApprovalController> logger)
     {
         _approvalService = approvalService;
-        _instrumentService = instrumentService;
         _logger = logger;
     }
 
@@ -132,7 +130,7 @@ public sealed class ApprovalController : ControllerBase
             var adminId = GetUserId();
             _logger.LogInformation("Admin {AdminId} approving request {RequestId}", adminId, id);
 
-            var result = await _approvalService.ApproveAsync(id, adminId, _instrumentService, ct);
+            var result = await _approvalService.ApproveAsync(id, adminId, ct);
             return Ok(result);
         }
         catch (InvalidOperationException ex)

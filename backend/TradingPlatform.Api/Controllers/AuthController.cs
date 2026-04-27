@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TradingPlatform.Core.Dtos;
 using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Models;
 
@@ -314,5 +315,57 @@ public sealed class UserAuthController : ControllerBase
 
         var response = await _userAuthService.Get2FAStatusAsync(userId, cancellationToken);
         return Ok(response);
+    }
+
+    /// <summary>
+    /// Get authenticated user's profile information
+    /// Includes user status (IsBlocked), blocked info, and other profile details
+    /// Frontend uses this to show account status warnings
+    /// 
+    /// ✨ PHASE 3: User Status Information
+    /// This endpoint returns current user state from DB (not JWT snapshot)
+    /// Frontend shows warning if IsBlocked=true
+    /// </summary>
+    [HttpGet("profile")]
+    [Authorize]
+    public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Extract userId from claims
+            var userIdClaim = User.FindFirst("userId")?.Value ?? 
+                            User.FindFirst("sub")?.Value;
+            
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { error = "User ID not found in token" });
+
+            // Get user repository from DI
+            var userRepository = HttpContext.RequestServices.GetRequiredService<TradingPlatform.Core.Interfaces.IUserRepository>();
+            
+            // Load user from DB (current state, not JWT snapshot)
+            var user = await userRepository.GetUserByIdIncludingDeletedAsync(userId, cancellationToken);
+            if (user == null)
+                return NotFound(new { error = "User not found" });
+
+            // Map to DTO with status information
+            var userDto = new UserAuthProfileResponse(
+                Id: user.Id,
+                UserName: user.UserName,
+                Email: user.Email,
+                FirstName: user.FirstName,
+                LastName: user.LastName,
+                Status: user.Status.ToString(),
+                IsBlocked: user.Status == TradingPlatform.Core.Enums.UserStatus.Blocked,
+                BlockedUntilUtc: user.BlockedUntilUtc,
+                BlockReason: user.BlockReason,
+                CreatedAtUtc: user.CreatedAtUtc,
+                BaseCurrency: user.BaseCurrency);
+
+            return Ok(userDto);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to retrieve profile" });
+        }
     }
 }

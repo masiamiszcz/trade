@@ -43,6 +43,16 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
             .IsRequired()
             .HasDefaultValue(Core.Enums.UserRole.User);
 
+        // SINGLE SOURCE OF TRUTH: Status field
+        builder.Property(x => x.Status)
+            .HasConversion<int>()
+            .IsRequired()
+            .HasDefaultValue(Core.Enums.UserStatus.PendingEmailConfirmation);
+
+        // NEW: Index on Status for filtering (Active, Blocked, Deleted)
+        builder.HasIndex(x => x.Status)
+            .HasDatabaseName("IX_Users_Status");
+
         builder.Property(x => x.BaseCurrency)
             .HasMaxLength(3)
             .IsRequired()
@@ -57,6 +67,32 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 
         builder.Property(x => x.CreatedAtUtc)
             .HasDefaultValueSql("SYSDATETIMEOFFSET()");
+
+        // NEW: User Lifecycle Management
+        builder.Property(x => x.BlockedUntilUtc)
+            .IsRequired(false);
+
+        builder.Property(x => x.BlockReason)
+            .HasMaxLength(500)
+            .IsRequired(false);
+
+        builder.Property(x => x.DeletedAtUtc)
+            .IsRequired(false);
+
+        builder.Property(x => x.DeleteReason)
+            .HasMaxLength(500)
+            .IsRequired(false);
+
+        builder.Property(x => x.LastModifiedByAdminId)
+            .IsRequired(false);
+
+        // Index for finding blocked users (for cleanup job)
+        builder.HasIndex(x => x.BlockedUntilUtc)
+            .HasDatabaseName("IX_Users_BlockedUntilUtc");
+
+        // Index for finding deleted users (for restore operations)
+        builder.HasIndex(x => x.DeletedAtUtc)
+            .HasDatabaseName("IX_Users_DeletedAtUtc");
 
         builder.HasMany(x => x.Accounts)
             .WithOne(x => x.User)

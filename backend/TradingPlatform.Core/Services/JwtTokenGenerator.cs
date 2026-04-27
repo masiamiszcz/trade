@@ -23,6 +23,9 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
 
     /// <summary>
     /// Generate standard JWT token for regular users (60 min expiry)
+    /// ✨ PHASE 3: JWT contains ONLY userId + role (no status info)
+    /// User status (Blocked) is loaded from DB in middleware/response enrichment
+    /// This prevents desync where JWT is stale snapshot but DB has current state
     /// </summary>
     public string GenerateToken(User user)
     {

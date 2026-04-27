@@ -284,7 +284,8 @@ public sealed class AdminAuthService : IAdminAuthService
                 adminId, sessionId);
 
             // 🔐 SECURITY: Retrieve TOTP secret from temporary Redis session
-            var session = await _redisSessionService.GetSessionAsync(sessionId, cancellationToken);
+            // IMPORTANT: Secret is stored in registrationSessionId, not sessionId
+            var session = await _redisSessionService.GetSessionAsync(registrationSessionId, cancellationToken);
             if (session == null)
             {
                 _logger.LogWarning("2FA setup STEP 2 failed for admin {AdminId} - session expired", adminId);

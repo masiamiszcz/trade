@@ -631,11 +631,28 @@ public sealed class UserAuthService : IUserAuthService
                 throw new UnauthorizedAccessException("Invalid credentials");
             }
 
-            // Check user is active
-            if (user.Status != UserStatus.Active)
+            // ========== PHASE 3: USER STATUS ENFORCEMENT ==========
+            // DELETED user: CANNOT login (generic error, no existence disclosure)
+            if (user.Status == UserStatus.Deleted)
             {
-                _logger.LogWarning("Login failed: user '{UserId}' is not active", user.Id);
-                throw new UnauthorizedAccessException("User account is not active");
+                _logger.LogWarning("Login failed: user '{UserId}' is deleted", user.Id);
+                throw new UnauthorizedAccessException("Invalid credentials"); // Generic!
+            }
+
+            // SUSPENDED user: CANNOT login
+            if (user.Status == UserStatus.Suspended)
+            {
+                _logger.LogWarning("Login failed: user '{UserId}' is suspended", user.Id);
+                throw new UnauthorizedAccessException("Account has been suspended. Contact support.");
+            }
+
+            // BLOCKED user: CAN login but token will include block info
+            // Frontend will receive is_blocked=true + blocked_until + reason in JWT claims
+            // Frontend shows warning: "Your account is blocked until {date}. Reason: {reason}"
+            if (user.Status != UserStatus.Active && user.Status != UserStatus.Blocked)
+            {
+                _logger.LogWarning("Login failed: user '{UserId}' has invalid status '{Status}'", user.Id, user.Status);
+                throw new UnauthorizedAccessException("Invalid credentials");
             }
 
             // Check 2FA status

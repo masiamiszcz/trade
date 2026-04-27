@@ -31,16 +31,20 @@ public interface IApprovalService
     // ===== APPROVAL/REJECTION OPERATIONS =====
 
     /// <summary>
-    /// Approve a pending admin request
-    /// Executes the requested action based on AdminRequestActionType (block, unblock, update, etc.)
-    /// Prevents self-approval
-    /// Creates comprehensive audit logs
-    /// IMPORTANT: Requires IInstrumentService to be passed as parameter to avoid circular dependency
+    /// Approve a pending admin request.
+    /// 
+    /// Execution flow:
+    /// 1. Validate request is pending
+    /// 2. Check self-approval rules (Admin cannot approve own, SuperAdmin can)
+    /// 3. Dispatch to appropriate handler (IUserApprovalHandler or IInstrumentApprovalHandler)
+    /// 4. Handler executes the action and creates audit logs
+    /// 5. Mark AdminRequest as Approved
+    /// 
+    /// This is a pure orchestrator - actual execution logic is in handlers (domain ownership pattern).
     /// </summary>
     Task<AdminRequestDto> ApproveAsync(
         Guid requestId,
         Guid approvedByAdminId,
-        IInstrumentService instrumentService,
         CancellationToken cancellationToken = default);
 
     /// <summary>

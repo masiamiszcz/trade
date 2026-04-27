@@ -85,26 +85,7 @@ public sealed class AdminService : IAdminService
         return dtos;
     }
 
-    // ======== USER MANAGEMENT ========
-
-    public async Task<IEnumerable<UserListItemDto>> GetAllUsersAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Retrieving all users for admin dashboard");
-
-        var users = await _userRepository.GetAllUsersAsync(cancellationToken);
-        var dtos = users.Select(u => new UserListItemDto(
-            u.Id,
-            u.UserName,
-            u.Email,
-            u.FirstName,
-            u.LastName,
-            u.Role.ToString(),
-            u.Status.ToString(),
-            u.CreatedAtUtc
-        )).ToList();
-
-        return dtos;
-    }
+    
 
     // ======== REQUEST CREATION ========
     // NOTE: Request creation has moved to ApprovalService.CreateRequestAsync

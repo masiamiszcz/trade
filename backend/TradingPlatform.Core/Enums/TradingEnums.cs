@@ -1,17 +1,28 @@
 namespace TradingPlatform.Core.Enums;
 
+/// <summary>
+/// User status lifecycle. SINGLE SOURCE OF TRUTH for user state.
+/// Active → can login and use all features
+/// Blocked → cannot login for 48h (temporary)
+/// Deleted → soft delete (can be restored)
+/// </summary>
 public enum UserStatus
 {
-    PendingEmailConfirmation = 1,
-    Active = 2,
-    Suspended = 3,
-    Locked = 4
+    PendingEmailConfirmation = 0,
+    Active = 1,
+    Blocked = 2,      // NEW: Temporary block (48h default)
+    Deleted = 3,      // NEW: Soft delete (can restore)
+    Suspended = 4     // Legacy: Same as old behavior
 }
 
+/// <summary>
+/// User role with hierarchy. SuperAdmin is NEW for user management.
+/// </summary>
 public enum UserRole
 {
     User = 1,
-    Admin = 2
+    Admin = 2,
+    SuperAdmin = 3    // NEW: Can approve own requests, manage admins
 }
 
 public enum AccountType
@@ -75,21 +86,34 @@ public enum InstrumentStatus
 }
 
 /// <summary>
-/// Admin Request Action Type - Workflow transitions
+/// Admin Request Action Type - Approval workflow transitions
 /// Part of FAZA 3 State Machine Engine
+/// Only includes actions that REQUIRE approval (not immediate operations)
+/// 
+/// Supported Entities:
+/// - Instrument: Create, Update, Delete, Block, Unblock, Archive, RequestApproval
+/// - User: Delete, Restore (Block/Unblock are immediate, not in this enum)
 /// </summary>
 public enum AdminRequestActionType
 {
+    // ===== INSTRUMENT ACTIONS (WITH APPROVAL) =====
     Create = 1,             // Initial creation (audit only)
     RequestApproval = 2,    // Draft → PendingApproval (admin requests review)
     Update = 3,             // Update instrument (requires approval)
-    Delete = 4,             // Delete instrument (requires approval)
+    Delete = 4,             // Delete instrument/user (requires approval)
     Approve = 5,            // PendingApproval → Approved (admin approves)
     Reject = 6,             // PendingApproval → Rejected (admin rejects)
     Block = 7,              // Approved → Blocked (admin blocks trading)
     Unblock = 8,            // Blocked → Approved (admin unblocks trading)
     Archive = 9,            // Approved → Archived (admin archives)
-    RetrySubmission = 10    // Rejected → Draft (admin/creator resubmits)
+    RetrySubmission = 10,   // Rejected → Draft (admin/creator resubmits)
+    
+    // ===== USER ACTIONS (WITH APPROVAL - NEW) =====
+    // NOTE: Delete (4) and Restore (11) are reused!
+    // Distinction is via EntityType = "User" vs "Instrument"
+    Restore = 11            // User: Deleted → Active (requires approval)
+    
+    // Block/Unblock are NOT here - they are immediate operations without approval!
 }
 
 /// <summary>

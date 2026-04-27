@@ -63,7 +63,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAdminInvitationRepository, AdminInvitationRepository>();
         services.AddScoped<IAdminRegistrationLogRepository, AdminRegistrationLogRepository>();
         
-        // Register approval workflow service (uses IAdminAuthRepository for self-approval check)
+        // Register approval handlers (domain ownership pattern)
+        // These handle execution logic for User and Instrument entities
+        services.AddScoped<IUserApprovalHandler, UserApprovalHandler>();
+        services.AddScoped<IInstrumentApprovalHandler, InstrumentApprovalHandler>();
+        
+        // Register approval workflow service (uses handlers for execution)
         services.AddScoped<IApprovalService, ApprovalService>();
         
         // Register instrument service (uses IApprovalService for requests)
@@ -72,6 +77,7 @@ public static class ServiceCollectionExtensions
         // Register remaining admin services
         services.AddScoped<IAdminInvitationService, AdminInvitationService>();
         services.AddScoped<IAdminAuthService, AdminAuthService>();
+        services.AddScoped<IAdminUserService, AdminUsersService>();
         services.AddScoped<IAdminService, AdminService>();
 
         return services;

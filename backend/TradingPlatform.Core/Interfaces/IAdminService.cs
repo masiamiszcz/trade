@@ -24,10 +24,7 @@ public interface IAdminService
     /// </summary>
     Task<IEnumerable<AdminRequestDto>> GetPendingRequestsAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Get all users for admin management
-    /// </summary>
-    Task<IEnumerable<UserListItemDto>> GetAllUsersAsync(CancellationToken cancellationToken = default);
+
 
     /// <summary>
     /// Get a specific admin request by ID

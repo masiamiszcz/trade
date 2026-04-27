@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,20 +15,20 @@ public sealed class InstrumentService : IInstrumentService
 {
     private readonly IInstrumentRepository _instrumentRepository;
     private readonly IAdminRequestRepository _adminRequestRepository;
-    private readonly IApprovalService _approvalService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly IMapper _mapper;
     private readonly ILogger<InstrumentService> _logger;
 
     public InstrumentService(
         IInstrumentRepository instrumentRepository,
         IAdminRequestRepository adminRequestRepository,
-        IApprovalService approvalService,
+        IServiceProvider serviceProvider,
         IMapper mapper,
         ILogger<InstrumentService> logger)
     {
         _instrumentRepository = instrumentRepository;
         _adminRequestRepository = adminRequestRepository;
-        _approvalService = approvalService;
+        _serviceProvider = serviceProvider;
         _mapper = mapper;
         _logger = logger;
     }
@@ -111,7 +112,8 @@ public sealed class InstrumentService : IInstrumentService
 
         // Delegate to ApprovalService to create the request
         // This handles idempotency and audit logging
-        await _approvalService.CreateRequestAsync(
+        var approvalService = _serviceProvider.GetRequiredService<IApprovalService>();
+        await approvalService.CreateRequestAsync(
             entityType: "Instrument",
             entityId: null,
             action: AdminRequestActionType.Create,
@@ -160,7 +162,8 @@ public sealed class InstrumentService : IInstrumentService
         // This handles idempotency and audit logging
         var payloadJson = JsonSerializer.Serialize(new { }); // RequestApproval has no business data
         
-        await _approvalService.CreateRequestAsync(
+        var approvalService = _serviceProvider.GetRequiredService<IApprovalService>();
+        await approvalService.CreateRequestAsync(
             entityType: "Instrument",
             entityId: id,
             action: AdminRequestActionType.RequestApproval,
@@ -207,7 +210,8 @@ public sealed class InstrumentService : IInstrumentService
 
         // Delegate to ApprovalService to create the request
         // This handles idempotency and audit logging
-        await _approvalService.CreateRequestAsync(
+        var approvalService = _serviceProvider.GetRequiredService<IApprovalService>();
+        await approvalService.CreateRequestAsync(
             entityType: "Instrument",
             entityId: id,
             action: AdminRequestActionType.Update,
@@ -237,7 +241,8 @@ public sealed class InstrumentService : IInstrumentService
 
         // Delegate to ApprovalService to create the request
         // This handles idempotency and audit logging
-        await _approvalService.CreateRequestAsync(
+        var approvalService = _serviceProvider.GetRequiredService<IApprovalService>();
+        await approvalService.CreateRequestAsync(
             entityType: "Instrument",
             entityId: id,
             action: AdminRequestActionType.Delete,
@@ -264,7 +269,8 @@ public sealed class InstrumentService : IInstrumentService
 
         // Delegate to ApprovalService to create the request
         // This handles idempotency and audit logging
-        await _approvalService.CreateRequestAsync(
+        var approvalService = _serviceProvider.GetRequiredService<IApprovalService>();
+        await approvalService.CreateRequestAsync(
             entityType: "Instrument",
             entityId: id,
             action: AdminRequestActionType.Block,
@@ -291,7 +297,8 @@ public sealed class InstrumentService : IInstrumentService
 
         // Delegate to ApprovalService to create the request
         // This handles idempotency and audit logging
-        await _approvalService.CreateRequestAsync(
+        var approvalService = _serviceProvider.GetRequiredService<IApprovalService>();
+        await approvalService.CreateRequestAsync(
             entityType: "Instrument",
             entityId: id,
             action: AdminRequestActionType.Unblock,

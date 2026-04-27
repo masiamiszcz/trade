@@ -70,24 +70,7 @@ public sealed class AdminController : ControllerBase
     /// <response code="200">List of all users</response>
     /// <response code="401">User not authenticated</response>
     /// <response code="403">User is not an admin</response>
-    [HttpGet("users")]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<IEnumerable<UserListItemDto>>> GetAllUsers(CancellationToken cancellationToken)
-    {
-        try
-        {
-            _logger.LogInformation("Admin requesting all users");
-
-            var users = await _adminService.GetAllUsersAsync(cancellationToken);
-            return Ok(users);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving users");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to retrieve users" });
-        }
-    }
+   
 
     /// <summary>
     /// Get audit logs for a specific entity

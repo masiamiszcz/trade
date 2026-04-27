@@ -18,23 +18,26 @@ public sealed class ApprovalService : IApprovalService
 {
     private readonly IAdminRequestRepository _adminRequestRepository;
     private readonly IAuditLogRepository _auditLogRepository;
-    private readonly IInstrumentRepository _instrumentRepository;
     private readonly IAdminAuthRepository _adminAuthRepository;
+    private readonly IUserApprovalHandler _userHandler;
+    private readonly IInstrumentApprovalHandler _instrumentHandler;
     private readonly IMapper _mapper;
     private readonly ILogger<ApprovalService> _logger;
 
     public ApprovalService(
         IAdminRequestRepository adminRequestRepository,
         IAuditLogRepository auditLogRepository,
-        IInstrumentRepository instrumentRepository,
         IAdminAuthRepository adminAuthRepository,
+        IUserApprovalHandler userHandler,
+        IInstrumentApprovalHandler instrumentHandler,
         IMapper mapper,
         ILogger<ApprovalService> logger)
     {
         _adminRequestRepository = adminRequestRepository;
         _auditLogRepository = auditLogRepository;
-        _instrumentRepository = instrumentRepository;
         _adminAuthRepository = adminAuthRepository;
+        _userHandler = userHandler ?? throw new ArgumentNullException(nameof(userHandler));
+        _instrumentHandler = instrumentHandler ?? throw new ArgumentNullException(nameof(instrumentHandler));
         _mapper = mapper;
         _logger = logger;
     }
@@ -76,7 +79,6 @@ public sealed class ApprovalService : IApprovalService
     public async Task<AdminRequestDto> ApproveAsync(
         Guid requestId,
         Guid approvedByAdminId,
-        IInstrumentService instrumentService,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(
@@ -103,16 +105,21 @@ public sealed class ApprovalService : IApprovalService
             }
         }
 
-        // Dispatch execution based on entity type
-        InstrumentDto? executedInstrument = null;
+        // Dispatch execution to appropriate handler based on entity type
         try
         {
             if (request.EntityType == "Instrument")
             {
-                executedInstrument = await ExecuteInstrumentActionAsync(
+                await _instrumentHandler.ExecuteAsync(
                     request,
                     approvedByAdminId,
-                    instrumentService,
+                    cancellationToken);
+            }
+            else if (request.EntityType == "User")
+            {
+                await _userHandler.ExecuteAsync(
+                    request,
+                    approvedByAdminId,
                     cancellationToken);
             }
             else
@@ -152,22 +159,8 @@ public sealed class ApprovalService : IApprovalService
 
         await _auditLogRepository.AddAsync(auditLog, cancellationToken);
 
-        // Also log the entity-specific change (not needed for Delete since entity is removed)
-        if (request.Action != AdminRequestActionType.Delete && executedInstrument is not null)
-        {
-            var entityAuditLog = CreateAuditLogEntry(
-                adminId: approvedByAdminId,
-                action: $"{request.EntityType}_{request.Action.ToString().ToUpper()}",
-                entityType: request.EntityType,
-                entityId: request.EntityId,
-                details: new
-                {
-                    nowBlocked = executedInstrument.IsBlocked,
-                    adminRequestId = requestId
-                });
-
-            await _auditLogRepository.AddAsync(entityAuditLog, cancellationToken);
-        }
+        // Handlers create their own entity-specific audit logs
+        // ApprovalService logs only the approval action itself
 
         await _adminRequestRepository.SaveChangesAsync(cancellationToken);
         await _auditLogRepository.SaveChangesAsync(cancellationToken);
@@ -180,87 +173,6 @@ public sealed class ApprovalService : IApprovalService
             request.Action);
 
         return _mapper.Map<AdminRequestDto>(approvedRequest);
-    }
-
-    /// <summary>
-    /// Execute an approved action on an Instrument entity
-    /// </summary>
-    private async Task<InstrumentDto> ExecuteInstrumentActionAsync(
-        AdminRequest request,
-        Guid approvedByAdminId,
-        IInstrumentService instrumentService,
-        CancellationToken cancellationToken)
-    {
-        // For CREATE action, EntityId is null (entity doesn't exist yet)
-        // For other actions, EntityId must exist
-        if (request.Action != AdminRequestActionType.Create && request.EntityId == null)
-        {
-            throw new InvalidOperationException($"Cannot execute {request.Action} action without an entity ID");
-        }
-
-        InstrumentDto result;
-
-        switch (request.Action)
-        {
-            case AdminRequestActionType.Create:
-                result = await instrumentService.ExecuteApprovedCreateAsync(
-                    request.EntityId ?? Guid.Empty,
-                    request.PayloadJson,
-                    request.RequestedByAdminId,
-                    cancellationToken);
-                break;
-
-            case AdminRequestActionType.Update:
-                result = await instrumentService.ExecuteApprovedUpdateAsync(
-                    request.EntityId!.Value,
-                    request.PayloadJson,
-                    cancellationToken);
-                break;
-
-            case AdminRequestActionType.Block:
-                result = await instrumentService.ExecuteApprovedBlockAsync(
-                    request.EntityId!.Value,
-                    cancellationToken);
-                break;
-
-            case AdminRequestActionType.Unblock:
-                result = await instrumentService.ExecuteApprovedUnblockAsync(
-                    request.EntityId!.Value,
-                    cancellationToken);
-                break;
-
-            case AdminRequestActionType.Delete:
-                await instrumentService.ExecuteApprovedDeleteAsync(
-                    request.EntityId!.Value,
-                    cancellationToken);
-                // Return empty DTO for delete
-                result = new InstrumentDto(
-                    Id: request.EntityId!.Value,
-                    Symbol: "DELETED",
-                    Name: "DELETED",
-                    Description: string.Empty,
-                    Type: string.Empty,
-                    Pillar: string.Empty,
-                    BaseCurrency: string.Empty,
-                    QuoteCurrency: string.Empty,
-                    Status: "Deleted",
-                    IsBlocked: false,
-                    CreatedBy: Guid.Empty,
-                    CreatedAtUtc: DateTimeOffset.UtcNow);
-                break;
-
-            case AdminRequestActionType.RequestApproval:
-                result = await instrumentService.ApproveAsync(
-                    request.EntityId!.Value,
-                    approvedByAdminId,
-                    cancellationToken);
-                break;
-
-            default:
-                throw new InvalidOperationException($"Unknown action type: {request.Action}");
-        }
-
-        return result;
     }
 
     public async Task<AdminRequestDto> RejectAsync(
