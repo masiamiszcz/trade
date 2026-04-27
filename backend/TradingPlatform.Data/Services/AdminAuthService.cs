@@ -111,8 +111,24 @@ public sealed class AdminAuthService : IAdminAuthService
             
             var adminId = Guid.NewGuid();
             var passwordHash = _passwordHasher.HashPassword(
-                new User(adminId, username.Trim(), invitation.Email, invitation.FirstName, invitation.LastName,
-                    UserRole.Admin, false, false, string.Empty, string.Empty, UserStatus.Active, "PLN", DateTimeOffset.UtcNow),
+                new User(
+                    Id: adminId,
+                    UserName: username.Trim(),
+                    Email: invitation.Email,
+                    FirstName: invitation.FirstName,
+                    LastName: invitation.LastName,
+                    Role: UserRole.Admin,
+                    EmailConfirmed: false,
+                    TwoFactorEnabled: false,
+                    TwoFactorSecret: string.Empty,
+                    BackupCodes: string.Empty,
+                    Status: UserStatus.Active,
+                    BaseCurrency: "PLN",
+                    CreatedAtUtc: DateTimeOffset.UtcNow,
+                    BlockedUntilUtc: null,
+                    BlockReason: null,
+                    DeletedAtUtc: null
+                ),
                 password);
 
             // Create temporary registration data (stored in Redis, expires after 10 minutes)
@@ -164,11 +180,27 @@ public sealed class AdminAuthService : IAdminAuthService
 
             // Generate temporary token (5 min) - contains adminId for next steps
             var tempToken = _jwtTokenGenerator.GenerateToken(
-                new User(adminId, username.Trim(), invitation.Email, invitation.FirstName, invitation.LastName,
-                    UserRole.Admin, false, false, string.Empty, string.Empty, UserStatus.Active, "PLN", DateTimeOffset.UtcNow),
-                isTempToken: true, 
-                context: new TokenContext 
-                { 
+                new User(
+                    Id: adminId,
+                    UserName: username.Trim(),
+                    Email: invitation.Email,
+                    FirstName: invitation.FirstName,
+                    LastName: invitation.LastName,
+                    Role: UserRole.Admin,
+                    EmailConfirmed: false,
+                    TwoFactorEnabled: false,
+                    TwoFactorSecret: string.Empty,
+                    BackupCodes: string.Empty,
+                    Status: UserStatus.Active,
+                    BaseCurrency: "PLN",
+                    CreatedAtUtc: DateTimeOffset.UtcNow,
+                    BlockedUntilUtc: null,
+                    BlockReason: null,
+                    DeletedAtUtc: null
+                ),
+                isTempToken: true,
+                context: new TokenContext
+                {
                     AdminRegistrationStep = "pending_2fa",
                     RegistrationSessionId = registrationSessionId
                 });
@@ -280,47 +312,83 @@ public sealed class AdminAuthService : IAdminAuthService
         try
         {
             _logger.LogInformation(
-                "2FA setup STEP 2: Verifying 2FA code for admin {AdminId}, sessionId={SessionId}",
-                adminId, sessionId);
+                "🔵 2FA setup STEP 2: START - Admin {AdminId}, registrationSessionId={SessionId}, code={Code}",
+                adminId, registrationSessionId, code);
 
             // 🔐 SECURITY: Retrieve TOTP secret from temporary Redis session
-            var session = await _redisSessionService.GetSessionAsync(sessionId, cancellationToken);
+            // ⚠️ IMPORTANT: Use registrationSessionId (from JWT), NOT sessionId (from request body)
+            // registrationSessionId is the key where we stored the TOTP secret in /generate
+            _logger.LogInformation("🔵 [STEP 2.1] Attempting to retrieve session from Redis with key: {Key}", registrationSessionId);
+            var session = await _redisSessionService.GetSessionAsync(registrationSessionId, cancellationToken);
+            
             if (session == null)
             {
-                _logger.LogWarning("2FA setup STEP 2 failed for admin {AdminId} - session expired", adminId);
+                _logger.LogError("❌ [STEP 2.1 FAIL] Session NOT FOUND in Redis! registrationSessionId={SessionId}, adminId={AdminId}", registrationSessionId, adminId);
                 throw new InvalidOperationException("2FA session expired. Please start setup again.");
             }
 
+            _logger.LogInformation("✅ [STEP 2.1 OK] Session retrieved from Redis. UserId={UserId}, CreatedAt={CreatedAt}, ExpiresAt={ExpiresAt}", 
+                session.UserId, session.CreatedAt, session.ExpiresAt);
+
             var totpSecret = session.TotpSecret;
+            _logger.LogInformation("🔵 [STEP 2.2] Checking TOTP secret - Length={Length}, IsEmpty={IsEmpty}", 
+                totpSecret?.Length ?? 0, string.IsNullOrWhiteSpace(totpSecret));
+            
             if (string.IsNullOrWhiteSpace(totpSecret))
             {
-                _logger.LogError("2FA setup STEP 2 failed for admin {AdminId} - no secret in session", adminId);
+                _logger.LogError("❌ [STEP 2.2 FAIL] TOTP secret is null/empty in session! Session.TotpSecret={TotpSecret}", totpSecret ?? "NULL");
                 throw new InvalidOperationException("TOTP secret not found in session");
             }
 
+            _logger.LogInformation("✅ [STEP 2.2 OK] TOTP secret found in session. Secret length: {Length} chars", totpSecret.Length);
+
             // Verify TOTP code is correct
-            if (!_twoFactorService.VerifyCode(totpSecret, code))
+            _logger.LogInformation("🔵 [STEP 2.3] Verifying TOTP code - Code={Code}, SecretLength={SecretLength}", code, totpSecret.Length);
+            bool isCodeValid = _twoFactorService.VerifyCode(totpSecret, code);
+            
+            if (!isCodeValid)
             {
-                _logger.LogWarning("Invalid 2FA code during setup for admin {AdminId}", adminId);
+                _logger.LogWarning("❌ [STEP 2.3 FAIL] Invalid 2FA code! Code={Code}, Secret length={SecretLength}, AdminId={AdminId}", 
+                    code, totpSecret.Length, adminId);
                 throw new InvalidOperationException("Invalid 2FA code");
             }
 
-            _logger.LogInformation("2FA code verified for admin {AdminId} - retrieving registration data from Redis", adminId);
+            _logger.LogInformation("✅ [STEP 2.3 OK] 2FA code verified successfully!");
+            _logger.LogInformation("🔵 [STEP 2.4] Retrieving registration data from Redis", adminId);
 
             // ✅ 2FA code is valid! Now retrieve temporary admin data from Redis
             // Check if this is registration (admin_reg_data or admin_bootstrap_data) or existing admin setup
-            var registrationData = await _redisSessionService.GetSessionAsync($"admin_reg_data:{registrationSessionId}", cancellationToken)
-                ?? await _redisSessionService.GetSessionAsync($"admin_bootstrap_data:{registrationSessionId}", cancellationToken);
+            _logger.LogInformation("🔵 [STEP 2.4.1] Looking for admin_reg_data:{SessionId}", registrationSessionId);
+            var registrationData = await _redisSessionService.GetSessionAsync($"admin_reg_data:{registrationSessionId}", cancellationToken);
+            
+            if (registrationData == null)
+            {
+                _logger.LogInformation("🔵 [STEP 2.4.1] admin_reg_data NOT found, trying admin_bootstrap_data:{SessionId}", registrationSessionId);
+                registrationData = await _redisSessionService.GetSessionAsync($"admin_bootstrap_data:{registrationSessionId}", cancellationToken);
+            }
+
+            if (registrationData == null)
+            {
+                _logger.LogWarning("❌ [STEP 2.4.1 FAIL] Neither admin_reg_data nor admin_bootstrap_data found! This might be an existing admin.");
+            }
+            else
+            {
+                _logger.LogInformation("✅ [STEP 2.4.1] Registration data found! UserId={UserId}", registrationData.UserId);
+            }
 
             // If NO registration data, this is existing admin enabling 2FA
             if (registrationData == null)
             {
+                _logger.LogInformation("🔵 [STEP 2.4.2] This is EXISTING ADMIN flow - getting from database");
                 // Existing admin - just get from database
                 var existingAdmin = await _authRepository.GetAdminByIdAsync(adminId, cancellationToken);
                 if (existingAdmin == null)
+                {
+                    _logger.LogError("❌ Admin not found in database! AdminId={AdminId}", adminId);
                     throw new InvalidOperationException("Admin not found");
+                }
 
-                _logger.LogInformation("2FA enabled for existing admin {AdminId}", adminId);
+                _logger.LogInformation("✅ [STEP 2.4.2] Existing admin found: {Username}", existingAdmin.UserName);
 
                 // Encrypt TOTP secret for permanent storage in DB
                 var encryptedSecret = _encryptionService.Encrypt(totpSecret);
@@ -342,7 +410,7 @@ public sealed class AdminAuthService : IAdminAuthService
                 await LogAuditAsync(adminId, AdminAuditAction.TwoFactorEnabled, ipAddress, userAgent,
                     "2FA setup completed", cancellationToken);
 
-                _logger.LogInformation("2FA enabled for existing admin {AdminId} - Redis sessions cleaned up", adminId);
+                _logger.LogInformation("✅ [EXISTING ADMIN] 2FA enabled and Redis sessions cleaned up", adminId);
 
                 return new AdminTwoFactorCompleteResponse(
                     BackupCodes: backupCodes,
@@ -352,74 +420,164 @@ public sealed class AdminAuthService : IAdminAuthService
             }
 
             // ✅ NEW ADMIN REGISTRATION - Deserialize registration data
-            _logger.LogInformation("2FA verified for NEW admin - creating account in database");
+            _logger.LogInformation("🔵 [STEP 2.5] NEW ADMIN REGISTRATION flow - deserializing registration data from Redis");
 
             // Registration data already retrieved above (from either admin_reg_data or admin_bootstrap_data key)
             // registrationData is NOT null here (checked on line 318)
             if (registrationData == null)
             {
                 // This should never happen due to check above, but be safe
+                _logger.LogError("❌ [STEP 2.5 FAIL] Impossible state: registrationData is null but we're in NEW_ADMIN flow!");
                 throw new InvalidOperationException($"Registration data not found for session {registrationSessionId}");
             }
 
             // Registration data is stored in the TotpSecret field (as JSON string)
             var regDataJson = registrationData.TotpSecret;
-            var adminRegData = System.Text.Json.JsonDocument.Parse(regDataJson).RootElement;
+            _logger.LogInformation("🔵 [STEP 2.5.1] Parsing registration JSON - Length={Length}, StartsWith={{={{={StartsWith}", 
+                regDataJson?.Length ?? 0, regDataJson?.Substring(0, Math.Min(50, regDataJson?.Length ?? 0)) ?? "NULL");
+            
+            if (string.IsNullOrWhiteSpace(regDataJson))
+            {
+                _logger.LogError("❌ [STEP 2.5.1 FAIL] Registration JSON is empty! TotpSecret field={Value}", regDataJson ?? "NULL");
+                throw new InvalidOperationException("Registration data is empty");
+            }
 
-            var username = adminRegData.GetProperty("Username").GetString()
-                ?? throw new InvalidOperationException("Username missing from registration data");
-            var email = adminRegData.GetProperty("Email").GetString()
-                ?? throw new InvalidOperationException("Email missing from registration data");
+            System.Text.Json.JsonDocument adminRegDataDoc;
+            try
+            {
+                adminRegDataDoc = System.Text.Json.JsonDocument.Parse(regDataJson);
+                _logger.LogInformation("✅ [STEP 2.5.1] JSON parsed successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ [STEP 2.5.1 FAIL] Failed to parse registration JSON! Error={Error}, JSON={Json}", ex.Message, regDataJson);
+                throw;
+            }
+
+            var adminRegData = adminRegDataDoc.RootElement;
+
+            // Extract fields with logging
+            string? username = null;
+            try
+            {
+                username = adminRegData.GetProperty("Username").GetString();
+                _logger.LogInformation("🔵 [STEP 2.5.2.1] Username={Username}", username);
+                if (string.IsNullOrWhiteSpace(username)) throw new InvalidOperationException("Username missing from registration data");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ [STEP 2.5.2.1 FAIL] Failed to get Username: {Error}", ex.Message);
+                throw;
+            }
+
+            string? email = null;
+            try
+            {
+                email = adminRegData.GetProperty("Email").GetString();
+                _logger.LogInformation("🔵 [STEP 2.5.2.2] Email={Email}", email);
+                if (string.IsNullOrWhiteSpace(email)) throw new InvalidOperationException("Email missing from registration data");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ [STEP 2.5.2.2 FAIL] Failed to get Email: {Error}", ex.Message);
+                throw;
+            }
+
             var firstName = adminRegData.GetProperty("FirstName").GetString() ?? "Super";
             var lastName = adminRegData.GetProperty("LastName").GetString() ?? "Admin";
-            var passwordHashFromReg = adminRegData.GetProperty("PasswordHash").GetString()
-                ?? throw new InvalidOperationException("Password hash missing from registration data");
-            var isSuperAdmin = adminRegData.GetProperty("IsSuperAdmin").GetBoolean();
+            _logger.LogInformation("🔵 [STEP 2.5.2.3] FirstName={FirstName}, LastName={LastName}", firstName, lastName);
+
+            string? passwordHashFromReg = null;
+            try
+            {
+                passwordHashFromReg = adminRegData.GetProperty("PasswordHash").GetString();
+                _logger.LogInformation("🔵 [STEP 2.5.2.4] PasswordHash length={Length}", passwordHashFromReg?.Length ?? 0);
+                if (string.IsNullOrWhiteSpace(passwordHashFromReg)) throw new InvalidOperationException("Password hash missing from registration data");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ [STEP 2.5.2.4 FAIL] Failed to get PasswordHash: {Error}", ex.Message);
+                throw;
+            }
+
+            bool isSuperAdmin = false;
+            try
+            {
+                isSuperAdmin = adminRegData.GetProperty("IsSuperAdmin").GetBoolean();
+                _logger.LogInformation("🔵 [STEP 2.5.2.5] IsSuperAdmin={IsSuperAdmin}", isSuperAdmin);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ [STEP 2.5.2.5 FAIL] Failed to get IsSuperAdmin: {Error}", ex.Message);
+            }
+
             var invitationIdStr = adminRegData.TryGetProperty("InvitationId", out var invIdProp) 
                 ? invIdProp.GetString() 
                 : null;
+            _logger.LogInformation("🔵 [STEP 2.5.2.6] InvitationId={InvitationId}", invitationIdStr ?? "NULL");
 
             // Encrypt TOTP secret for permanent storage in DB
+            _logger.LogInformation("🔵 [STEP 2.6] Encrypting TOTP secret for database storage");
             var encryptedTotpSecret = _encryptionService.Encrypt(totpSecret);
+            _logger.LogInformation("✅ [STEP 2.6] TOTP secret encrypted. Length={Length}", encryptedTotpSecret?.Length ?? 0);
 
             // Generate backup codes
+            _logger.LogInformation("🔵 [STEP 2.7] Generating backup codes");
             var backupCodesList = _twoFactorService.GenerateBackupCodes();
             var hashedBackupCodesList = backupCodesList.Select(c => _twoFactorService.HashBackupCode(c)).ToList();
             var backupCodesJsonStr = System.Text.Json.JsonSerializer.Serialize(hashedBackupCodesList);
+            _logger.LogInformation("✅ [STEP 2.7] Generated {Count} backup codes, JSON size={Size}", backupCodesList.Length, backupCodesJsonStr.Length);
 
             // Create user entity with all properties set in constructor
+            _logger.LogInformation("🔵 [STEP 2.8] Creating User record - Username={Username}, Email={Email}, IsSuperAdmin={IsSuperAdmin}", 
+                username, email, isSuperAdmin);
             var user = new User(
-                adminId, 
-                username, 
-                email, 
-                firstName, 
-                lastName,
-                UserRole.Admin, 
-                false,  // EmailConfirmed
-                true,   // TwoFactorEnabled - NOW TRUE because 2FA is verified
-                encryptedTotpSecret,  // ✅ Set in constructor (not after)
-                backupCodesJsonStr,   // ✅ Set in constructor (not after)
-                UserStatus.Active, 
-                "PLN", 
-                DateTimeOffset.UtcNow);
+                Id: adminId,
+                UserName: username,
+                Email: email,
+                FirstName: firstName,
+                LastName: lastName,
+                Role: UserRole.Admin,
+                EmailConfirmed: false,
+                TwoFactorEnabled: true,
+                TwoFactorSecret: encryptedTotpSecret,
+                BackupCodes: backupCodesJsonStr,
+                Status: UserStatus.Active,
+                BaseCurrency: "PLN",
+                CreatedAtUtc: DateTimeOffset.UtcNow,
+                BlockedUntilUtc: null,
+                BlockReason: null,
+                DeletedAtUtc: null
+            );
+            _logger.LogInformation("✅ [STEP 2.8] User record created");
 
             // ✅ CREATE ADMIN IN DATABASE
+            _logger.LogInformation("🔵 [STEP 2.9] Creating admin in database via _authRepository.CreateAdminAsync");
             await _authRepository.CreateAdminAsync(user, passwordHashFromReg, cancellationToken);
+            _logger.LogInformation("✅ [STEP 2.9] Admin created in database!");
 
             // Create admin entity with IsSuperAdmin flag
+            _logger.LogInformation("🔵 [STEP 2.10] Creating AdminEntity with IsSuperAdmin={IsSuperAdmin}", isSuperAdmin);
             await _authRepository.CreateAdminEntityAsync(adminId, isSuperAdmin, cancellationToken);
+            _logger.LogInformation("✅ [STEP 2.10] AdminEntity created!");
 
             // If this was via invitation, mark invitation as used
             if (Guid.TryParse(invitationIdStr, out var invitationId))
             {
+                _logger.LogInformation("🔵 [STEP 2.11] Marking invitation {InvitationId} as used", invitationId);
                 await _invitationService.MarkAsUsedAsync(
                     adminRegData.GetProperty("Token").GetString() ?? "",
                     adminId,
                     cancellationToken);
+                _logger.LogInformation("✅ [STEP 2.11] Invitation marked as used");
+            }
+            else
+            {
+                _logger.LogInformation("ℹ️ [STEP 2.11] No invitation ID (bootstrap flow)");
             }
 
             _logger.LogInformation(
-                "Admin {AdminId} created in database with 2FA enabled (IsSuperAdmin={IsSuperAdmin})",
+                "✅ [STEP 2.12] Admin {AdminId} created in database with 2FA enabled (IsSuperAdmin={IsSuperAdmin})",
                 adminId, isSuperAdmin);
 
             // Log 2FA setup completion
@@ -438,11 +596,13 @@ public sealed class AdminAuthService : IAdminAuthService
                 "2FA setup completed during registration", cancellationToken);
 
             // 🔐 SECURITY: Delete ALL temporary sessions from Redis (cleanup)
+            _logger.LogInformation("🔵 [STEP 2.13] Cleaning up Redis sessions");
             await _redisSessionService.DeleteSessionAsync(registrationSessionId, cancellationToken);
             await _redisSessionService.DeleteSessionAsync($"admin_reg_data:{registrationSessionId}", cancellationToken);
             await _redisSessionService.DeleteSessionAsync($"admin_bootstrap_data:{registrationSessionId}", cancellationToken);
+            _logger.LogInformation("✅ [STEP 2.13] All Redis sessions cleaned up");
 
-            _logger.LogInformation("Admin {AdminId} fully registered with 2FA enabled - all Redis sessions cleaned up", adminId);
+            _logger.LogInformation("🟢 [SUCCESS] Admin {AdminId} fully registered with 2FA enabled!", adminId);
 
             return new AdminTwoFactorCompleteResponse(
                 BackupCodes: backupCodesList,
@@ -450,13 +610,15 @@ public sealed class AdminAuthService : IAdminAuthService
                 Message: "Registration complete! 2FA enabled successfully. Save these backup codes somewhere safe!"
             );
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
+            _logger.LogError(ex, "❌ [VALIDATION ERROR] {Message}", ex.Message);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to enable 2FA for admin {AdminId}", adminId);
+            _logger.LogError(ex, "❌ [UNEXPECTED ERROR] Failed to enable 2FA for admin {AdminId} - {ErrorType}: {Message}", 
+                adminId, ex.GetType().Name, ex.Message);
             throw new InvalidOperationException("Failed to enable 2FA", ex);
         }
     }
@@ -580,8 +742,8 @@ public sealed class AdminAuthService : IAdminAuthService
                 await _redisSessionService.ResetCounterAsync($"auth:login:attempts:user:{admin.UserName}", cancellationToken);
             }
 
-            // Update last login attempt timestamp
-            await _authRepository.UpdateLastLoginAttemptAsync(admin.Id, cancellationToken);
+            // COMMENTED OUT: LastLoginAttemptUtc not needed for current features
+            // await _authRepository.UpdateLastLoginAttemptAsync(admin.Id, cancellationToken);
 
             _logger.LogInformation("Admin {AdminId} initiated login (awaiting 2FA)", admin.Id);
 
@@ -931,9 +1093,24 @@ public sealed class AdminAuthService : IAdminAuthService
             // Super admin will be created in database ONLY after 2FA verification (Step 2)
             
             var adminId = Guid.NewGuid();
-            var tempUser = new User(adminId, username.Trim(), email.ToLower().Trim(), "Super", "Admin",
-                UserRole.Admin, true, false, string.Empty, string.Empty, UserStatus.Active, "PLN", DateTimeOffset.UtcNow);
-
+            var tempUser = new User(
+                Id: adminId,
+                UserName: username.Trim(),
+                Email: email.ToLower().Trim(),
+                FirstName: "Super",
+                LastName: "Admin",
+                Role: UserRole.Admin,
+                EmailConfirmed: true,
+                TwoFactorEnabled: false,
+                TwoFactorSecret: string.Empty,
+                BackupCodes: string.Empty,
+                Status: UserStatus.Active,
+                BaseCurrency: "PLN",
+                CreatedAtUtc: DateTimeOffset.UtcNow,
+                BlockedUntilUtc: null,
+                BlockReason: null,
+                DeletedAtUtc: null
+            );
             var passwordHash = _passwordHasher.HashPassword(tempUser, password);
 
             // Create temporary bootstrap data (stored in Redis, expires after 10 minutes)

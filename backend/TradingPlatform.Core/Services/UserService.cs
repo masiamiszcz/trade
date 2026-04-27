@@ -61,11 +61,17 @@ public sealed class UserService : IUserService
             Role: UserRole.User,
             EmailConfirmed: false,
             TwoFactorEnabled: false,
-            TwoFactorSecret: string.Empty,
-            BackupCodes: string.Empty,
+            TwoFactorSecret: null,
+            BackupCodes: null,
             Status: UserStatus.Active,
             BaseCurrency: registerRequest.BaseCurrency.ToUpper(),
-            CreatedAtUtc: DateTimeOffset.UtcNow);
+            CreatedAtUtc: DateTimeOffset.UtcNow,
+
+            // 🔥 NEW FIELDS
+            BlockedUntilUtc: null,
+            BlockReason: null,
+            DeletedAtUtc: null
+        );
 
         // Hash password and store user
         var passwordHash = _hasher.HashPassword(user, registerRequest.Password);

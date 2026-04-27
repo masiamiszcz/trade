@@ -119,7 +119,7 @@ public sealed class ApprovalController : ControllerBase
     /// <response code="401">User not authenticated</response>
     /// <response code="403">User is not an admin</response>
     /// <response code="404">Request not found</response>
-    [HttpPost("{id}/approve")]
+    [HttpPatch("{id}/approve")]
     [ProducesResponseType(typeof(AdminRequestDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -130,19 +130,22 @@ public sealed class ApprovalController : ControllerBase
         try
         {
             var adminId = GetUserId();
-            _logger.LogInformation("Admin {AdminId} approving request {RequestId}", adminId, id);
+            _logger.LogInformation("✅ [APPROVE] Request from admin {AdminId} to approve request {RequestId}", adminId, id);
 
             var result = await _approvalService.ApproveAsync(id, adminId, _instrumentService, ct);
+            _logger.LogInformation("✅ [APPROVE] Request {RequestId} approved successfully. Status: {Status}", 
+                id, result.Status);
+            
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid approval operation for request {RequestId}", id);
+            _logger.LogWarning(ex, "❌ [APPROVE] Invalid approval operation for request {RequestId}. Details: {Message}", id, ex.Message);
             return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error approving request {RequestId}", id);
+            _logger.LogError(ex, "❌ [APPROVE] Error approving request {RequestId}. Details: {Message}", id, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to approve request" });
         }
     }
@@ -158,7 +161,7 @@ public sealed class ApprovalController : ControllerBase
     /// <response code="401">User not authenticated</response>
     /// <response code="403">User is not an admin</response>
     /// <response code="404">Request not found</response>
-    [HttpPost("{id}/reject")]
+    [HttpPatch("{id}/reject")]
     [ProducesResponseType(typeof(AdminRequestDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -169,14 +172,18 @@ public sealed class ApprovalController : ControllerBase
         try
         {
             var adminId = GetUserId();
-            _logger.LogInformation("Admin {AdminId} rejecting request {RequestId}", adminId, id);
+            _logger.LogInformation("🚫 [REJECT] Request from admin {AdminId} to reject request {RequestId}. Reason: {Reason}", 
+                adminId, id, req?.Reason ?? "Not provided");
 
             var result = await _approvalService.RejectAsync(id, adminId, req?.Reason, ct);
+            _logger.LogInformation("🚫 [REJECT] Request {RequestId} rejected successfully. Status: {Status}", 
+                id, result.Status);
+            
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid rejection operation for request {RequestId}", id);
+            _logger.LogWarning(ex, "❌ [REJECT] Invalid rejection operation for request {RequestId}. Details: {Message}", id, ex.Message);
             return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)

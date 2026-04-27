@@ -97,19 +97,23 @@ public sealed class AdminAuthRepository : IAdminAuthRepository
     private static User MapEntityToUser(UserEntity entity)
     {
         return new User(
-            entity.Id,
-            entity.UserName,
-            entity.Email,
-            entity.FirstName,
-            entity.LastName,
-            (UserRole)entity.Role,
-            entity.EmailConfirmed,
-            entity.TwoFactorEnabled,
-            entity.TwoFactorSecret ?? string.Empty,
-            entity.BackupCodes ?? string.Empty,
-            entity.Status,
-            entity.BaseCurrency,
-            entity.CreatedAtUtc
+            Id: entity.Id,
+            UserName: entity.UserName,
+            Email: entity.Email,
+            FirstName: entity.FirstName,
+            LastName: entity.LastName,
+            Role: (UserRole)entity.Role,
+            EmailConfirmed: entity.EmailConfirmed,
+            TwoFactorEnabled: entity.TwoFactorEnabled,
+            TwoFactorSecret: entity.TwoFactorSecret ?? string.Empty,
+            BackupCodes: entity.BackupCodes ?? string.Empty,
+            Status: entity.Status,
+            BaseCurrency: entity.BaseCurrency,
+            CreatedAtUtc: entity.CreatedAtUtc,
+            BlockedUntilUtc: entity.BlockedUntilUtc,
+            BlockReason: entity.BlockReason,
+            DeletedAtUtc: entity.DeletedAtUtc,
+            LastLoginAtUtc: entity.LastLoginAtUtc
         );
     }
 
@@ -152,16 +156,18 @@ public sealed class AdminAuthRepository : IAdminAuthRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UpdateLastLoginAttemptAsync(Guid adminId, CancellationToken cancellationToken = default)
-    {
-        var admin = await _context.Users.FindAsync(new object[] { adminId }, cancellationToken);
-        if (admin == null)
-            throw new InvalidOperationException("Admin not found");
-
-        admin.LastLoginAttempt = DateTimeOffset.UtcNow;
-
-        await _context.SaveChangesAsync(cancellationToken);
-    }
+    // COMMENTED OUT: LastLoginAttemptUtc not needed for current features
+    // May use in future for notification system or brute-force detection
+    // public async Task UpdateLastLoginAttemptAsync(Guid adminId, CancellationToken cancellationToken = default)
+    // {
+    //     var admin = await _context.Users.FindAsync(new object[] { adminId }, cancellationToken);
+    //     if (admin == null)
+    //         throw new InvalidOperationException("Admin not found");
+    //
+    //     admin.LastLoginAttemptUtc = DateTimeOffset.UtcNow;
+    //
+    //     await _context.SaveChangesAsync(cancellationToken);
+    // }
 
     /// <summary>
     /// Check if admin is super admin

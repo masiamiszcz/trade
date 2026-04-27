@@ -11,7 +11,7 @@ namespace TradingPlatform.Core.Services;
 /// <summary>
 /// Service implementation for approval workflow management.
 /// Single responsibility: handle approval, rejection, and workflow operations for admin requests.
-/// Calls InstrumentService to execute approved actions.
+/// Calls InstrumentService or UserApprovalHandler to execute approved actions.
 /// Maintains comprehensive audit logging for compliance.
 /// </summary>
 public sealed class ApprovalService : IApprovalService
@@ -20,6 +20,7 @@ public sealed class ApprovalService : IApprovalService
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IInstrumentRepository _instrumentRepository;
     private readonly IAdminAuthRepository _adminAuthRepository;
+    private readonly IUserApprovalHandler _userApprovalHandler;
     private readonly IMapper _mapper;
     private readonly ILogger<ApprovalService> _logger;
 
@@ -28,6 +29,7 @@ public sealed class ApprovalService : IApprovalService
         IAuditLogRepository auditLogRepository,
         IInstrumentRepository instrumentRepository,
         IAdminAuthRepository adminAuthRepository,
+        IUserApprovalHandler userApprovalHandler,
         IMapper mapper,
         ILogger<ApprovalService> logger)
     {
@@ -35,6 +37,7 @@ public sealed class ApprovalService : IApprovalService
         _auditLogRepository = auditLogRepository;
         _instrumentRepository = instrumentRepository;
         _adminAuthRepository = adminAuthRepository;
+        _userApprovalHandler = userApprovalHandler;
         _mapper = mapper;
         _logger = logger;
     }
@@ -109,11 +112,22 @@ public sealed class ApprovalService : IApprovalService
         {
             if (request.EntityType == "Instrument")
             {
+                _logger.LogInformation("📋 [APPROVE] Executing INSTRUMENT action {Action} on entity {EntityId}", request.Action, request.EntityId);
                 executedInstrument = await ExecuteInstrumentActionAsync(
                     request,
                     approvedByAdminId,
                     instrumentService,
                     cancellationToken);
+                _logger.LogInformation("✅ [APPROVE] INSTRUMENT action {Action} executed successfully", request.Action);
+            }
+            else if (request.EntityType == "User")
+            {
+                _logger.LogInformation("👤 [APPROVE] Executing USER action {Action} on entity {EntityId}", request.Action, request.EntityId);
+                await ExecuteUserActionAsync(
+                    request,
+                    approvedByAdminId,
+                    cancellationToken);
+                _logger.LogInformation("✅ [APPROVE] USER action {Action} executed successfully", request.Action);
             }
             else
             {
@@ -122,7 +136,7 @@ public sealed class ApprovalService : IApprovalService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to execute action {Action} for request {RequestId}", request.Action, requestId);
+            _logger.LogError(ex, "❌ [APPROVE] Failed to execute action {Action} for request {RequestId}. Error: {Message}", request.Action, requestId, ex.Message);
             throw;
         }
 
@@ -448,6 +462,40 @@ public sealed class ApprovalService : IApprovalService
     }
 
     // ===== HELPER METHODS =====
+
+    /// <summary>
+    /// Execute an approved action on a User entity
+    /// Currently supports Delete action
+    /// </summary>
+    private async Task ExecuteUserActionAsync(
+        AdminRequest request,
+        Guid approvedByAdminId,
+        CancellationToken cancellationToken)
+    {
+        if (request.EntityId == null)
+        {
+            throw new InvalidOperationException("Cannot execute user action without an entity ID");
+        }
+
+        _logger.LogInformation("👤 [EXECUTE-USER] Starting execution of action {Action} on user {UserId}", request.Action, request.EntityId);
+
+        switch (request.Action)
+        {
+            case AdminRequestActionType.Delete:
+                _logger.LogInformation("🗑️ [EXECUTE-USER] Executing DELETE action on user {UserId} by admin {ApprovedByAdminId}", request.EntityId, approvedByAdminId);
+                await _userApprovalHandler.ExecuteApprovedDeleteAsync(
+                    request.EntityId!.Value,
+                    request,
+                    approvedByAdminId,
+                    cancellationToken);
+                _logger.LogInformation("✅ [EXECUTE-USER] DELETE action completed for user {UserId}", request.EntityId);
+                break;
+
+            default:
+                _logger.LogWarning("❌ [EXECUTE-USER] Unsupported user action: {Action}", request.Action);
+                throw new InvalidOperationException($"Unsupported user action: {request.Action}");
+        }
+    }
 
     /// <summary>
     /// Creates an audit log entry with standardized format

@@ -30,10 +30,21 @@ export const ApprovalsContent: React.FC = () => {
     }
   }, [viewMode, fetchPendingRequests, fetchAllRequests]);
 
+  /**
+   * Smart refetch - refetches current view mode (pending or all)
+   */
+  const smartRefetch = async () => {
+    if (viewMode === 'pending') {
+      await fetchPendingRequests();
+    } else {
+      await fetchAllRequests();
+    }
+  };
+
   const handleRowClick = async (request: AdminRequest) => {
     if (viewMode === 'pending') {
       // Pending mode: only allow clicking on pending requests
-      if (request.status.toLowerCase() === 'pending') {
+      if (request.status === 'Pending') {
         setSelectedRequest(request);
       }
     } else {
@@ -48,28 +59,28 @@ export const ApprovalsContent: React.FC = () => {
   const handleApprove = async (id: string, comment?: string) => {
     await approveRequest(id, comment);
     setSelectedRequest(null);
-    await refetch();
+    await smartRefetch();
   };
 
   const handleReject = async (id: string, reason: string) => {
     await rejectRequest(id, reason);
     setSelectedRequest(null);
-    await refetch();
+    await smartRefetch();
   };
 
   const handleComment = async (id: string, text: string) => {
     await addComment(id, text);
     // Keep modal open so user can add more comments or take other actions
-    await refetch();
+    await smartRefetch();
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'pending':
+    switch (status) {
+      case 'Pending':
         return { emoji: '⏳', label: 'Oczekujący', class: 'status-pending' };
-      case 'approved':
+      case 'Approved':
         return { emoji: '✅', label: 'Zatwierdzony', class: 'status-approved' };
-      case 'rejected':
+      case 'Rejected':
         return { emoji: '❌', label: 'Odrzucony', class: 'status-rejected' };
       default:
         return { emoji: '❓', label: status, class: 'status-unknown' };

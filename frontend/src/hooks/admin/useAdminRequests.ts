@@ -13,7 +13,7 @@ export const useAdminRequests = () => {
   const [pageSize, setPageSize] = useState(10);
 
   /**
-   * Fetch pending admin requests
+   * Fetch only PENDING admin requests (awaiting approval)
    */
   const fetchPendingRequests = useCallback(async () => {
     try {
@@ -37,96 +37,7 @@ export const useAdminRequests = () => {
   }, [pageSize]);
 
   /**
-   * Approve a request
-   */
-  const approveRequest = useCallback(async (requestId: string, comment?: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      await httpClient.fetch<AdminRequest>({
-        url: API_CONFIG.endpoints.adminRequests.approve(requestId),
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: comment ? JSON.stringify({ comment }) : JSON.stringify({}),
-      });
-
-      // Refetch to update list (remove approved request from pending)
-      await fetchPendingRequests();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to approve request';
-      setError(message);
-      console.error('Error approving request:', message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchPendingRequests]);
-
-  /**
-   * Reject a request
-   */
-  const rejectRequest = useCallback(async (requestId: string, reason: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      if (!reason || reason.length < 10) {
-        throw new Error('Reason must be at least 10 characters long');
-      }
-
-      await httpClient.fetch<AdminRequest>({
-        url: API_CONFIG.endpoints.adminRequests.reject(requestId),
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
-      });
-
-      // Refetch to update list (remove rejected request from pending)
-      await fetchPendingRequests();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to reject request';
-      setError(message);
-      console.error('Error rejecting request:', message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchPendingRequests]);
-
-  /**
-   * Add comment to a request (without changing status)
-   */
-  const addComment = useCallback(async (requestId: string, text: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      if (!text || text.trim().length === 0) {
-        throw new Error('Comment cannot be empty');
-      }
-
-      await httpClient.fetch({
-        url: API_CONFIG.endpoints.adminRequests.comment(requestId),
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      });
-
-      // Refetch to update list with new comment
-      await fetchPendingRequests();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add comment';
-      setError(message);
-      console.error('Error adding comment:', message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchPendingRequests]);
-
-  /**
-   * Fetch ALL admin requests (all statuses: pending, approved, rejected)
+   * Fetch ALL admin requests (pending + approved + rejected)
    */
   const fetchAllRequests = useCallback(async () => {
     try {
@@ -150,31 +61,87 @@ export const useAdminRequests = () => {
   }, [pageSize]);
 
   /**
-   * Get single request by ID (detailed view)
+   * Approve a request
    */
-  const getRequestById = useCallback(async (requestId: string): Promise<AdminRequest | null> => {
+  const approveRequest = useCallback(async (requestId: string, comment?: string) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await httpClient.fetch<AdminRequest>({
-        url: API_CONFIG.endpoints.adminRequests.byId(requestId),
-        method: 'GET',
+      
+      await httpClient.fetch<AdminRequest>({
+        url: API_CONFIG.endpoints.adminRequests.approve(requestId),
+        method: 'PATCH',
+        body: JSON.stringify({ comment }),
       });
-      return response || null;
+      // Don't auto-refetch - let component decide what to refetch
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch request details';
+      const message = err instanceof Error ? err.message : 'Failed to approve request';
       setError(message);
-      console.error('Error fetching request details:', message);
-      return null;
+      console.error('Error approving request:', message);
+      throw err;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Fetch pending requests on mount
+  /**
+   * Reject a request
+   */
+  const rejectRequest = useCallback(async (requestId: string, comment: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!comment || comment.length < 10) {
+        throw new Error('Reason must be at least 10 characters long');
+      }
+
+      await httpClient.fetch<AdminRequest>({
+        url: API_CONFIG.endpoints.adminRequests.reject(requestId),
+        method: 'PATCH',
+        body: JSON.stringify({ comment }),
+      });
+      // Don't auto-refetch - let component decide what to refetch
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to reject request';
+      setError(message);
+      console.error('Error rejecting request:', message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // DON'T fetch on mount - let components decide what to fetch
+  // Dashboard will use fetchAllRequests
+  // ApprovalsContent will use fetchPendingRequests
   useEffect(() => {
-    fetchPendingRequests();
-  }, [fetchPendingRequests]);
+    // Initially fetch nothing, components are responsible for fetching
+  }, []);
+
+  /**
+   * Get single request by ID
+   */
+  const getRequestById = useCallback(async (requestId: string) => {
+    try {
+      const response = await httpClient.fetch<AdminRequest>({
+        url: API_CONFIG.endpoints.adminRequests.byId(requestId),
+        method: 'GET',
+      });
+      return response;
+    } catch (err) {
+      console.error('Error fetching request by ID:', err);
+      return null;
+    }
+  }, []);
+
+  /**
+   * Add comment to request (stub - can be extended later)
+   */
+  const addComment = useCallback(async (requestId: string, text: string) => {
+    console.log(`Comment added to ${requestId}: ${text}`);
+    // Extended later if backend supports it
+  }, []);
 
   const page = currentPage;
   const setPage = setCurrentPage;
@@ -192,10 +159,10 @@ export const useAdminRequests = () => {
     setPageSize,
     approveRequest,
     rejectRequest,
-    addComment,
-    refetch: fetchPendingRequests,
+    refetch: fetchPendingRequests, // Refetch pending by default
     fetchPendingRequests,
     fetchAllRequests,
     getRequestById,
+    addComment,
   };
 };

@@ -71,7 +71,7 @@ export const API_CONFIG = {
     auth: {
       login: '/user/login',
       register: '/user/register',
-      logout: '/auth/logout',
+      logout: '/user/logout',
     },
 
     // ==================== ADMIN AUTHENTICATION ====================
@@ -97,7 +97,7 @@ export const API_CONFIG = {
     instruments: {
       // GET endpoints (read-only, no approval needed)
       all: '/instruments',
-      active: '/admin/instruments/active',
+      active: '/instruments/active',
       byId: (id: string) => `/instruments/${id}`,
       bySymbol: (symbol: string) => `/instruments/symbol/${symbol}`,
       
@@ -114,29 +114,36 @@ export const API_CONFIG = {
     },
 
     // ==================== ADMIN: INSTRUMENTS ====================
-    adminInstruments: {
-      // GET endpoints
-      all: '/admin/instruments',
-      byId: (id: string) => `/admin/instruments/${id}`,
-      
-      // POST endpoints (Request* methods create AdminRequest, awaiting approval)
-      create: '/admin/instruments',
-      requestUpdate: (id: string) => `/admin/instruments/${id}/request-update`,
-      requestDelete: (id: string) => `/admin/instruments/${id}/request-delete`,
-      
-      // PATCH endpoints (Administrative operations - immediate execution with reason)
-      block: (id: string) => `/admin/instruments/${id}/block`,
-      unblock: (id: string) => `/admin/instruments/${id}/unblock`,
+        adminInstruments: {
+    // GET endpoints
+    all: '/admin/instruments',
+    byId: (id: string) => `/admin/instruments/${id}`,
+    active: '/admin/instruments/active',
+    bySymbol: (symbol: string) => `/admin/instruments/symbol/${symbol}`,
+
+    // CREATE
+    create: '/admin/instruments',
+
+    // UPDATE (approval flow)
+    requestUpdate: (id: string) => `/admin/instruments/${id}`,
+
+    // BLOCK / UNBLOCK (approval flow)
+    requestBlock: (id: string) => `/admin/instruments/${id}/block`,
+    requestUnblock: (id: string) => `/admin/instruments/${id}/unblock`,
+
+    // DELETE (approval flow)
+    requestDelete: (id: string) => `/admin/instruments/${id}`,
+
+    // APPROVAL
+    requestApproval: (id: string) => `/admin/instruments/${id}/request-approval`,
     },
 
-    // ==================== ADMIN: APPROVAL REQUESTS WORKFLOW ====================
     adminRequests: {
-      all: '/admin/approvals',
-      pending: '/admin/approvals/pending',
-      byId: (id: string) => `/admin/approvals/${id}`,
-      approve: (id: string) => `/admin/approvals/${id}/approve`,
-      reject: (id: string) => `/admin/approvals/${id}/reject`,
-      comment: (id: string) => `/admin/approvals/${id}/comment`,
+    all: '/admin/approvals',
+    pending: '/admin/approvals/pending',
+    byId: (id: string) => `/admin/approvals/${id}`,
+    approve: (id: string) => `/admin/approvals/${id}/approve`,
+    reject: (id: string) => `/admin/approvals/${id}/reject`,
     },
 
     // ==================== ADMIN: USER MANAGEMENT ====================

@@ -9,8 +9,13 @@ interface HealthStatus {
 }
 
 export const DashboardContent: React.FC = () => {
-  const { requests, loading: requestsLoading } = useAdminRequests();
+  const { requests, loading: requestsLoading, fetchAllRequests } = useAdminRequests();
   const [health, setHealth] = useState<HealthStatus>({ status: 'OK' });
+
+  // Fetch ALL requests (pending + approved + rejected) for statistics
+  useEffect(() => {
+    fetchAllRequests();
+  }, [fetchAllRequests]);
 
   useEffect(() => {
     const fetchHealth = async () => {
@@ -30,9 +35,9 @@ export const DashboardContent: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const pendingRequests = requests.filter((r) => r.status === 'pending').length;
-  const approvedRequests = requests.filter((r) => r.status === 'approved').length;
-  const rejectedRequests = requests.filter((r) => r.status === 'rejected').length;
+  const pendingRequests = requests.filter((r) => r.status === 'Pending').length;
+  const approvedRequests = requests.filter((r) => r.status === 'Approved').length;
+  const rejectedRequests = requests.filter((r) => r.status === 'Rejected').length;
 
   return (
     <div className="dashboard-content">

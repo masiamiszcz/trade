@@ -13,5 +13,14 @@ public interface IUserRepository
     Task<IEnumerable<User>> GetAllUsersAsync(CancellationToken cancellationToken = default);
 
     Task AddAsync(User user, string passwordHash, CancellationToken cancellationToken = default);
+    
+    /// <summary>Update user entity (for blocking, unblocking, status changes)</summary>
+    Task UpdateAsync(User user, CancellationToken cancellationToken = default);
+    
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Update user's last login timestamp to current UTC time
+    /// </summary>
+    Task UpdateLastLoginAsync(Guid userId, DateTimeOffset now, CancellationToken cancellationToken = default);
 }

@@ -4,8 +4,8 @@ public enum UserStatus
 {
     PendingEmailConfirmation = 1,
     Active = 2,
-    Suspended = 3,
-    Locked = 4
+    Blocked = 3,    // User account is blocked (temporary or permanent)
+    Deleted = 4     // User account is soft-deleted (not removed from DB)
 }
 
 public enum UserRole

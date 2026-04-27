@@ -66,12 +66,16 @@ public static class ServiceCollectionExtensions
         // Register approval workflow service (uses IAdminAuthRepository for self-approval check)
         services.AddScoped<IApprovalService, ApprovalService>();
         
+        // Register approval handlers for different entity types
+        services.AddScoped<IUserApprovalHandler, UserApprovalHandler>();
+        
         // Register instrument service (uses IApprovalService for requests)
         services.AddScoped<IInstrumentService, InstrumentService>();
         
         // Register remaining admin services
         services.AddScoped<IAdminInvitationService, AdminInvitationService>();
         services.AddScoped<IAdminAuthService, AdminAuthService>();
+        services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<IAdminService, AdminService>();
 
         return services;

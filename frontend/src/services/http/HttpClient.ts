@@ -201,20 +201,30 @@ class HttpClient {
     // Get appropriate token based on endpoint
     const token = this.getAuthToken(config.url || '');
     
+    // Initialize headers object if not present
+    if (!config.headers || typeof config.headers !== 'object' || Array.isArray(config.headers)) {
+      config.headers = {};
+    }
+
+    const headers = config.headers as Record<string, unknown>;
+
+    // Remove existing Authorization header if present (to avoid duplicates)
+    delete headers['Authorization'];
+    delete headers['Content-Type'];
+
+    // Add token if available
     if (token) {
-      // Remove existing Authorization header if present (to avoid duplicates)
-      if (config.headers && typeof config.headers === 'object' && !Array.isArray(config.headers)) {
-        delete (config.headers as Record<string, unknown>)['Authorization'];
-      }
-
-      // Add Authorization header
-      config.headers = {
-        ...config.headers,
-        'Authorization': `Bearer ${token}`,
-      };
-
+      headers['Authorization'] = `Bearer ${token}`;
       console.log('[HttpClient] ✓ Authorization header injected for:', config.url);
     }
+
+    // Add Content-Type for requests with body (POST, PUT, DELETE, PATCH)
+    if (config.body) {
+      headers['Content-Type'] = 'application/json';
+      console.log('[HttpClient] ✓ Content-Type header set to application/json for:', config.url);
+    }
+
+    config.headers = headers;
 
     return config;
   }

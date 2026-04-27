@@ -200,7 +200,12 @@ public sealed class UserAuthService : IUserAuthService
                 BackupCodes: string.Empty, // Will be saved in Step 2
                 Status: UserStatus.Active,
                 BaseCurrency: baseCurrency.ToUpper(),
-                CreatedAtUtc: DateTimeOffset.UtcNow);
+                CreatedAtUtc: DateTimeOffset.UtcNow,
+                // 🔥 NEW FIELDS
+                BlockedUntilUtc: null,
+                BlockReason: null,
+                DeletedAtUtc: null
+            );
 
             // Generate temporary token (5 min) for 2FA verification
             // This token contains:
@@ -529,13 +534,21 @@ public sealed class UserAuthService : IUserAuthService
                 BackupCodes: hashedBackupCodesJson, // Hashed codes in database
                 Status: UserStatus.Active,
                 BaseCurrency: baseCurrency.ToUpper(),
-                CreatedAtUtc: DateTimeOffset.UtcNow);
+                CreatedAtUtc: DateTimeOffset.UtcNow,
+                // 🔥 NEW FIELDS
+                BlockedUntilUtc: null,
+                BlockReason: null,
+                DeletedAtUtc: null
+            );
 
             // Hash password securely
             var passwordHash = _passwordHasher.HashPassword(user, password);
             
             await _userRepository.AddAsync(user, passwordHash, cancellationToken);
             await _userRepository.SaveChangesAsync(cancellationToken);
+
+            // 🔐 UPDATE LAST LOGIN (registration = first login)
+            await _userRepository.UpdateLastLoginAsync(user.Id, DateTimeOffset.UtcNow, cancellationToken);
 
             _logger.LogInformation("User '{Username}' created with 2FA enabled", username);
 
@@ -856,6 +869,9 @@ public sealed class UserAuthService : IUserAuthService
             // 🔐 CLEANUP: Delete session from Redis (successful verification)
             await _redisSessionService.DeleteSessionAsync(sessionId, cancellationToken);
             _logger.LogInformation("Cleaned up Redis session {SessionId}", sessionId);
+
+            // 🔐 UPDATE LAST LOGIN (user successfully logged in)
+            await _userRepository.UpdateLastLoginAsync(user.Id, DateTimeOffset.UtcNow, cancellationToken);
 
             // Generate final JWT token (60 min)
             var finalToken = _jwtTokenGenerator.GenerateToken(user, isTempToken: false);

@@ -58,18 +58,7 @@ public sealed record AuditLogDto(
     string IpAddress,
     DateTimeOffset CreatedAtUtc);
 
-/// <summary>
-/// DTO for listing users in admin panel
-/// </summary>
-public sealed record UserListItemDto(
-    Guid Id,
-    string UserName,
-    string Email,
-    string FirstName,
-    string LastName,
-    string Role,
-    string Status,
-    DateTimeOffset CreatedAtUtc);
+// UserListItemDto moved to UserListItemDto.cs
 
 /// <summary>
 /// Data Transfer Object for AdminAuditLog

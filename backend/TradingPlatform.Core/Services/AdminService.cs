@@ -100,6 +100,10 @@ public sealed class AdminService : IAdminService
             u.LastName,
             u.Role.ToString(),
             u.Status.ToString(),
+            u.BlockReason,
+            u.BlockedUntilUtc,
+            u.DeletedAtUtc,
+            u.LastLoginAtUtc,
             u.CreatedAtUtc
         )).ToList();
 

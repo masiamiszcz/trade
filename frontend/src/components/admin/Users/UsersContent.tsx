@@ -2,16 +2,57 @@ import { useEffect, useState } from 'react';
 import { useGetUsers } from '../../../hooks/admin/useGetUsers';
 import { useAdminAuth } from '../../../hooks/admin/useAdminAuth';
 import { AdminInviteModal } from '../Modals/AdminInviteModal';
+import { BlockUserModal } from '../Modals/BlockUserModal';
+import { DeleteUserModal } from '../Modals/DeleteUserModal';
 import './UsersContent.css';
+
+interface SelectedUser {
+  id: string;
+  userName: string;
+  isBlocked: boolean;
+}
 
 export const UsersContent = () => {
   const { users, loading, error, fetchUsers } = useGetUsers();
   const { isSuperAdmin } = useAdminAuth();
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<SelectedUser | null>(null);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  const handleBlockClick = (user: any) => {
+    setSelectedUser({
+      id: user.id,
+      userName: user.userName,
+      isBlocked: user.isBlocked
+    });
+    setBlockModalOpen(true);
+  };
+
+  const handleDeleteClick = (user: any) => {
+    setSelectedUser({
+      id: user.id,
+      userName: user.userName,
+      isBlocked: user.isBlocked
+    });
+    setDeleteModalOpen(true);
+  };
+
+  const handleBlockSuccess = () => {
+    setBlockModalOpen(false);
+    setSelectedUser(null);
+    fetchUsers();
+  };
+
+  const handleDeleteSuccess = () => {
+    setDeleteModalOpen(false);
+    setSelectedUser(null);
+    fetchUsers();
+  };
 
   if (loading) {
     return (
@@ -52,12 +93,13 @@ export const UsersContent = () => {
               <th>Rola</th>
               <th>Status</th>
               <th>Data Rejestracji</th>
+              <th>Akcje</th>
             </tr>
           </thead>
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="empty-state">
+                <td colSpan={8} className="empty-state">
                   Brak użytkowników
                 </td>
               </tr>
@@ -79,6 +121,37 @@ export const UsersContent = () => {
                     </span>
                   </td>
                   <td>{new Date(user.createdAtUtc).toLocaleDateString('pl-PL')}</td>
+                  <td className="actions-cell">
+                    {/* Hide block/unblock button for deleted users */}
+                    {user.status.toLowerCase() !== 'deleted' && (
+                      <>
+                        {user.isBlocked ? (
+                          <button
+                            className="btn-action btn-unblock"
+                            onClick={() => handleBlockClick(user)}
+                            title="Odblokuj użytkownika"
+                          >
+                            🔓 Odblokuj
+                          </button>
+                        ) : (
+                          <button
+                            className="btn-action btn-block"
+                            onClick={() => handleBlockClick(user)}
+                            title="Zablokuj użytkownika"
+                          >
+                            🔒 Zablokuj
+                          </button>
+                        )}
+                      </>
+                    )}
+                    <button
+                      className="btn-action btn-delete"
+                      onClick={() => handleDeleteClick(user)}
+                      title="Usuń użytkownika"
+                    >
+                      🗑️ Usuń
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -96,6 +169,35 @@ export const UsersContent = () => {
           setInviteModalOpen(false);
         }}
       />
+
+      {/* Block/Unblock User Modal */}
+      {selectedUser && (
+        <BlockUserModal
+          isOpen={blockModalOpen}
+          onClose={() => {
+            setBlockModalOpen(false);
+            setSelectedUser(null);
+          }}
+          userId={selectedUser.id}
+          userName={selectedUser.userName}
+          isCurrentlyBlocked={selectedUser.isBlocked}
+          onSuccess={handleBlockSuccess}
+        />
+      )}
+
+      {/* Delete User Modal */}
+      {selectedUser && (
+        <DeleteUserModal
+          isOpen={deleteModalOpen}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setSelectedUser(null);
+          }}
+          userId={selectedUser.id}
+          userName={selectedUser.userName}
+          onSuccess={handleDeleteSuccess}
+        />
+      )}
     </div>
   );
 };

@@ -38,7 +38,8 @@ public interface IAdminAuthRepository
     Task UpdateAdminBackupCodesAsync(Guid adminId, string backupCodesJson, CancellationToken cancellationToken = default);
 
     /// <summary>Update last login attempt timestamp</summary>
-    Task UpdateLastLoginAttemptAsync(Guid adminId, CancellationToken cancellationToken = default);
+    /// COMMENTED OUT: Not needed for current features - may use for notification system or brute-force detection
+    // Task UpdateLastLoginAttemptAsync(Guid adminId, CancellationToken cancellationToken = default);
 
     /// <summary>Check if admin is super admin (used for invite privilege check)</summary>
     Task<bool> IsUserSuperAdminAsync(Guid userId, CancellationToken cancellationToken = default);

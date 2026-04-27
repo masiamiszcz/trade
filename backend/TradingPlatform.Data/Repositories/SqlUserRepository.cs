@@ -70,6 +70,21 @@ public sealed class SqlUserRepository : IUserRepository
         _dbContext.Users.Add(entity);
     }
 
+    public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
+    {
+        var entity = await _dbContext.Users.FindAsync(new object[] { user.Id }, cancellationToken);
+        if (entity == null)
+            throw new InvalidOperationException($"User with ID {user.Id} not found");
+
+        entity.BlockedUntilUtc = user.BlockedUntilUtc;
+        entity.BlockReason = user.BlockReason;
+        entity.DeletedAtUtc = user.DeletedAtUtc;
+        entity.LastLoginAtUtc = user.LastLoginAtUtc;
+        entity.Status = user.Status;
+
+        _dbContext.Users.Update(entity);
+    }
+
     public async Task<IEnumerable<User>> GetAllUsersAsync(CancellationToken cancellationToken = default)
     {
         var entities = await _dbContext.Users.ToListAsync(cancellationToken);
@@ -79,6 +94,45 @@ public sealed class SqlUserRepository : IUserRepository
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _dbContext.SaveChangesAsync(cancellationToken);
 
+    /// <summary>
+    /// Update user's last login timestamp
+    /// </summary>
+    public async Task UpdateLastLoginAsync(Guid userId, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        var entity = await _dbContext.Users.FindAsync(new object[] { userId }, cancellationToken);
+        if (entity == null)
+            return;
+
+        entity.LastLoginAtUtc = now;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     private static User MapToDomain(UserEntity entity)
-        => new User(entity.Id, entity.UserName, entity.Email, entity.FirstName, entity.LastName, entity.Role, entity.EmailConfirmed, entity.TwoFactorEnabled, entity.TwoFactorSecret, entity.BackupCodes, entity.Status, entity.BaseCurrency, entity.CreatedAtUtc);
+    {
+        var user = new User(
+            Id: entity.Id,
+            UserName: entity.UserName,
+            Email: entity.Email,
+            FirstName: entity.FirstName,
+            LastName: entity.LastName,
+
+            Role: entity.Role,
+            EmailConfirmed: entity.EmailConfirmed,
+            TwoFactorEnabled: entity.TwoFactorEnabled,
+            TwoFactorSecret: entity.TwoFactorSecret ?? string.Empty,
+            BackupCodes: entity.BackupCodes ?? string.Empty,
+
+            Status: entity.Status,
+
+            BaseCurrency: entity.BaseCurrency,
+            CreatedAtUtc: entity.CreatedAtUtc,
+
+            BlockedUntilUtc: entity.BlockedUntilUtc,
+            BlockReason: entity.BlockReason,
+            DeletedAtUtc: entity.DeletedAtUtc,
+            LastLoginAtUtc: entity.LastLoginAtUtc
+        );
+
+        return user;
+    }
 }
