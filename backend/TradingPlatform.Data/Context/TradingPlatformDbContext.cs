@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TradingPlatform.Core.Entities;
 using TradingPlatform.Data.Entities;
 
 namespace TradingPlatform.Data.Context;
@@ -17,6 +18,7 @@ public sealed class TradingPlatformDbContext(DbContextOptions<TradingPlatformDbC
     public DbSet<AdminAuditLogEntity> AdminAuditLogs => Set<AdminAuditLogEntity>();
     public DbSet<AdminRequestEntity> AdminRequests => Set<AdminRequestEntity>();
     public DbSet<AdminRegistrationLogEntity> AdminRegistrationLogs => Set<AdminRegistrationLogEntity>();
+    public DbSet<Core.Entities.ExchangeRateEntity> ExchangeRates => Set<Core.Entities.ExchangeRateEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

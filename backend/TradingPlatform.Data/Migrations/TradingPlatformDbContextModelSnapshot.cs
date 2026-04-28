@@ -22,6 +22,89 @@ namespace TradingPlatform.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("CurrencyEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("CurrencyEntity");
+                });
+
+            modelBuilder.Entity("RateSourceEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("RateSourceEntity");
+                });
+
+            modelBuilder.Entity("TradingPlatform.Core.Entities.ExchangeRateEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BaseCurrency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("QuoteCurrency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 8)
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BaseCurrency", "QuoteCurrency", "Timestamp");
+
+                    b.ToTable("ExchangeRates", (string)null);
+                });
+
             modelBuilder.Entity("TradingPlatform.Data.Entities.AccountEntity", b =>
                 {
                     b.Property<Guid>("Id")

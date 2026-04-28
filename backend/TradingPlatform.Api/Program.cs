@@ -15,6 +15,7 @@ using TradingPlatform.Core.Models;
 using TradingPlatform.Core.Services;
 using TradingPlatform.Data.Context;
 using TradingPlatform.Data.Extensions;
+using TradingPlatform.Data.Mapping;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +25,7 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"))
 
 builder.Services.AddValidators();
 builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddAutoMapper(typeof(MappingProfile), typeof(DataMappingProfile));
 
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 

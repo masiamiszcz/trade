@@ -6,6 +6,8 @@ using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Models;
 using TradingPlatform.Core.Services;
 using TradingPlatform.Data.Context;
+using TradingPlatform.Data.External;
+using TradingPlatform.Data.Providers;
 using TradingPlatform.Data.Repositories;
 using TradingPlatform.Data.Services;
 
@@ -57,6 +59,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditLogRepository, SqlAuditLogRepository>();
         services.AddScoped<IAdminAuditLogRepository, SqlAdminAuditLogRepository>();
         services.AddScoped<IInstrumentRepository, SqlInstrumentRepository>();
+        
+        // Register exchange rate system - MINIMAL
+        services.AddScoped<Data.Repositories.IExchangeRateRepository, SqlExchangeRateRepository>();
+        services.AddScoped<IExchangeRateService, Data.Services.ExchangeRateService>();
+        
+        // Single HTTP client for all external APIs
+        services.AddHttpClient<IExternalApiClient, ExternalApiClient>();
+        
+        // Background service for hourly rate fetching
+        services.AddHostedService<RateFetcherHostedService>();
         
         // Register admin auth repositories FIRST (needed by ApprovalService)
         services.AddScoped<IAdminAuthRepository, AdminAuthRepository>();
