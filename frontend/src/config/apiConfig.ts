@@ -112,6 +112,12 @@ export const API_CONFIG = {
       unblock: (id: string) => `/instruments/${id}/unblock`,
       delete: (id: string) => `/instruments/${id}`,
     },
+    
+    // ==================== CRYPTO SPECIFIC ====================
+    crypto: {
+      instruments: '/crypto/cryptoinstruments',
+      candlesBySymbol: (symbol: string) => `/crypto/${symbol}/candles`,
+    },
 
     // ==================== ADMIN: INSTRUMENTS ====================
         adminInstruments: {

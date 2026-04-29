@@ -1,12 +1,17 @@
 import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Column, DataTable } from '../components/common/DataTable';
-import { useAvailableInstruments } from '../hooks/useAvailableInstruments';
+import { useCryptoInstruments } from '../hooks/useCryptoInstruments';
 import './MarketDashboard.css';
 
 export interface Crypto {
   id: string;
   symbol: string;
   name: string;
+  description: string;
+  baseCurrency: string;
+  quoteCurrency: string;
+  status: string;
   price?: number;
   change?: number;
   changePercent?: number;
@@ -16,14 +21,19 @@ export interface Crypto {
 }
 
 export const CryptoDashboard: React.FC = () => {
-  const { crypto, loading, error } = useAvailableInstruments();
+  const navigate = useNavigate();
+  const { crypto, loading, error } = useCryptoInstruments();
 
   const columns: Column<Crypto>[] = [
     {
       key: 'symbol',
       label: 'Symbol',
       width: '15%',
-      render: (value: string) => <strong>{value}</strong>,
+      render: (value: string, item: Crypto) => (
+        <Link className="crypto-link" to={`/dashboard/crypto/${item.symbol}`}>
+          <strong>{value}</strong>
+        </Link>
+      ),
     },
     {
       key: 'name',
@@ -104,6 +114,7 @@ export const CryptoDashboard: React.FC = () => {
             data={crypto as unknown as Crypto[]}
             keyExtractor={(item) => item.id}
             emptyMessage="Brak dostępnych kryptowalut"
+            onRowClick={(item) => navigate(`/dashboard/crypto/${item.symbol}`)}
           />
         </div>
       </div>

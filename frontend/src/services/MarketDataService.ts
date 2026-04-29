@@ -101,6 +101,17 @@ class MarketDataService {
     }
   }
 
+  async getCryptoInstruments(): Promise<AdminInstrument[]> {
+    try {
+      return await httpClient.fetch<AdminInstrument[]>({
+        url: API_CONFIG.endpoints.crypto.instruments,
+        method: 'GET',
+      });
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   /**
    * Handle and normalize errors
    */

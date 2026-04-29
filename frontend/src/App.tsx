@@ -9,6 +9,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { AccountPage } from './pages/AccountPage';
 import { StockDashboard } from './pages/StockDashboard';
 import { CryptoDashboard } from './pages/CryptoDashboard';
+import { CryptoPage } from './pages/CryptoPage';
 import { CFDDashboard } from './pages/CFDDashboard';
 import { useAuth } from './hooks/useAuth';
 
@@ -88,6 +89,14 @@ const App: React.FC = () => {
           element={
             <MainLayout>
               <CryptoDashboard />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/dashboard/crypto/:symbol"
+          element={
+            <MainLayout>
+              <CryptoPage />
             </MainLayout>
           }
         />

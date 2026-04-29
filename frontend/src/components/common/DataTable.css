@@ -44,6 +44,10 @@
   border-left: 3px solid #22c55e;
 }
 
+.clickable-row {
+  cursor: pointer;
+}
+
 .datatable-loading {
   padding: 30px;
   text-align: center;

@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using TradingPlatform.Api.Middleware;
+using TradingPlatform.Api.Hubs;
 using TradingPlatform.Core.Extensions;
 using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Mapping;
@@ -16,6 +17,7 @@ using TradingPlatform.Core.Services;
 using TradingPlatform.Data.Context;
 using TradingPlatform.Data.Extensions;
 using TradingPlatform.Data.Mapping;
+using TradingPlatform.Core.Enums;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,9 +48,14 @@ builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>
     {
         policy
-            .WithOrigins("http://localhost:3000", "http://127.0.0.1:3000")
+            .WithOrigins(
+                "http://localhost",
+                "http://127.0.0.1",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000")
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -76,6 +83,76 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
         ClockSkew = TimeSpan.FromMinutes(1)
     };
+
+    // 🔐 SECURITY: Validate user exists in database
+    // This is the critical security fix - JWT alone is not enough
+    // Every token must be backed by an active user in the database
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            // 1. Extract userId from 'sub' claim
+            var userIdClaim = context.Principal?.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                context.Fail("Invalid token - no user id");
+                return;
+            }
+
+            // 2. Try parse GUID safely
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                context.Fail("Invalid token - malformed user id");
+                return;
+            }
+
+            // 3. Determine if user is admin or regular user
+            var roleClaim = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            bool isAdmin = roleClaim == "Admin";
+
+            try
+            {
+                User? user = null;
+
+                if (isAdmin)
+                {
+                    // Fetch admin user (using scoped service)
+                    var adminAuthRepository = context.HttpContext.RequestServices
+                        .GetRequiredService<IAdminAuthRepository>();
+                    user = await adminAuthRepository.GetAdminByIdAsync(userId);
+                }
+                else
+                {
+                    // Fetch regular user (using scoped service)
+                    var userRepository = context.HttpContext.RequestServices
+                        .GetRequiredService<IUserRepository>();
+                    user = await userRepository.GetByIdAsync(userId);
+                }
+
+                // 4. Validate user exists in database
+                if (user == null)
+                {
+                    context.Fail($"User {userId} does not exist in database");
+                    return;
+                }
+
+                // 5. Validate user is active
+                if (user.Status != UserStatus.Active)
+                {
+                    context.Fail($"User {userId} is not active (status: {user.Status})");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                var logger = context.HttpContext.RequestServices
+                    .GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "🔐 Token validation error for user {UserId}: {ErrorMessage}", userIdClaim, ex.Message);
+                
+                context.Fail("Token validation failed");
+            }
+        }
+    };
 });
 
 builder.Services.AddAuthorization(options =>
@@ -85,6 +162,10 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddDataServices(builder.Configuration);
+builder.Services.Configure<TradingPlatform.Core.Models.BinanceSettings>(builder.Configuration.GetSection("Binance"));
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IPriceUpdatePublisher, TradingPlatform.Api.Services.PriceUpdatePublisher>();
+builder.Services.AddScoped<ICryptoService, TradingPlatform.Data.Services.CryptoService>();
 
 // 🔐 Enable HttpContext access for 2FA wrapper (extracts userId from JWT claims)
 builder.Services.AddHttpContextAccessor();
@@ -130,6 +211,8 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHub<CryptoPricesHub>("/hubs/prices").RequireCors("Frontend");
 
 // Apply migrations on startup
 using (var scope = app.Services.CreateScope())

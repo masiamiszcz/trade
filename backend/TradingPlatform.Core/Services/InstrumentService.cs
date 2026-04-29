@@ -196,14 +196,15 @@ public sealed class InstrumentService : IInstrumentService
         // Prepare payload
         var payloadJson = JsonSerializer.Serialize(new
         {
+            symbol = string.IsNullOrWhiteSpace(request.Symbol) ? null : request.Symbol.ToUpper(),
             name = request.Name,
             description = request.Description,
-            baseCurrency = request.BaseCurrency,
-            quoteCurrency = request.QuoteCurrency
+            baseCurrency = string.IsNullOrWhiteSpace(request.BaseCurrency) ? null : request.BaseCurrency.ToUpper(),
+            quoteCurrency = string.IsNullOrWhiteSpace(request.QuoteCurrency) ? null : request.QuoteCurrency.ToUpper()
         });
 
         // Generate readable reason with full payload details
-        var updateReason = $"Requested update: name: '{request.Name}', description: '{request.Description}', baseCurrency: '{request.BaseCurrency}', quoteCurrency: '{request.QuoteCurrency}'";
+        var updateReason = $"Requested update: name: '{request.Name}', symbol: '{request.Symbol?.ToUpper()}', description: '{request.Description}', baseCurrency: '{request.BaseCurrency}', quoteCurrency: '{request.QuoteCurrency}'";
 
         // Delegate to ApprovalService to create the request
         // This handles idempotency and audit logging
@@ -488,12 +489,35 @@ public sealed class InstrumentService : IInstrumentService
         try
         {
             var payload = JsonSerializer.Deserialize<JsonElement>(payloadJson);
+
+            string? symbol = null;
+            if (payload.TryGetProperty("symbol", out var symbolProperty) && symbolProperty.ValueKind == JsonValueKind.String)
+            {
+                symbol = symbolProperty.GetString()?.ToUpper();
+            }
+
+            if (!string.IsNullOrWhiteSpace(symbol) && !string.Equals(symbol, instrument.Symbol, StringComparison.OrdinalIgnoreCase))
+            {
+                var existingBySymbol = await _instrumentRepository.GetBySymbolAsync(symbol, cancellationToken);
+                if (existingBySymbol is not null && existingBySymbol.Id != id)
+                {
+                    throw new InvalidOperationException($"Instrument with symbol {symbol} already exists.");
+                }
+            }
+
             var updated = instrument with
             {
+                Symbol = string.IsNullOrWhiteSpace(symbol) ? instrument.Symbol : symbol,
                 Name = payload.GetProperty("name").GetString() ?? instrument.Name,
-                Description = payload.GetProperty("description").GetString() ?? instrument.Description,
-                BaseCurrency = payload.GetProperty("baseCurrency").GetString() ?? instrument.BaseCurrency,
-                QuoteCurrency = payload.GetProperty("quoteCurrency").GetString() ?? instrument.QuoteCurrency,
+                Description = payload.TryGetProperty("description", out var descProp) && descProp.ValueKind == JsonValueKind.String
+                    ? descProp.GetString() ?? instrument.Description
+                    : instrument.Description,
+                BaseCurrency = payload.TryGetProperty("baseCurrency", out var baseProp) && baseProp.ValueKind == JsonValueKind.String
+                    ? baseProp.GetString()?.ToUpper() ?? instrument.BaseCurrency
+                    : instrument.BaseCurrency,
+                QuoteCurrency = payload.TryGetProperty("quoteCurrency", out var quoteProp) && quoteProp.ValueKind == JsonValueKind.String
+                    ? quoteProp.GetString()?.ToUpper() ?? instrument.QuoteCurrency
+                    : instrument.QuoteCurrency,
                 ModifiedAtUtc = DateTimeOffset.UtcNow
             };
 

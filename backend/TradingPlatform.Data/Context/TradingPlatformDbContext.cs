@@ -19,6 +19,7 @@ public sealed class TradingPlatformDbContext(DbContextOptions<TradingPlatformDbC
     public DbSet<AdminRequestEntity> AdminRequests => Set<AdminRequestEntity>();
     public DbSet<AdminRegistrationLogEntity> AdminRegistrationLogs => Set<AdminRegistrationLogEntity>();
     public DbSet<Core.Entities.ExchangeRateEntity> ExchangeRates => Set<Core.Entities.ExchangeRateEntity>();
+    public DbSet<CandleEntity> Candles => Set<CandleEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

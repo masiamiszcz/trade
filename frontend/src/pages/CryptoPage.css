@@ -1,0 +1,194 @@
+.crypto-page {
+  padding: 32px;
+  background: radial-gradient(circle at top left, rgba(0, 212, 255, 0.18), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(255, 20, 147, 0.16), transparent 28%),
+    linear-gradient(180deg, #070b19 0%, #101828 100%);
+  min-height: 100%;
+}
+
+.crypto-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.crypto-page-header h1 {
+  margin: 0;
+  font-size: 2.4rem;
+  letter-spacing: 0.02em;
+  color: #d7f2ff;
+  text-shadow: 0 0 16px rgba(0, 212, 255, 0.35);
+}
+
+.crypto-page-header .subtitle {
+  color: #b0c8ff;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.back-link {
+  color: #8df3ff;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.crypto-page-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.instrument-summary {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 24px;
+}
+
+.instrument-card,
+.live-summary {
+  background: rgba(10, 18, 41, 0.92);
+  border-radius: 18px;
+  border: 1px solid rgba(81, 188, 255, 0.18);
+  box-shadow: 0 24px 80px rgba(0, 212, 255, 0.06);
+  padding: 28px;
+  backdrop-filter: blur(12px);
+}
+
+.instrument-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.instrument-card::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: -40px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.22), transparent 60%);
+  pointer-events: none;
+}
+
+.instrument-title {
+  font-size: 1.95rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+  color: #e8f8ff;
+}
+
+.instrument-symbol {
+  font-size: 1.05rem;
+  color: #7de5ff;
+  margin-bottom: 18px;
+}
+
+.instrument-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 18px;
+  color: #a3c9ff;
+}
+
+.instrument-description {
+  color: #cbd6f0;
+  line-height: 1.8;
+}
+
+.live-summary {
+  display: grid;
+  gap: 16px;
+}
+
+.live-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 20, 147, 0.18);
+  background: linear-gradient(180deg, rgba(4, 37, 70, 0.95), rgba(8, 16, 41, 0.95));
+}
+
+.live-label {
+  font-weight: 700;
+  color: #94d6ff;
+}
+
+.live-value {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #f8fcff;
+}
+
+.live-status {
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.live-connected {
+  background: rgba(0, 255, 255, 0.14);
+  color: #7ef3ff;
+  box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.18);
+}
+
+.live-connecting {
+  background: rgba(255, 100, 255, 0.14);
+  color: #ff9bff;
+  box-shadow: inset 0 0 15px rgba(255, 102, 255, 0.18);
+}
+
+.live-disconnected {
+  background: rgba(255, 24, 147, 0.14);
+  color: #ff88c8;
+  box-shadow: inset 0 0 15px rgba(255, 24, 147, 0.18);
+}
+
+.crypto-note {
+  padding: 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(141, 243, 255, 0.2);
+  background: linear-gradient(180deg, rgba(4, 32, 62, 0.92), rgba(7, 12, 26, 0.95));
+  color: #c5d9ff;
+}
+
+.loader,
+.error-message {
+  padding: 18px;
+  border-radius: 16px;
+  background: rgba(5, 10, 20, 0.96);
+  border: 1px solid rgba(37, 139, 255, 0.25);
+  color: #e4efff;
+}
+
+.error-message {
+  border-color: rgba(255, 20, 147, 0.28);
+  color: #ff96d1;
+}
+
+@media (max-width: 960px) {
+  .instrument-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .crypto-page {
+    padding: 20px;
+  }
+
+  .instrument-card,
+  .live-summary {
+    padding: 22px;
+  }
+}

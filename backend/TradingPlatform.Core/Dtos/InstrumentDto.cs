@@ -39,6 +39,7 @@ public sealed record CreateInstrumentRequest(
 /// </summary>
 public sealed record UpdateInstrumentRequest(
     string Name,
+    string? Symbol = null,
     string? Description = null,
     string? BaseCurrency = null,
     string? QuoteCurrency = null);

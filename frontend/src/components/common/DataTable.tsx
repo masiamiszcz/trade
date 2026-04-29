@@ -14,11 +14,12 @@ interface DataTableProps<T> {
   keyExtractor: (item: T) => string | number;
   loading?: boolean;
   emptyMessage?: string;
+  onRowClick?: (item: T) => void;
 }
 
 export const DataTable = React.forwardRef<HTMLDivElement, DataTableProps<any>>(
   (
-    { columns, data, keyExtractor, loading = false, emptyMessage = 'Brak danych' },
+    { columns, data, keyExtractor, loading = false, emptyMessage = 'Brak danych', onRowClick },
     ref
   ) => {
     if (loading) {
@@ -43,7 +44,11 @@ export const DataTable = React.forwardRef<HTMLDivElement, DataTableProps<any>>(
           </thead>
           <tbody>
             {data.map((item) => (
-              <tr key={keyExtractor(item)}>
+              <tr
+                key={keyExtractor(item)}
+                onClick={onRowClick ? () => onRowClick(item) : undefined}
+                className={onRowClick ? 'clickable-row' : undefined}
+              >
                 {columns.map((col) => (
                   <td key={String(col.key)} style={{ width: col.width }}>
                     {col.render ? col.render(item[col.key], item) : String(item[col.key])}

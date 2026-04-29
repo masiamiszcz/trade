@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +11,7 @@ using TradingPlatform.Data.External;
 using TradingPlatform.Data.Providers;
 using TradingPlatform.Data.Repositories;
 using TradingPlatform.Data.Services;
+using TradingPlatform.Data.Services.Market;
 
 namespace TradingPlatform.Data.Extensions;
 
@@ -29,6 +31,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IMarketDataRepository, SqlMarketDataRepository>();
         services.AddScoped<IMarketDataService, MarketDataService>();
+        services.AddSingleton<ICandleRepository, SqlCandleRepository>();
         services.AddScoped<IUserRepository, SqlUserRepository>();
         services.AddScoped<IAccountRepository, SqlAccountRepository>();
         services.AddScoped<IAccountService, AccountService>();
@@ -89,6 +92,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAdminAuthService, AdminAuthService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<IAdminService, AdminService>();
+
+        // Binance WebSocket Market Data
+        services.AddSingleton(Channel.CreateUnbounded<Trade>());
+        services.AddSingleton<MarketProcessingService>();  // Singleton - wstrzykiwany do BinanceWebSocketService
+        services.AddHostedService<MarketProcessingService>();
+        services.AddHostedService<BinanceWebSocketService>();
 
         return services;
     }

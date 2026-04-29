@@ -81,6 +81,17 @@
   font-size: 0.9rem;
 }
 
+.crypto-link {
+  color: #00d4ff;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.crypto-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
 /* Price Cell Styling */
 .price-cell {
   font-weight: 600;
