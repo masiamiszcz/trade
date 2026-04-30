@@ -94,7 +94,7 @@ public sealed class CryptoServiceTests
             instrumentService.Object,
             candleRepository.Object);
 
-        var result = (await service.GetChartCandlesAsync("btcUsd", 50000, null, CancellationToken.None)).ToList();
+        var result = (await service.GetChartCandlesAsync("btcUsd", 50000, null, null, CancellationToken.None)).ToList();
 
         Assert.Single(result);
         Assert.Equal("BTCUSD", result[0].Symbol);
@@ -175,7 +175,7 @@ public sealed class CryptoServiceTests
             instrumentService.Object,
             candleRepository.Object);
 
-        var result = (await service.GetChartCandlesAsync("BTCUSD", 2, null, CancellationToken.None)).ToList();
+        var result = (await service.GetChartCandlesAsync("BTCUSD", 2, null, null, CancellationToken.None)).ToList();
 
         Assert.Equal(2, result.Count);
         Assert.All(result, candle => Assert.Equal("1m", candle.Interval));
@@ -187,5 +187,37 @@ public sealed class CryptoServiceTests
             It.IsAny<DateTime>(),
             It.IsAny<DateTime>(),
             It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetChartCandlesAsync_WhenIntervalBelowMinimum_ThrowsArgumentException()
+    {
+        var instrument = new InstrumentDto(
+            Guid.NewGuid(),
+            "BTCUSD",
+            "Bitcoin",
+            "Bitcoin USD",
+            InstrumentType.Crypto.ToString(),
+            "Crypto",
+            "USD",
+            "USD",
+            "Approved",
+            false,
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow);
+
+        var instrumentService = new Mock<IInstrumentService>();
+        instrumentService
+            .Setup(x => x.GetBySymbolAsync("BTCUSD", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(instrument);
+
+        var candleRepository = new Mock<ICandleRepository>();
+
+        var service = new CryptoService(
+            instrumentService.Object,
+            candleRepository.Object);
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => service.GetChartCandlesAsync("BTCUSD", 7 * 24 * 60, 1, null, CancellationToken.None));
     }
 }

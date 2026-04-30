@@ -113,13 +113,14 @@ class MarketDataService {
     }
   }
 
-  async getChartCandles(symbol: string, rangeMinutes: number, to?: string | null): Promise<CryptoCandle[]> {
+  async getChartCandles(symbol: string, rangeMinutes: number, intervalMinutes?: number, to?: string | null): Promise<CryptoCandle[]> {
     try {
       return await httpClient.fetch<CryptoCandle[]>({
         url: API_CONFIG.endpoints.crypto.chart(symbol),
         method: 'POST',
         body: JSON.stringify({
           rangeMinutes,
+          intervalMinutes: intervalMinutes ?? null,
           to: to ?? null,
         }),
       });
@@ -129,7 +130,7 @@ class MarketDataService {
   }
 
   async getCryptoChart(symbol: string, request: CryptoChartRequest): Promise<CryptoCandle[]> {
-    return this.getChartCandles(symbol, request.rangeMinutes, request.to);
+    return this.getChartCandles(symbol, request.rangeMinutes, request.intervalMinutes, request.to);
   }
 
   /**

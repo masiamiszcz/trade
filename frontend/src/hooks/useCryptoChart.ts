@@ -25,6 +25,7 @@ export interface UseCryptoChartResult {
 export function useCryptoChart(
   symbol: string | undefined,
   rangeMinutes: number,
+  intervalMinutes?: number,
 ): UseCryptoChartResult {
   const [candles, setCandles] = useState<CryptoCandle[]>([]);
   const [loading, setLoading] = useState(false);
@@ -42,7 +43,7 @@ export function useCryptoChart(
     setError(null);
 
     try {
-      const response = await MarketDataService.getChartCandles(symbol, rangeMinutes);
+      const response = await MarketDataService.getChartCandles(symbol, rangeMinutes, intervalMinutes);
       setCandles(response ?? []);
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : 'Unable to load chart data');
@@ -50,7 +51,7 @@ export function useCryptoChart(
     } finally {
       setLoading(false);
     }
-  }, [rangeMinutes, symbol]);
+  }, [rangeMinutes, symbol, intervalMinutes]);
 
   const updateLatestCandle = useCallback((candle: CryptoCandle) => {
     setCandles((previous) => {
@@ -58,14 +59,17 @@ export function useCryptoChart(
         return [candle];
       }
 
+      const maxCandles = Math.max(Math.ceil(rangeMinutes / Math.max(intervalMinutes ?? 1, 1)), 1);
       const last = previous[previous.length - 1];
       if (last.openTime === candle.openTime) {
-        return [...previous.slice(0, -1), candle];
+        const updated = [...previous.slice(0, -1), candle];
+        return updated.length > maxCandles ? updated.slice(updated.length - maxCandles) : updated;
       }
 
-      return [...previous, candle];
+      const next = [...previous, candle];
+      return next.length > maxCandles ? next.slice(next.length - maxCandles) : next;
     });
-  }, []);
+  }, [rangeMinutes, intervalMinutes]);
 
   useEffect(() => {
     fetchChart();

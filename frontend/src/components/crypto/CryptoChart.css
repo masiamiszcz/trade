@@ -49,19 +49,20 @@
 }
 
 .crypto-chart-ticks {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+  position: relative;
+  width: 100%;
+  margin-top: 10px;
+  min-height: 1.4rem;
   color: #aacfff;
   font-size: 0.78rem;
   opacity: 0.95;
 }
 
 .crypto-chart-ticks span {
-  text-align: left;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .crypto-chart-status,
@@ -86,9 +87,32 @@
 
 .crypto-chart-controls {
   display: grid;
-  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   align-items: end;
+}
+
+.crypto-chart-toggle {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(141, 243, 255, 0.2);
+  background: rgba(8, 16, 33, 0.96);
+  color: #eef9ff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.crypto-chart-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 40px rgba(0, 212, 255, 0.1);
+}
+
+.crypto-chart-toggle.active {
+  background: linear-gradient(90deg, #22c55e 0%, #10b981 100%);
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #091426;
 }
 
 .crypto-chart-control {

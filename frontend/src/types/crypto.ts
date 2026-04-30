@@ -12,5 +12,6 @@ export interface CryptoCandle {
 
 export interface CryptoChartRequest {
   rangeMinutes: number;
+  intervalMinutes?: number;
   to?: string | null;
 }

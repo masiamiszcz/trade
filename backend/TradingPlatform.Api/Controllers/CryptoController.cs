@@ -9,7 +9,7 @@ namespace TradingPlatform.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous]
+[Authorize]
 public sealed class CryptoController : ControllerBase
 {
     private readonly ICryptoService _cryptoService;
@@ -61,13 +61,19 @@ public sealed class CryptoController : ControllerBase
             return BadRequest(new { message = "RangeMinutes must be greater than zero." });
         }
 
+        if (request.IntervalMinutes.HasValue && request.IntervalMinutes.Value <= 0)
+        {
+            return BadRequest(new { message = "IntervalMinutes must be greater than zero when specified." });
+        }
+
         try
         {
             var candles = await _cryptoService.GetChartCandlesAsync(
                 symbol,
                 request.RangeMinutes,
-                to: request.To,
-                cancellationToken: cancellationToken);
+                request.IntervalMinutes,
+                request.To,
+                cancellationToken);
             return Ok(candles);
         }
         catch (KeyNotFoundException)

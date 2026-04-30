@@ -24,6 +24,11 @@ public sealed class CryptoService : ICryptoService
     private const int MAX_RANGE_MINUTES = 20 * YEAR;
     private const string BinanceSource = "binance";
 
+    private static readonly IReadOnlySet<int> SupportedIntervals = new HashSet<int>
+    {
+        1, 3, 5, 15, 30, 60, 120, 240, 1440
+    };
+
     public async Task<IEnumerable<InstrumentDto>> GetAvailableCryptoInstrumentsAsync(CancellationToken cancellationToken = default)
     {
         var activeInstruments = await _instrumentService.GetAllActiveAsync(cancellationToken);
@@ -49,6 +54,7 @@ public sealed class CryptoService : ICryptoService
     public async Task<IEnumerable<CandleDto>> GetChartCandlesAsync(
         string symbol,
         int rangeMinutes,
+        int? intervalMinutes = null,
         DateTime? to = null,
         CancellationToken cancellationToken = default)
     {
@@ -60,16 +66,39 @@ public sealed class CryptoService : ICryptoService
             throw new ArgumentException("RangeMinutes must be greater than zero.", nameof(rangeMinutes));
         }
 
-        rangeMinutes = Math.Min(rangeMinutes, MAX_RANGE_MINUTES);
+        if (intervalMinutes.HasValue && intervalMinutes.Value <= 0)
+        {
+            throw new ArgumentException("IntervalMinutes must be greater than zero.", nameof(intervalMinutes));
+        }
 
-        var intervalMinutes = ResolveIntervalMinutes(rangeMinutes);
+        rangeMinutes = Math.Min(rangeMinutes, MAX_RANGE_MINUTES);
+        var minimalIntervalMinutes = ResolveIntervalMinutes(rangeMinutes);
+        var requestedIntervalMinutes = intervalMinutes ?? minimalIntervalMinutes;
+
+        if (requestedIntervalMinutes > rangeMinutes)
+        {
+            throw new ArgumentException("IntervalMinutes must be less than or equal to RangeMinutes.", nameof(intervalMinutes));
+        }
+
+        if (requestedIntervalMinutes < minimalIntervalMinutes)
+        {
+            throw new ArgumentException(
+                $"IntervalMinutes must be at least {minimalIntervalMinutes} for the requested range of {rangeMinutes} minutes.",
+                nameof(intervalMinutes));
+        }
+
+        if (!IsSupportedInterval(requestedIntervalMinutes))
+        {
+            throw new ArgumentException($"IntervalMinutes '{requestedIntervalMinutes}' is not supported.", nameof(intervalMinutes));
+        }
+
         var source = BinanceSource;
         var querySymbol = normalizedSymbol;
 
         var endTime = to ?? DateTime.UtcNow;
         var rangeStart = endTime.AddMinutes(-rangeMinutes);
 
-        var candles = intervalMinutes == 1
+        var candles = requestedIntervalMinutes == 1
             ? await _candleRepository.GetBySymbolSourceIntervalAsync(
                 querySymbol,
                 source,
@@ -80,7 +109,7 @@ public sealed class CryptoService : ICryptoService
             : await _candleRepository.GetAggregatedFromOneMinuteSourceAsync(
                 querySymbol,
                 source,
-                intervalMinutes,
+                requestedIntervalMinutes,
                 rangeStart,
                 endTime,
                 cancellationToken);
@@ -110,6 +139,9 @@ public sealed class CryptoService : ICryptoService
 
         return 1440;
     }
+
+    private static bool IsSupportedInterval(int intervalMinutes)
+        => SupportedIntervals.Contains(intervalMinutes);
 
     private async Task<InstrumentDto> ValidateCryptoSymbolAsync(string symbol, CancellationToken cancellationToken)
     {

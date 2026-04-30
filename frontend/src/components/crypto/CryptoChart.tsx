@@ -9,6 +9,7 @@ interface CryptoChartProps {
   range: string;
   interval: string;
   source: string;
+  chartType: 'line' | 'candles';
 }
 
 function formatTick(dateString: string): string {
@@ -21,7 +22,7 @@ function formatTick(dateString: string): string {
   });
 }
 
-export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, error, range, interval, source }) => {
+export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, error, range, interval, source, chartType }) => {
   const chartData = useMemo(() => {
     if (candles.length === 0) return null;
 
@@ -29,12 +30,7 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
       (a, b) => new Date(a.openTime).getTime() - new Date(b.openTime).getTime()
     );
 
-    const points = sortedCandles.map((c) => ({
-      time: c.openTime,
-      value: c.close,
-    }));
-
-    const values = points.map((point) => point.value);
+    const values = sortedCandles.flatMap((c) => [c.high, c.low, c.close]);
     const max = Math.max(...values);
     const min = Math.min(...values);
     const yRange = max - min || 1;
@@ -46,13 +42,17 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
     const innerHeight = height - padding * 2;
     const baseline = height - padding;
 
-    const coordinates = points.map((point, index) => {
-      const x = padding + (innerWidth * index) / Math.max(points.length - 1, 1);
-      const y = padding + innerHeight - ((point.value - min) / yRange) * innerHeight;
-      return { x, y, label: formatTick(point.time), value: point.value };
+    const barWidth = Math.min(innerWidth / Math.max(sortedCandles.length, 1) * 0.6, 32);
+    const xSpan = Math.max(innerWidth - barWidth, 0);
+    const coordinates = sortedCandles.map((candle, index) => {
+      const x = padding + barWidth / 2 + (xSpan * index) / Math.max(sortedCandles.length - 1, 1);
+      const y = padding + innerHeight - ((candle.close - min) / yRange) * innerHeight;
+      return { x, y, label: formatTick(candle.openTime), value: candle.close };
     });
 
-    const polylinePoints = coordinates.map((point) => `${point.x},${point.y}`).join(' ');
+    const polylinePoints = coordinates
+      .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+      .join(' ');
 
     const areaPath = coordinates.reduce((path, point, index) => {
       if (index === 0) {
@@ -65,10 +65,35 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
       ? `${areaPath} L ${coordinates[coordinates.length - 1].x} ${baseline} L ${coordinates[0].x} ${baseline} Z`
       : '';
 
-    const yLabels = [max, min].map((value) => ({
-      value,
-      y: padding + innerHeight - ((value - min) / yRange) * innerHeight,
-    }));
+    const candleBars = sortedCandles.map((candle, index) => {
+      const xCenter = padding + barWidth / 2 + (xSpan * index) / Math.max(sortedCandles.length - 1, 1);
+      const yHigh = padding + innerHeight - ((candle.high - min) / yRange) * innerHeight;
+      const yLow = padding + innerHeight - ((candle.low - min) / yRange) * innerHeight;
+      const yOpen = padding + innerHeight - ((candle.open - min) / yRange) * innerHeight;
+      const yClose = padding + innerHeight - ((candle.close - min) / yRange) * innerHeight;
+      const bodyTop = Math.min(yOpen, yClose);
+      const bodyHeight = Math.max(Math.abs(yClose - yOpen), 2);
+
+      return {
+        xCenter,
+        yHigh,
+        yLow,
+        bodyTop,
+        bodyHeight,
+        isUp: candle.close >= candle.open,
+        barWidth,
+        label: formatTick(candle.openTime),
+      };
+    });
+
+    const gridLines = 5;
+    const yLabels = Array.from({ length: gridLines }, (_, index) => {
+      const value = max - (yRange * index) / (gridLines - 1);
+      return {
+        value,
+        y: padding + innerHeight - ((value - min) / yRange) * innerHeight,
+      };
+    });
 
     return {
       chartWidth: width,
@@ -76,6 +101,7 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
       coordinates,
       polylinePoints,
       areaPath: areaPathClosed,
+      candleBars,
       min,
       max,
       baseline,
@@ -90,7 +116,7 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
       <div className="crypto-chart-header">
         <div>
           <h2>Chart</h2>
-          <p className="crypto-chart-meta">{range} range · {interval} interval · Source: {source}</p>
+          <p className="crypto-chart-meta">{range} range · {interval} interval · {chartType === 'candles' ? 'Świece' : 'Linia'} · Source: {source}</p>
         </div>
         <div className="crypto-chart-summary">
           <span>Points: {candles.length}</span>
@@ -126,47 +152,87 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
               stroke="rgba(255,255,255,0.12)"
               strokeWidth="1"
             />
-            {chartData.yLabels.map((label) => (
-              <g key={label.value}>
+            {chartData.yLabels.map((label, index) => (
+              <g key={index}>
                 <line
                   x1={chartData.padding}
                   y1={label.y}
                   x2={chartData.chartWidth - chartData.padding}
                   y2={label.y}
-                  stroke="rgba(255,255,255,0.06)"
+                  stroke="rgba(255,255,255,0.12)"
                   strokeWidth="1"
+                  strokeDasharray="4 6"
                 />
-                <text x={chartData.padding} y={label.y - 8} fill="#9fc7ff" fontSize="10" opacity="0.75">
+                <text x={chartData.padding - 10} y={label.y - 8} fill="#9fc7ff" fontSize="10" opacity="0.75" textAnchor="end">
                   {label.value.toFixed(2)}
                 </text>
               </g>
             ))}
-            <path
-              d={chartData.areaPath}
-              fill="url(#chartGradient)"
-              opacity="0.55"
-            />
-            <path
-              d={`${chartData.polylinePoints}`}
-              fill="none"
-              stroke="#7de5ff"
-              strokeWidth="2.2"
-              vectorEffect="non-scaling-stroke"
-            />
-            {chartData.coordinates.map((point, index) => (
-              <circle key={index} cx={point.x} cy={point.y} r="3.4" fill="#a5f3ff" />
-            ))}
-            <text x="16" y="32" fill="#c7e8ff" fontSize="11" opacity="0.88">
-              {chartData.max.toFixed(2)}
-            </text>
-            <text x="16" y={chartData.chartHeight - 14} fill="#c7e8ff" fontSize="11" opacity="0.88">
-              {chartData.min.toFixed(2)}
-            </text>
+            {chartType === 'line' ? (
+              <>
+                <path
+                  d={chartData.areaPath}
+                  fill="url(#chartGradient)"
+                  opacity="0.55"
+                />
+                <path
+                  d={`${chartData.polylinePoints}`}
+                  fill="none"
+                  stroke="#7de5ff"
+                  strokeWidth="2.2"
+                  vectorEffect="non-scaling-stroke"
+                />
+                {chartData.coordinates.map((point, index) => (
+                  <circle key={index} cx={point.x} cy={point.y} r="3.4" fill="#a5f3ff" />
+                ))}
+              </>
+            ) : (
+              <>
+                {chartData.candleBars.map((bar, index) => (
+                  <g key={index}>
+                    <line
+                      x1={bar.xCenter}
+                      y1={bar.yHigh}
+                      x2={bar.xCenter}
+                      y2={bar.yLow}
+                      stroke={bar.isUp ? '#22c55e' : '#f43f5e'}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                    <rect
+                      x={bar.xCenter - bar.barWidth / 2}
+                      y={bar.bodyTop}
+                      width={bar.barWidth}
+                      height={bar.bodyHeight}
+                      fill={bar.isUp ? '#22c55e' : '#f43f5e'}
+                      rx="1"
+                    />
+                  </g>
+                ))}
+              </>
+            )}
           </svg>
           <div className="crypto-chart-ticks">
-            {chartData.coordinates.filter((_, index) => index % Math.max(Math.ceil(chartData.coordinates.length / 6), 1) === 0).map((point, index) => (
-              <span key={index}>{point.label}</span>
-            ))}
+            {chartData.coordinates.filter((_, index) => index % Math.max(Math.ceil(chartData.coordinates.length / 6), 1) === 0).map((point, index, ticks) => {
+              const isFirst = index === 0;
+              const isLast = index === ticks.length - 1;
+              const offset = isFirst ? 'translateX(0)' : isLast ? 'translateX(-100%)' : 'translateX(-50%)';
+              const anchor = isFirst ? 'start' : isLast ? 'end' : 'middle';
+
+              return (
+                <span
+                  key={index}
+                  style={{
+                    left: `${(point.x / chartData.chartWidth) * 100}%`,
+                    transform: offset,
+                    textAlign: isFirst ? 'left' : isLast ? 'right' : 'center',
+                    display: 'inline-block',
+                  }}
+                >
+                  {point.label}
+                </span>
+              );
+            })}
           </div>
         </div>
       )}

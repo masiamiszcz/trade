@@ -31,6 +31,9 @@ const App: React.FC = () => {
 
   const isDashboard = location.pathname === '/dashboard';
 
+  const requireAuth = (element: React.ReactNode) =>
+    auth.isAuthenticated ? element : <Navigate to="/login" replace />;
+
   return (
     <AdminAuthProvider>
       <Routes>
@@ -58,55 +61,55 @@ const App: React.FC = () => {
         {/* Dashboard */}
         <Route
           path="/dashboard"
-          element={
+          element={requireAuth(
             <MainLayout isDashboard={isDashboard}>
               <DashboardPage />
             </MainLayout>
-          }
+          )}
         />
 
         {/* Account Page - Konto i Transakcje */}
         <Route
           path="/dashboard/account"
-          element={
+          element={requireAuth(
             <MainLayout>
               <AccountPage />
             </MainLayout>
-          }
+          )}
         />
 
         {/* Market Dashboards - Stock, Crypto, CFD */}
         <Route
           path="/dashboard/stock"
-          element={
+          element={requireAuth(
             <MainLayout>
               <StockDashboard />
             </MainLayout>
-          }
+          )}
         />
         <Route
           path="/dashboard/crypto"
-          element={
+          element={requireAuth(
             <MainLayout>
               <CryptoDashboard />
             </MainLayout>
-          }
+          )}
         />
         <Route
           path="/dashboard/crypto/:symbol"
-          element={
+          element={requireAuth(
             <MainLayout>
               <CryptoPage />
             </MainLayout>
-          }
+          )}
         />
         <Route
           path="/dashboard/cfd"
-          element={
+          element={requireAuth(
             <MainLayout>
               <CFDDashboard />
             </MainLayout>
-          }
+          )}
         />
 
         {/* ===== ADMIN AUTH ROUTES ===== */}
