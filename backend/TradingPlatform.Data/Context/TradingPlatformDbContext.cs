@@ -29,6 +29,7 @@ public sealed class TradingPlatformDbContext(DbContextOptions<TradingPlatformDbC
         modelBuilder.Entity<CandleEntity>(entity =>
         {
             entity.HasIndex(c => new { c.Symbol, c.Source, c.IntervalMinutes, c.OpenTime })
+                .IsUnique()
                 .HasDatabaseName("IX_Candles_Symbol_Source_Interval_OpenTime");
         });
 

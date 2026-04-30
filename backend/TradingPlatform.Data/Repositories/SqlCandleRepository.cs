@@ -22,6 +22,7 @@ public class SqlCandleRepository(IServiceProvider serviceProvider) : ICandleRepo
         var dbContext = scope.ServiceProvider.GetRequiredService<TradingPlatformDbContext>();
         
         return await dbContext.Candles
+            .AsNoTracking()
             .Where(c => c.Symbol == symbol)
             .OrderByDescending(c => c.OpenTime)
             .ToListAsync(cancellationToken);
@@ -39,6 +40,7 @@ public class SqlCandleRepository(IServiceProvider serviceProvider) : ICandleRepo
         var dbContext = scope.ServiceProvider.GetRequiredService<TradingPlatformDbContext>();
 
         return await dbContext.Candles
+            .AsNoTracking()
             .Where(c => c.Symbol == symbol && c.Source == source && c.IntervalMinutes == intervalMinutes)
             .Where(c => c.OpenTime >= from && c.OpenTime < to)
             .OrderByDescending(c => c.OpenTime)
@@ -56,37 +58,88 @@ public class SqlCandleRepository(IServiceProvider serviceProvider) : ICandleRepo
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TradingPlatformDbContext>();
 
+        var candlesQuery = dbContext.Candles
+            .AsNoTracking()
+            .Where(c => c.Symbol == symbol && c.Source == source && c.IntervalMinutes == 1)
+            .Where(c => c.OpenTime >= from && c.OpenTime < to);
+
+        if (dbContext.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            var candles = await candlesQuery
+                .OrderBy(c => c.OpenTime)
+                .ToListAsync(cancellationToken);
+
+            return candles
+                .GroupBy(c => GetIntervalBoundary(c.OpenTime, targetIntervalMinutes))
+                .Select(group =>
+                {
+                    var ordered = group.OrderBy(c => c.OpenTime).ToList();
+                    return new CandleEntity
+                    {
+                        Symbol = symbol,
+                        Source = source,
+                        IntervalMinutes = targetIntervalMinutes,
+                        OpenTime = group.Key,
+                        CloseTime = group.Key.AddMinutes(targetIntervalMinutes),
+                        Open = ordered.First().Open,
+                        High = ordered.Max(c => c.High),
+                        Low = ordered.Min(c => c.Low),
+                        Close = ordered.Last().Close,
+                        Volume = ordered.Sum(c => c.Volume)
+                    };
+                })
+                .OrderBy(c => c.OpenTime)
+                .ToList();
+        }
+
         var epoch = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        var query = dbContext.Candles
-            .Where(c => c.Symbol == symbol && c.Source == source && c.IntervalMinutes == 1)
-            .Where(c => c.OpenTime >= from && c.OpenTime < to)
+        var grouped = candlesQuery
             .GroupBy(c => EF.Functions.DateDiffMinute(epoch, c.OpenTime) / targetIntervalMinutes)
-            .Select(g => new
+            .Select(group => new
             {
-                BucketKey = g.Key,
-                OpenCandle = g.OrderBy(c => c.OpenTime).First(),
-                CloseCandle = g.OrderByDescending(c => c.OpenTime).First(),
-                High = g.Max(c => c.High),
-                Low = g.Min(c => c.Low),
-                Volume = g.Sum(c => c.Volume)
-            })
-            .Select(bucket => new CandleEntity
+                Bucket = group.Key,
+                OpenTime = epoch.AddMinutes(group.Key * targetIntervalMinutes),
+                CloseTime = epoch.AddMinutes((group.Key + 1) * targetIntervalMinutes),
+                FirstOpenTime = group.Min(c => c.OpenTime),
+                LastOpenTime = group.Max(c => c.OpenTime),
+                High = group.Max(c => c.High),
+                Low = group.Min(c => c.Low),
+                Volume = group.Sum(c => c.Volume)
+            });
+
+        return await grouped
+            .Select(group => new CandleEntity
             {
                 Symbol = symbol,
                 Source = source,
                 IntervalMinutes = targetIntervalMinutes,
-                OpenTime = epoch.AddMinutes(bucket.BucketKey * targetIntervalMinutes),
-                CloseTime = epoch.AddMinutes((bucket.BucketKey + 1) * targetIntervalMinutes),
-                Open = bucket.OpenCandle.Open,
-                High = bucket.High,
-                Low = bucket.Low,
-                Close = bucket.CloseCandle.Close,
-                Volume = bucket.Volume
+                OpenTime = group.OpenTime,
+                CloseTime = group.CloseTime,
+                Open = candlesQuery
+                    .Where(c => EF.Functions.DateDiffMinute(epoch, c.OpenTime) / targetIntervalMinutes == group.Bucket
+                                && c.OpenTime == group.FirstOpenTime)
+                    .Select(c => c.Open)
+                    .FirstOrDefault(),
+                High = group.High,
+                Low = group.Low,
+                Close = candlesQuery
+                    .Where(c => EF.Functions.DateDiffMinute(epoch, c.OpenTime) / targetIntervalMinutes == group.Bucket
+                                && c.OpenTime == group.LastOpenTime)
+                    .Select(c => c.Close)
+                    .FirstOrDefault(),
+                Volume = group.Volume
             })
-            .OrderBy(c => c.OpenTime);
+            .OrderBy(c => c.OpenTime)
+            .ToListAsync(cancellationToken);
+    }
 
-        return await query.ToListAsync(cancellationToken);
+    private static DateTime GetIntervalBoundary(DateTime openTime, int intervalMinutes)
+    {
+        var epoch = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var totalMinutes = (int)((openTime.ToUniversalTime() - epoch).TotalMinutes);
+        var bucket = totalMinutes / intervalMinutes;
+        return epoch.AddMinutes(bucket * intervalMinutes);
     }
 
     public async Task<List<CandleEntity>> GetBySourceIntervalOpenTimeAsync(

@@ -16,6 +16,7 @@ public class BinanceWebSocketService : BackgroundService
     private readonly MarketProcessingService _marketProcessor;
     private readonly Channel<Trade> _channel;
     private readonly BinanceSettings _settings;
+    private readonly IStartupLoadCoordinator _startupLoadCoordinator;
 
     private decimal _lastPrice;
 
@@ -23,18 +24,36 @@ public class BinanceWebSocketService : BackgroundService
         ILogger<BinanceWebSocketService> logger,
         MarketProcessingService marketProcessor,
         Channel<Trade> channel,
-        IOptions<BinanceSettings> settings)
+        IOptions<BinanceSettings> settings,
+        IStartupLoadCoordinator startupLoadCoordinator)
     {
         _logger = logger;
         _marketProcessor = marketProcessor;
         _channel = channel;
         _settings = settings.Value;
+        _startupLoadCoordinator = startupLoadCoordinator;
     }
-    
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("🚀 Binance WS Service starting...");
+        _logger.LogInformation("🚀 Binance WS Service waiting for startup data load to complete...");
+
+        try
+        {
+            await _startupLoadCoordinator.WaitForReadyAsync(stoppingToken);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Binance WS startup cancelled before ready.");
+            return;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Binance WS will not start because startup data load failed.");
+            return;
+        }
+
+        _logger.LogInformation("🚀 Binance WS Service starting after historical data sync...");
 
         while (!stoppingToken.IsCancellationRequested)
         {

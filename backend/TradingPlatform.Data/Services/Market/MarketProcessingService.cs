@@ -15,7 +15,6 @@ public class MarketProcessingService : BackgroundService, IMarketDataHandler, IC
     private readonly Channel<Trade> _channel;
     private readonly ILogger<MarketProcessingService> _logger;
     private readonly ICandleRepository _candleRepository;
-    private readonly CandleAggregationService _aggregationService;
     private readonly IPriceUpdatePublisher _publisher;
     private readonly IActiveCandleSubscriptionRegistry _activeSubscriptionRegistry;
     
@@ -30,14 +29,12 @@ public class MarketProcessingService : BackgroundService, IMarketDataHandler, IC
         Channel<Trade> channel, 
         ILogger<MarketProcessingService> logger,
         ICandleRepository candleRepository,
-        CandleAggregationService aggregationService,
         IPriceUpdatePublisher publisher,
         IActiveCandleSubscriptionRegistry activeSubscriptionRegistry)
     {
         _channel = channel;
         _logger = logger;
         _candleRepository = candleRepository;
-        _aggregationService = aggregationService;
         _publisher = publisher;
         _activeSubscriptionRegistry = activeSubscriptionRegistry;
     }
@@ -123,7 +120,8 @@ public class MarketProcessingService : BackgroundService, IMarketDataHandler, IC
         candle.Close = trade.Price;
         candle.Volume += trade.Quantity;
 
-        await PublishCurrentStreamCandleStateAsync(candle);
+        // Do not publish partial 1m candles before they close.
+        // Chart updates should be emitted only when the candle is completed.
     }
 
     private async Task SaveCandleAsync(Candle candle)
@@ -145,7 +143,6 @@ public class MarketProcessingService : BackgroundService, IMarketDataHandler, IC
             };
 
             await _candleRepository.AddAsync(entity);
-            await _aggregationService.HandleCompletedCandleAsync(candle);
             
             _logger.LogInformation(
                 "💾 SAVED: {Symbol} {Time:yyyy-MM-dd HH:mm} O:{Open} H:{High} L:{Low} C:{Close} Vol:{Volume:F2}",
@@ -196,11 +193,9 @@ public class MarketProcessingService : BackgroundService, IMarketDataHandler, IC
             await PublishStreamCandleAsync(currentMinuteCandle, 1);
         }
 
-        foreach (var intervalMinutes in activeIntervals.Where(i => i != 1))
-        {
-            var currentIntervalCandle = BuildCurrentIntervalCandle(currentMinuteCandle, intervalMinutes);
-            await PublishStreamCandleAsync(currentIntervalCandle, intervalMinutes);
-        }
+        // For aggregated intervals larger than 1 minute, do not publish partial interval candles.
+        // This avoids an immediate first update on chart load and ensures the first update
+        // is published only when the completed interval is available.
     }
 
     public async Task InitializeActiveIntervalAsync(string symbol, int intervalMinutes, CancellationToken cancellationToken = default)

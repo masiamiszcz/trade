@@ -32,8 +32,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMarketDataRepository, SqlMarketDataRepository>();
         services.AddScoped<IMarketDataService, MarketDataService>();
         services.AddSingleton<ICandleRepository, SqlCandleRepository>();
+        services.AddSingleton<ICandleBulkInserter, SqlServerCandleBulkInserter>();
         services.AddScoped<IAssetMappingRepository, SqlAssetMappingRepository>();
-        services.AddSingleton<CandleAggregationService>();
         services.AddScoped<IUserRepository, SqlUserRepository>();
         services.AddScoped<IAccountRepository, SqlAccountRepository>();
         services.AddScoped<IAccountService, AccountService>();
@@ -77,6 +77,9 @@ public static class ServiceCollectionExtensions
         {
             client.BaseAddress = new Uri("https://api.binance.com/");
         });
+
+        // Coordinator for startup data loading (CSV + REST)
+        services.AddSingleton<IStartupLoadCoordinator, StartupLoadCoordinator>();
 
         // Background service for hourly rate fetching
         services.AddHostedService<RateFetcherHostedService>();
