@@ -117,6 +117,7 @@ export const API_CONFIG = {
     crypto: {
       instruments: '/crypto/cryptoinstruments',
       candlesBySymbol: (symbol: string) => `/crypto/${symbol}/candles`,
+      chart: (symbol: string) => `/crypto/${symbol}/chart`,
     },
 
     // ==================== ADMIN: INSTRUMENTS ====================

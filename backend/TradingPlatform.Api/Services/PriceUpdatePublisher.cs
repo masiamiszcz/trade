@@ -47,16 +47,51 @@ public class PriceUpdatePublisher : IPriceUpdatePublisher
             _logger.LogError(ex, "Redis publish failed for {Symbol}", symbolKey);
         }
 
+        var marketUpdate = new MarketStreamUpdateDto(priceUpdate, null);
+
         try
         {
             await _hubContext.Clients.Group(symbolKey)
-                .SendAsync("ReceivePriceUpdate", priceUpdate, cancellationToken);
+                .SendAsync("ReceiveMarketUpdate", marketUpdate, cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "SignalR publish failed for {Symbol}", symbolKey);
         }
     }
+
+    public async Task PublishCandleUpdateAsync(CandleDto candleUpdate, string interval, CancellationToken cancellationToken = default)
+    {
+        var symbolKey = candleUpdate.Symbol.ToUpperInvariant();
+        var groupName = GetCandleGroupName(symbolKey, interval);
+        var marketUpdate = new MarketStreamUpdateDto(null, candleUpdate);
+
+        try
+        {
+            await _hubContext.Clients.Group(groupName)
+                .SendAsync("ReceiveMarketUpdate", marketUpdate, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SignalR candle publish failed for {Symbol} {Interval}", symbolKey, interval);
+        }
+    }
+
+    public async Task PublishMarketUpdateAsync(MarketStreamUpdateDto marketUpdate, string groupName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _hubContext.Clients.Group(groupName)
+                .SendAsync("ReceiveMarketUpdate", marketUpdate, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SignalR market publish failed for {Group}", groupName);
+        }
+    }
+
+    private static string GetCandleGroupName(string symbol, string interval)
+        => $"{symbol}:{interval.Trim().ToLowerInvariant()}";
 
     public async Task PublishBatchAsync(IEnumerable<PriceUpdateDto> priceUpdates, CancellationToken cancellationToken = default)
     {

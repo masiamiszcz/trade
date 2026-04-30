@@ -32,6 +32,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMarketDataRepository, SqlMarketDataRepository>();
         services.AddScoped<IMarketDataService, MarketDataService>();
         services.AddSingleton<ICandleRepository, SqlCandleRepository>();
+        services.AddScoped<IAssetMappingRepository, SqlAssetMappingRepository>();
+        services.AddSingleton<CandleAggregationService>();
         services.AddScoped<IUserRepository, SqlUserRepository>();
         services.AddScoped<IAccountRepository, SqlAccountRepository>();
         services.AddScoped<IAccountService, AccountService>();
@@ -69,10 +71,17 @@ public static class ServiceCollectionExtensions
         
         // Single HTTP client for all external APIs
         services.AddHttpClient<IExternalApiClient, ExternalApiClient>();
-        
+
+        // Register Binance API client for startup polling
+        services.AddHttpClient<IBinanceApiClient, BinanceApiClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.binance.com/");
+        });
+
         // Background service for hourly rate fetching
         services.AddHostedService<RateFetcherHostedService>();
-        
+        services.AddHostedService<BinanceStartupPollingService>();
+
         // Register admin auth repositories FIRST (needed by ApprovalService)
         services.AddScoped<IAdminAuthRepository, AdminAuthRepository>();
         services.AddScoped<IAdminInvitationRepository, AdminInvitationRepository>();
@@ -95,7 +104,9 @@ public static class ServiceCollectionExtensions
 
         // Binance WebSocket Market Data
         services.AddSingleton(Channel.CreateUnbounded<Trade>());
-        services.AddSingleton<MarketProcessingService>();  // Singleton - wstrzykiwany do BinanceWebSocketService
+        services.AddSingleton<MarketProcessingService>();  // Singleton - injected into BinanceWebSocketService
+        services.AddSingleton<IActiveCandleSubscriptionRegistry, ActiveCandleSubscriptionRegistry>();
+        services.AddSingleton<ICandleStreamActivationService>(provider => provider.GetRequiredService<MarketProcessingService>());
         services.AddHostedService<MarketProcessingService>();
         services.AddHostedService<BinanceWebSocketService>();
 

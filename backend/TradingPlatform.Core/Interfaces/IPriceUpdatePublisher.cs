@@ -8,5 +8,7 @@ namespace TradingPlatform.Core.Interfaces;
 public interface IPriceUpdatePublisher
 {
     Task PublishAsync(PriceUpdateDto priceUpdate, CancellationToken cancellationToken = default);
+    Task PublishCandleUpdateAsync(CandleDto candleUpdate, string interval, CancellationToken cancellationToken = default);
+    Task PublishMarketUpdateAsync(MarketStreamUpdateDto marketUpdate, string groupName, CancellationToken cancellationToken = default);
     Task PublishBatchAsync(IEnumerable<PriceUpdateDto> priceUpdates, CancellationToken cancellationToken = default);
 }

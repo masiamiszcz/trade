@@ -479,6 +479,35 @@ namespace TradingPlatform.Data.Migrations
                     b.ToTable("AdminRequests", (string)null);
                 });
 
+            modelBuilder.Entity("TradingPlatform.Data.Entities.AssetMappingEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CoingeckoId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Symbol", "CoingeckoId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AssetMappings_Symbol_CoingeckoId");
+
+                    b.ToTable("AssetMappings");
+                });
+
             modelBuilder.Entity("TradingPlatform.Data.Entities.AuditLogEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -556,6 +585,9 @@ namespace TradingPlatform.Data.Migrations
                     b.Property<decimal>("High")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("IntervalMinutes")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Low")
                         .HasColumnType("decimal(18,2)");
 
@@ -565,14 +597,21 @@ namespace TradingPlatform.Data.Migrations
                     b.Property<DateTime>("OpenTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("Symbol")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("Volume")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Symbol", "Source", "IntervalMinutes", "OpenTime")
+                        .HasDatabaseName("IX_Candles_Symbol_Source_Interval_OpenTime");
 
                     b.ToTable("Candles");
                 });

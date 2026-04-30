@@ -11,6 +11,7 @@ import { ApiError, getErrorMessage } from './http/ApiError';
 import { API_CONFIG } from '../config/apiConfig';
 import type { Instrument as AdminInstrument } from '../types/admin';
 import type { HealthStatus, MarketAsset } from '../types';
+import type { CryptoCandle, CryptoChartRequest } from '../types/crypto';
 
 /**
  * Instrument type - basic market instrument
@@ -110,6 +111,25 @@ class MarketDataService {
     } catch (error) {
       throw this.handleError(error);
     }
+  }
+
+  async getChartCandles(symbol: string, rangeMinutes: number, to?: string | null): Promise<CryptoCandle[]> {
+    try {
+      return await httpClient.fetch<CryptoCandle[]>({
+        url: API_CONFIG.endpoints.crypto.chart(symbol),
+        method: 'POST',
+        body: JSON.stringify({
+          rangeMinutes,
+          to: to ?? null,
+        }),
+      });
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async getCryptoChart(symbol: string, request: CryptoChartRequest): Promise<CryptoCandle[]> {
+    return this.getChartCandles(symbol, request.rangeMinutes, request.to);
   }
 
   /**

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TradingPlatform.Api.Models;
 using TradingPlatform.Core.Dtos;
 using TradingPlatform.Core.Enums;
 using TradingPlatform.Core.Interfaces;
@@ -31,17 +32,51 @@ public sealed class CryptoController : ControllerBase
     [HttpGet("{symbol}/candles")]
     public async Task<ActionResult<IEnumerable<CandleDto>>> GetCandlesBySymbol(
         string symbol,
-        [FromQuery] int limit = 100,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var candles = await _cryptoService.GetCandlesBySymbolAsync(symbol, limit, cancellationToken);
+            var candles = await _cryptoService.GetCandlesBySymbolAsync(symbol, cancellationToken);
             return Ok(candles);
         }
         catch (KeyNotFoundException)
         {
             return NotFound(new { message = $"Crypto symbol '{symbol}' not available." });
+        }
+    }
+
+    [HttpPost("{symbol}/chart")]
+    public async Task<ActionResult<IEnumerable<CandleDto>>> GetChartCandles(
+        string symbol,
+        [FromBody] ChartRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request is null)
+        {
+            return BadRequest(new { message = "Request body is required." });
+        }
+
+        if (request.RangeMinutes <= 0)
+        {
+            return BadRequest(new { message = "RangeMinutes must be greater than zero." });
+        }
+
+        try
+        {
+            var candles = await _cryptoService.GetChartCandlesAsync(
+                symbol,
+                request.RangeMinutes,
+                to: request.To,
+                cancellationToken: cancellationToken);
+            return Ok(candles);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = $"Crypto symbol '{symbol}' not available." });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
     }
 }

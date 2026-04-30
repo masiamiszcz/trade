@@ -1,8 +1,22 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useCryptoInstruments } from '../hooks/useCryptoInstruments';
 import { useSignalR } from '../hooks/useSignalR';
+import { useCryptoChart } from '../hooks/useCryptoChart';
+import { CryptoChart } from '../components/crypto/CryptoChart';
+import type { CandleUpdate } from '../services/SignalRService';
 import './CryptoPage.css';
+
+const RANGE_OPTIONS = [
+  { label: '12h', value: 12 * 60 },
+  { label: '1d', value: 24 * 60 },
+  { label: '7d', value: 7 * 24 * 60 },
+  { label: '14d', value: 14 * 24 * 60 },
+  { label: '30d', value: 30 * 24 * 60 },
+  { label: '1y', value: 365 * 24 * 60 },
+  { label: 'all', value: 20 * 365 * 24 * 60 },
+];
+
 
 export const CryptoPage: React.FC = () => {
   const { symbol } = useParams<{ symbol: string }>();
@@ -13,14 +27,35 @@ export const CryptoPage: React.FC = () => {
     [crypto, symbol]
   );
 
+  const [rangeMinutes, setRangeMinutes] = useState(7 * 24 * 60);
+
+  const selectedRangeLabel = useMemo(
+    () => RANGE_OPTIONS.find((option) => option.value === rangeMinutes)?.label ?? '7d',
+    [rangeMinutes]
+  );
+
   const accessTokenFactory = useMemo(
     () => () => localStorage.getItem('auth_token'),
     []
   );
 
+  const { candles, loading: chartLoading, error: chartError, source, interval, refetch, updateLatestCandle } = useCryptoChart(
+    instrument?.symbol,
+    rangeMinutes,
+  );
+
+  const handleCandleUpdate = React.useCallback(
+    (update: CandleUpdate) => {
+      updateLatestCandle(update);
+    },
+    [updateLatestCandle]
+  );
+
   const { latestPrice, connectionState, error: signalRError } = useSignalR({
     symbol: symbol?.toUpperCase() ?? '',
+    rangeMinutes,
     accessTokenFactory,
+    onCandleUpdate: handleCandleUpdate,
   });
 
   return (
@@ -78,7 +113,43 @@ export const CryptoPage: React.FC = () => {
             </div>
 
             <div className="crypto-note">
-              Po wejściu na tę stronę uruchomiono połączenie SignalR dla symbolu {instrument.symbol}. Tutaj możesz rozbudować widok o wykresy i historię ticków.
+              Po wejściu na tę stronę uruchomiono połączenie SignalR dla symbolu {instrument.symbol}. Tutaj możesz obserwować kurs i analizować dane historyczne.
+            </div>
+
+            <div className="crypto-chart-section">
+              <div className="crypto-chart-controls">
+                <div className="crypto-chart-control">
+                  <label htmlFor="chart-range">Range</label>
+                  <select
+                    id="chart-range"
+                    value={rangeMinutes}
+                    onChange={(event) => setRangeMinutes(Number(event.target.value))}
+                  >
+                    {RANGE_OPTIONS.map((option) => (
+                      <option value={option.value} key={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="crypto-chart-control">
+                  <label>Interval</label>
+                  <div className="crypto-chart-value">{interval || '...'}</div>
+                </div>
+
+                <button type="button" className="crypto-chart-refresh" onClick={refetch}>
+                  Odśwież wykres
+                </button>
+              </div>
+
+              <CryptoChart
+                key={`${instrument?.symbol ?? symbol}-${selectedRangeLabel}-${interval}`}
+                candles={candles}
+                loading={chartLoading}
+                error={chartError}
+                range={selectedRangeLabel}
+                interval={interval}
+                source={source}
+              />
             </div>
           </>
         )}

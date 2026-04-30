@@ -17,6 +17,7 @@ using TradingPlatform.Core.Services;
 using TradingPlatform.Data.Context;
 using TradingPlatform.Data.Extensions;
 using TradingPlatform.Data.Mapping;
+using TradingPlatform.Api.Extensions;
 using TradingPlatform.Core.Enums;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -162,10 +163,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddDataServices(builder.Configuration);
-builder.Services.Configure<TradingPlatform.Core.Models.BinanceSettings>(builder.Configuration.GetSection("Binance"));
-builder.Services.AddSignalR();
-builder.Services.AddSingleton<IPriceUpdatePublisher, TradingPlatform.Api.Services.PriceUpdatePublisher>();
-builder.Services.AddScoped<ICryptoService, TradingPlatform.Data.Services.CryptoService>();
+builder.Services.AddApiServices(builder.Configuration);
 
 // 🔐 Enable HttpContext access for 2FA wrapper (extracts userId from JWT claims)
 builder.Services.AddHttpContextAccessor();

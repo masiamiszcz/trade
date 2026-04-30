@@ -8,4 +8,5 @@ public sealed record CandleDto(
     decimal High,
     decimal Low,
     decimal Close,
-    decimal Volume);
+    decimal Volume,
+    string Interval);

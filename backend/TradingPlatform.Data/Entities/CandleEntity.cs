@@ -4,6 +4,8 @@ public class CandleEntity
 {
     public int Id { get; set; }
     public string Symbol { get; set; } = "";
+    public string Source { get; set; } = "binance";
+    public int IntervalMinutes { get; set; }
     public DateTime OpenTime { get; set; }
     public DateTime CloseTime { get; set; }
     public decimal Open { get; set; }

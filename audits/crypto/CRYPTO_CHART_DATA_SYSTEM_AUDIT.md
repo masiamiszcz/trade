@@ -8,7 +8,7 @@ The platform already has:
 - logging + hosted service architecture
 - a crypto detail page with SignalR live price feed
 
-This audit designs a full chart data system for crypto assets while preserving the existing live Binance path.
+This audit defines the final production model for crypto chart data: user-controlled interval selection, backend guard rails, and a simple API.
 
 ---
 
@@ -20,7 +20,7 @@ This audit designs a full chart data system for crypto assets while preserving t
    - `Id INT PK`
    - `Symbol NVARCHAR(32)`
    - `Source NVARCHAR(16)` — `binance` or `coingecko`
-   - `IntervalMinutes INT` — `1`, `5`, `60`, `1440`
+   - `IntervalMinutes INT` — `1`, `3`, `5`, `15`, `60`, `1440`, etc.
    - `OpenTime DATETIME`
    - `CloseTime DATETIME`
    - `Open DECIMAL(18,8)`
@@ -50,18 +50,18 @@ This audit designs a full chart data system for crypto assets while preserving t
 ### Asset symbol mapping
 Add a small mapping table to normalize exchange symbols to CoinGecko IDs:
 
-3. `AssetMappings`
+2. `AssetMappings`
    - `Id INT PK`
    - `Symbol NVARCHAR(32)` — `BTCUSDT`
    - `CoingeckoId NVARCHAR(64)` — `bitcoin`
    - `Source NVARCHAR(16)` — optional for future provider expansion
    - Unique index on `(Symbol, CoingeckoId)`
 
-This mapping is mandatory for multi-asset support and CoinGecko backfill.
+This mapping is mandatory for CoinGecko backfill and `range=all`.
 
 ### Logical partitioning guidance
 Treat `Candles` as logically partitioned by symbol + interval. Query always as:
-- `WHERE Symbol = @symbol AND Source = 'binance' AND IntervalMinutes = @interval`
+- `WHERE Symbol = @symbol AND Source = @source AND IntervalMinutes = @interval`
 - `ORDER BY OpenTime DESC`
 - `TAKE N`
 
@@ -73,66 +73,130 @@ Do not use broad `OpenTime BETWEEN` scans for live chart requests. That pattern 
 
 ### Binance live path
 - Keep existing `BinanceWebSocketService` + `MarketProcessingService`.
-- Continue building 1m candles from live trade ticks.
+- Build 1m candles from live trade ticks.
 - On each completed 1m candle:
-  - save it to `Candles` as `IntervalMinutes = 1`
-  - send it to a `CandleAggregationService`
-- `CandleAggregationService` must persist higher-resolution candles.
+  - save it to `Candles` as `Source='binance'`, `IntervalMinutes=1`
+  - send it to `CandleAggregationService`
+- `CandleAggregationService` persists higher-resolution candles.
   - do not compute 5m/1h on request
   - always store 5m and 1h bars in `Candles`
-- Treat 1m bars as the source of truth for derived intervals.
+- Treat 1m bars as source of truth for derived intervals.
   - 5m and 1h bars must be reconstructable from 1m history
-  - keep raw 1m candles in the DB for auditability and reprocessing
+  - keep raw 1m candles in DB for auditability and reprocessing
 - `CandleAggregationService` should produce and persist:
   - 5m candle windows
   - 1h candle windows
-- This ensures `7d` and `1y` queries are read-optimized and do not consume runtime CPU.
 
 ### Binance historical backfill
 - Use Binance REST `GET /api/v3/klines`
-- Backfill up to 1 year of 1m candles to `Candles`
+- Backfill 1m candles to `Candles`
 - Derive 5m/1h from backfilled 1m bars if needed
-- Keep this path separate from live processing logic
+- Keep backfill separate from live processing logic
 
 ### CoinGecko historical backfill
-- Use CoinGecko market chart or range API
-- Store daily rows in `Candles` with `Source = 'coingecko'` and `IntervalMinutes = 1440`
+- Use CoinGecko market chart / range API
+- Store daily rows in `Candles` with `Source='coingecko'`, `IntervalMinutes=1440`
 - Use only for `range=all`
 
 ### Source strategy
 - `Binance` = accurate live + short/medium history
 - `CoinGecko` = full daily history only
-- `Binance` path remains canonical for `30m`, `7d`, `1y`
-- `CoinGecko` path only for `all`
+- `Binance` path remains canonical for ranges shorter than `all`
+- `CoinGecko` is only for `range=all`
 
 ---
 
 ## 3. Backend – API Design
 
 ### New endpoint
-`GET /api/chart`
+`POST /api/crypto/{symbol}/chart`
 
-Query parameters:
-- `symbol=BTCUSDT`
-- `range=30m|7d|1y|all`
-- optional `interval=1m|5m|1h|1d`
-- optional `limit`
-- optional `to=UTC-timestamp` — fetch data ending at this timestamp
+Request body:
+```json
+{
+  "range": "14d",
+  "interval": "3m",
+  "to": "2026-04-29T12:00:00Z"
+}
+```
 
-`to` is required for chart panning/zoom and pagination. It allows the frontend to request historical windows without scanning the whole range.
+### User vs backend control
+✔ USER CONTROLLED:
+- `range` (how much history)
+- `interval` (density/granularity)
 
-### Range mapping
-- `30m` → Binance only, `1m`
-- `7d` → Binance only, `5m`
-- `1y` → Binance only, `1h`
-- `all` → CoinGecko only, `1d`
+✔ BACKEND CONTROLLED:
+- max allowed resolution for the requested `range`
+- override if the requested interval is too granular
 
-### API rule
-- range drives source and interval
-- no dynamic source combinations
-- no runtime source fallback
-- only `all` may use `coingecko`
-- other ranges always query `binance`
+### Guard rails table
+This is core safety logic, not a “smart engine”.
+
+| Range | Minimum allowed interval |
+|---|---|
+| `12h` | `1m` |
+| `1d` | `1m` |
+| `7d` | `5m` |
+| `14d` | `5m` |
+| `1y` | `1h` |
+| `all` | fixed `1d` |
+
+### Validation flow
+1. validate `range`
+2. validate requested `interval`
+3. if requested interval is finer than allowed, override it
+4. if `range == all`, force `interval = 1d`
+
+### Rule
+if (`requestedInterval` < `allowedMinIntervalForRange`)
+→ override to `allowedMinIntervalForRange`
+
+### Examples
+- `range = 14d`, `interval = 3m`
+  - allowed min = `5m`
+  - result: override → `5m`
+- `range = 12h`, `interval = 30m`
+  - allowed min = `1m`
+  - result: accepted → `30m`
+- `range = 1y`, `interval = 1m`
+  - allowed min = `1h`
+  - result: override → `1h`
+- `range = all`, `interval = 5m`
+  - result: force → `1d`
+
+### Important principle
+Backend does not choose the “best” interval.
+
+Backend only:
+- accepts
+- or restricts
+
+It does not apply adaptive interval selection or cost-based intelligence.
+
+---
+
+## 4. Fallback interval logic
+
+If the DB does not contain the exact requested interval, use the nearest available interval.
+
+Example:
+- requested → `5m`
+- available → `30m`, `1h`
+- choose nearest available interval
+
+This is the second layer of resilience, not the primary selection mechanism.
+
+---
+
+## 5. API behavior
+
+### Request processing
+1. request received
+2. validate `range`
+3. clamp `interval` with guard rails
+4. fallback to closest DB interval if needed
+5. query DB
+6. return result
 
 ### Response shape
 ```json
@@ -140,7 +204,7 @@ Query parameters:
   "symbol": "BTCUSDT",
   "source": "binance",
   "interval": "5m",
-  "range": "7d",
+  "range": "14d",
   "candles": [
     {
       "timestamp": "2026-04-29T12:00:00Z",
@@ -155,23 +219,20 @@ Query parameters:
 ```
 
 ### Selection logic
-- Validate `symbol` via instrument service
-- Choose table and interval by range
-- Query rows by `Symbol`, `Source`, `Interval`, `OpenTime`
-- Limit row count before projection
-- Return ascending time order
+- validate `symbol` via instrument service
+- validate and clamp `interval` using backend guard rails
+- query by `Symbol`, `Source`, `IntervalMinutes`, `OpenTime`
+- order descending, `Take(limit)`
+- return ascending order
 
-### Performance handling
-- enforce safe limits per range
-- cache hot queries
-- avoid fetching 1m data for 7d/1y on the frontend
-- support `to` for pagination / chart scrolling
-- always query latest rows with `ORDER BY OpenTime DESC` and `TAKE N`
-- reverse results to ascending order before returning
+### Pagination
+- support `to` as the upper bound on `OpenTime`
+- fetch rows older than `to`
+- this enables chart scrolling without full-range scans
 
 ---
 
-## 4. Data Normalization
+## 6. Data Normalization
 
 ### Unified candle format
 All API responses should use:
@@ -183,81 +244,83 @@ All API responses should use:
 - `volume`
 
 ### Normalization rules
-- Convert Binance and CoinGecko fields into identical DTOs
-- Keep `source` and `interval` metadata in the top-level response
-- Do not expose provider-specific raw fields to frontend
+- normalize Binance and CoinGecko sources to a single DTO
+- expose `source` and `interval` in the top-level response only
+- hide provider-specific raw payload details
 
 ### Volume handling
-- Map CoinGecko volume if available
-- If not available, return `0` or allow `null`
+- map CoinGecko volume when available
+- if missing, return `0` or `null`
 
 ---
 
-## 5. Frontend
+## 7. Frontend
 
 ### Chart data consumption
-- Add a chart hook: `useCryptoChart(symbol, range)`
-- Request `GET /api/chart?symbol=${symbol}&range=${range}`
-- Normalize response to a candlestick series
+- add a chart hook: `useCryptoChart(symbol, range, interval, to)`
+- POST request to `/api/crypto/{symbol}/chart`
+- normalize response into ascending candle series
 
-### Expected format
-- array of `{ timestamp, open, high, low, close, volume }`
-- ascending order
-
-### Range switching
-- buttons: `30m`, `7d`, `1y`, `ALL`
-- fetch only when range changes
-- preserve cached result per `(symbol, range)`
-- show source badge: `Binance` or `CoinGecko`
+### Range + interval selector
+- allow user to choose `range`
+- allow user to choose `interval`
+- show the backend-enforced interval using a badge or label
+- cache results per `(symbol, range, interval)`
 
 ### Avoid overfetching
-- cache chart results in memory using local hook state
-- do not reload unless symbol/range changes
-- avoid Redux / global chart state for this feature
-- poll only if live chart updates are necessary
-- use live candle updates for the current 1m bar, not only price ticks
+- fetch only when symbol/range/interval changes
+- keep chart data in local hook state
+- do not poll unless live candle updates are required
 
 ### Live candle update
-- push the latest current 1m candle through SignalR
-- update only the last candle on the chart as new ticks arrive
-- keep full range fetch as a separate API request
-- this gives real-time chart behavior without full refetches
+- update only the last candle for the current 1m bar via SignalR
+- do not refresh full chart on every tick
+- keep full history request separate from live updates
 
 ---
 
-## 6. Crypto Page (UI)
+## 8. Crypto Page (UI)
 
 ### Required changes
 - add chart area under live summary
 - add range selector controls
-- display chart status and source
+- add interval selector controls
+- display backend-enforced interval and source badge
 - keep SignalR live price section intact
 
 ### Required state
 - `symbol`
 - `range`
+- `interval`
 - `chartData`
 - `chartLoading`
 - `chartError`
-- `selectedInterval`
+- `effectiveInterval`
 
 ### Integration notes
-- current `CryptoPage` remains the instrument header + live summary
-- extend it with a chart card and range buttons
-- fetch chart data on mount and when `symbol` or `range` changes
+- `CryptoPage` stays as instrument header + live summary
+- extend it with chart controls and chart content
+- fetch chart data on mount and when `symbol`, `range`, or `interval` changes
 
 ---
 
-## 7. Performance + Scaling
+## 9. Performance + Scaling
 
 ### Indexes
 - `IX_Candles_Symbol_Source_Interval_OpenTime`
-- `IX_CoingeckoDailyCandles_Symbol_OpenTime`
+- `IX_Candles_Symbol_OpenTime`
 
 ### Query optimization
 - filter by `symbol + source + interval`
 - sort descending and `Take(limit)`
 - project only required candle fields
+
+### Philosophy
+- user defines intent (`range` + `interval`)
+- backend enforces safe execution constraints
+- no ML, no adaptive cost model, no hidden interval selection
+- simple, predictable, easy to defend
+
 
 ### Limits
 - `30m` → 30–100 rows
@@ -355,6 +418,105 @@ All API responses should use:
 
 ### Deployment notes
 - Use existing Docker Compose setup; no new backend service required
+
+---
+
+## 10. Interval-based Publishing Analysis
+
+### Current implementation state
+- 1m candles are generated from Binance trades.
+- 5m and 1h candles are aggregated and stored in DB.
+- SignalR supports interval subscription groups using `symbol:interval`.
+- API returns full history via `POST /api/crypto/{symbol}/chart`.
+- Frontend loads history first, then opens SignalR.
+
+### Incorrect publish triggers identified
+- `MarketProcessingService.ProcessTradeAsync` currently publishes `CandleDto` updates from the open 1m candle on every trade/event.
+- This means partial/in-flight 1m candles are emitted, violating the closed-candle-only rule.
+- `CandleAggregationService` persists 5m and 1h candles, but does not publish them in a deterministic close-driven way.
+- Higher-interval publishing is effectively missing, so the current model is only interval-aware structurally, not behaviorally.
+- The SignalR hub naming is correct, but the publish model is not yet strict enough to guarantee only future closed candles.
+
+### Required refactor points
+1. `MarketProcessingService`
+   - remove direct `PublishCandleUpdateAsync` calls from the in-flight 1m trade path.
+   - publish 1m candles only once the minute boundary closes and the candle is persisted.
+   - use the persisted closed candle as the publish source.
+2. `CandleAggregationService`
+   - keep aggregation separate from publish.
+   - persist 5m and 1h candles on closed 1m windows.
+   - do not publish 5m/1h candles directly from ongoing 1m event processing.
+3. Add a deterministic publish scheduler/service
+   - publish closed 1m candles at `minute % 1 == 0`.
+   - publish closed 5m candles at `minute % 5 == 0`.
+   - publish closed 1h candles at `minute == 0`.
+   - drive publishing from time boundaries and persisted history, not per-trade events.
+4. `PriceUpdatePublisher` / SignalR
+   - keep `SYMBOL:interval` group naming.
+   - ensure no state is sent immediately on subscription.
+   - ensure a single send per finalized closed candle event.
+5. Frontend contract
+   - treat SignalR as a future-only closed-candle stream.
+   - do not expect immediate candle updates on subscribe.
+   - do not overwrite the chart with partial in-flight candles.
+
+### Final publishing flow
+1. Binance WebSocket receives a trade tick.
+2. `MarketProcessingService` updates the current in-memory 1m candle state.
+3. When the minute boundary closes:
+   a. persist the completed 1m candle to DB.
+   b. publish the closed 1m candle to `SYMBOL:1m`.
+   c. hand the completed 1m candle to `CandleAggregationService`.
+4. `CandleAggregationService` updates 5m / 1h aggregates from persisted 1m history.
+5. When a 5m boundary closes:
+   a. persist the completed 5m candle to DB.
+   b. publish the closed 5m candle to `SYMBOL:5m`.
+6. When a 1h boundary closes:
+   a. persist the completed 1h candle to DB.
+   b. publish the closed 1h candle to `SYMBOL:1h`.
+7. SignalR delivers exactly one `ReceiveCandleUpdate` per closed candle to each subscribed group.
+
+### Sequence diagram
+```mermaid
+sequenceDiagram
+    participant Binance as BinanceWS
+    participant Market as MarketProcessingService
+    participant DB as CandleRepository
+    participant Aggregator as CandleAggregationService
+    participant Publisher as CandlePublishService
+    participant SignalR as CryptoPricesHub
+
+    Binance->>Market: trade tick
+    Market->>Market: update current 1m candle
+    Market-->>DB: persist completed 1m candle at boundary
+    DB-->>Publisher: completed 1m candle
+    Publisher->>SignalR: send SYMBOL:1m closed candle
+    DB-->>Aggregator: completed 1m candle
+    Aggregator->>DB: persist completed 5m/1h candle
+    DB-->>Publisher: completed 5m/1h candle
+    Publisher->>SignalR: send SYMBOL:5m / SYMBOL:1h closed candle
+```
+
+### Edge case requirements
+- Users subscribing just before close must receive only the next closed candle, not the current partial bar.
+- On restart, publishing must recover by using persisted candle boundaries and resume from the last completed candle.
+- Missing aggregation windows must be repaired from 1m persisted source before publish.
+- Late-arriving trades should be reconciled into persisted closed candles, with publish only after final close.
+
+### Storage consistency
+- 5m and 1h candles must always be derived from persisted 1m source data.
+- Publishing should use persisted DB rows, not in-memory partial state.
+- The DB remains the source of truth for both history and live publish events.
+
+### Performance guidance
+- Publish only new closed candles; avoid scanning the full DB on each publish.
+- Use lightweight timers or boundary-driven scheduling.
+- Avoid N+1 publish loops by batching closed candles per interval boundary when possible.
+
+### First step
+Refactor `MarketProcessingService` so 1m candle publishing happens only on minute close, after the completed candle is persisted. Remove any partial in-flight publish call from the trade processing path.
+
+### Deployment notes
 - Migration is already applied on startup via `Program.cs`
 - Backend container update is enough for schema and API changes
 - Frontend update deploys via existing Vite build pipeline
