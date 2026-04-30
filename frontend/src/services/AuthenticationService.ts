@@ -493,6 +493,10 @@ export class AuthenticationService {
    */
   async userRegisterInitial(request: UserRegisterInitialRequest): Promise<UserRegistrationInitialResponse> {
     try {
+      // Clear any stale user tokens before starting a fresh registration flow
+      // This prevents old final or temp tokens from interfering with 2FA verification.
+      this.clearUserTokens();
+
       const response = await httpClient.fetch<UserRegistrationInitialResponse>({
         url: API_CONFIG.endpoints.auth.register,
         method: 'POST',
@@ -560,6 +564,10 @@ export class AuthenticationService {
    */
   async userLoginInitial(request: UserLoginInitialRequest): Promise<UserLoginInitialResponse> {
     try {
+      // Clear stale user tokens before a fresh login flow.
+      // This prevents old final or temp tokens from being reused accidentally.
+      this.clearUserTokens();
+
       const response = await httpClient.fetch<UserLoginInitialResponse>({
         url: '/user/login',
         method: 'POST',

@@ -1,9 +1,18 @@
 .crypto-page {
-  padding: 32px;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  width: 100vw;
+  max-width: 100vw;
+  padding: 32px 4rem 32px;
+  box-sizing: border-box;
   background: radial-gradient(circle at top left, rgba(0, 212, 255, 0.18), transparent 28%),
     radial-gradient(circle at bottom right, rgba(255, 20, 147, 0.16), transparent 28%),
     linear-gradient(180deg, #070b19 0%, #101828 100%);
-  min-height: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .crypto-page-header {
@@ -11,6 +20,51 @@
   flex-direction: column;
   gap: 10px;
   margin-bottom: 28px;
+}
+
+.crypto-page-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.crypto-chart-top {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.crypto-chart-top .crypto-chart-controls {
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+}
+
+.crypto-chart-top .crypto-chart-card {
+  min-height: 560px;
+  width: 100%;
+}
+
+.crypto-chart-visual {
+  min-height: 560px;
+  padding: 0 16px;
+}
+
+.crypto-chart-visual svg {
+  max-height: none;
+  min-height: 560px;
+}
+
+.crypto-chart-ticks {
+  padding: 0 18px;
+}
+
+.crypto-chart-ticks span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  max-width: 140px;
 }
 
 .crypto-page-header h1 {
@@ -160,6 +214,146 @@
   border: 1px solid rgba(141, 243, 255, 0.2);
   background: linear-gradient(180deg, rgba(4, 32, 62, 0.92), rgba(7, 12, 26, 0.95));
   color: #c5d9ff;
+}
+
+.crypto-chart-top {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.crypto-chart-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 18px;
+  align-items: flex-end;
+}
+
+.crypto-dropdown-control {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(8, 18, 38, 0.88);
+  border: 1px solid rgba(81, 188, 255, 0.16);
+}
+
+.crypto-dropdown-control label {
+  font-size: 0.95rem;
+  color: #d7f2ff;
+  font-weight: 700;
+}
+
+.crypto-dropdown-control select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(4, 16, 36, 0.96);
+  color: #eef9ff;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.crypto-chart-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.crypto-chart-toggle,
+.crypto-chart-refresh {
+  min-height: 48px;
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(93, 240, 255, 0.28);
+  background: rgba(15, 28, 58, 0.92);
+  color: #d0f8ff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.crypto-chart-toggle.active {
+  background: rgba(19, 129, 255, 0.18);
+  border-color: rgba(19, 129, 255, 0.45);
+}
+
+.crypto-slider-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.crypto-slider-header label {
+  font-size: 0.95rem;
+  color: #d7f2ff;
+  font-weight: 700;
+}
+
+.crypto-slider-current {
+  font-size: 1rem;
+  color: #8df3ff;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.crypto-slider-note {
+  font-size: 0.8rem;
+  color: #aabfff;
+}
+
+.crypto-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.crypto-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #5df0ff;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 8px rgba(93, 240, 255, 0.14);
+}
+
+.crypto-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #5df0ff;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 8px rgba(93, 240, 255, 0.14);
+}
+
+.crypto-slider-labels {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.crypto-slider-labels--interval {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.crypto-slider-label {
+  font-size: 0.75rem;
+  color: #93cfff;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.crypto-chart-toggle,
+.crypto-chart-refresh {
+  min-height: 48px;
 }
 
 .loader,

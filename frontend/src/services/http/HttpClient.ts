@@ -97,11 +97,13 @@ class HttpClient {
    */
   private getAuthToken(endpoint: string): string | null {
     // Normalize endpoint - extract just the path if full URL is passed
-    const path = endpoint.includes('/api/') 
+    const rawPath = endpoint.includes('/api/')
       ? endpoint.substring(endpoint.indexOf('/api/'))
       : endpoint.includes('://')
       ? new URL(endpoint).pathname
       : endpoint;
+
+    const path = rawPath.startsWith('/api/') ? rawPath.substring(4) : rawPath;
 
     // Parse admin session if exists
     let adminSession: AdminSessionStorage | null = null;
@@ -123,19 +125,27 @@ class HttpClient {
       path.includes('/setup-2fa/enable');
 
     if (is2FAEndpoint) {
-      // PRIORITY 1: Admin session token (temp or final) - MUST have priority over user token
-      // ⭐ CRITICAL: If user token exists in localStorage AND admin is registering,
-      // admin temp token MUST be used, NOT user token!
-      if (adminSession?.token) {
+      const userTempToken = localStorage.getItem('trading-platform-temp-token');
+      const isUser2FAEndpoint = path.startsWith('/user/') || path.includes('/user/register/verify-2fa');
+      const isAdmin2FAEndpoint = path.startsWith('/auth/admin') || path.includes('/setup-2fa/');
+
+      if (isUser2FAEndpoint) {
+        if (userTempToken) {
+          console.log('[HttpClient] Using USER TEMP TOKEN for user 2FA endpoint:', path);
+          return userTempToken;
+        }
+        return null;
+      }
+
+      if (isAdmin2FAEndpoint && adminSession?.token) {
         const tokenType = adminSession.isTempToken ? 'TEMP' : 'FINAL';
-        console.log(`[HttpClient] Using ADMIN ${tokenType} TOKEN for 2FA endpoint:`, path);
+        console.log(`[HttpClient] Using ADMIN ${tokenType} TOKEN for admin 2FA endpoint:`, path);
         return adminSession.token;
       }
 
-      // PRIORITY 2: User temp token (for user 2FA registration/login)
-      const userTempToken = localStorage.getItem('trading-platform-temp-token');
+      // Fallback: if no explicit user/admin match, prefer temp user token if available.
       if (userTempToken) {
-        console.log('[HttpClient] Using USER TEMP TOKEN for 2FA endpoint:', path);
+        console.log('[HttpClient] Using USER TEMP TOKEN for 2FA endpoint fallback:', path);
         return userTempToken;
       }
     }

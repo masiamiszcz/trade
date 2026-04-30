@@ -37,7 +37,7 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
 
     const width = 950;
     const height = 320;
-    const padding = 32;
+    const padding = 48;
     const innerWidth = width - padding * 2;
     const innerHeight = height - padding * 2;
     const baseline = height - padding;
