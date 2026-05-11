@@ -39,7 +39,7 @@ services:
       Jwt__ExpiryMinutes: "60"
       BinanceCsv__FolderPath: "/app/csv"
     volumes:
-      - C:\Users\kubac\Desktop\Studia\CSV_BTCUSDT:/app/csv:ro
+      - C:\Users\kubac\Desktop\Studia\P1\CSV:/app/csv:ro
     # NO PORT EXPOSURE - only internal networks
     depends_on:
       sqlserver:

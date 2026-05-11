@@ -629,7 +629,7 @@ public sealed class InstrumentService : IInstrumentService
                 Pillar: pillar,
                 BaseCurrency: payload.GetProperty("baseCurrency").GetString()?.ToUpper() ?? "",
                 QuoteCurrency: payload.GetProperty("quoteCurrency").GetString()?.ToUpper() ?? "",
-                Status: InstrumentStatus.Draft,
+                Status: InstrumentStatus.Approved,
                 IsBlocked: false,
                 CreatedBy: createdByAdminId,
                 CreatedAtUtc: DateTimeOffset.UtcNow,

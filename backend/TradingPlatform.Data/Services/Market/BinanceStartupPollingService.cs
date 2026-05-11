@@ -13,13 +13,13 @@ namespace TradingPlatform.Data.Services.Market;
 public sealed class BinanceStartupPollingService : BackgroundService
 {
     private const int BatchSize = 100000;
-    private const string Symbol = "BTCUSDT";
     private const int IntervalMinutes = 1;
     private const int ApiFetchLimit = 1000;
     private const int DefaultHistoricalDays = 7;
     private const string Source = "binance";
 
     private readonly string _csvFolderPath;
+    private readonly IReadOnlyList<string> _configuredSymbols;
     private readonly IBinanceApiClient _apiClient;
     private readonly ICandleRepository _candleRepository;
     private readonly ICandleBulkInserter _candleBulkInserter;
@@ -43,10 +43,41 @@ public sealed class BinanceStartupPollingService : BackgroundService
         var configuredPath = configuration["BinanceCsv:FolderPath"];
         _csvFolderPath = !string.IsNullOrWhiteSpace(configuredPath)
             ? configuredPath
-            : Path.Combine(AppContext.BaseDirectory, "CSV_BTCUSDT");
+            : Path.Combine(AppContext.BaseDirectory, "CSV");
+
+        var configuredSymbols = configuration.GetSection("BinanceCsv:Symbols").Get<string[]>();
+        _configuredSymbols = configuredSymbols != null && configuredSymbols.Any()
+            ? configuredSymbols
+            : new string[0];
 
         _logger.LogInformation("Binance CSV import folder configured as: {CsvFolderPath}", _csvFolderPath);
+        if (_configuredSymbols.Count > 0)
+        {
+            _logger.LogInformation("Binance CSV symbols configured: {Symbols}", string.Join(", ", _configuredSymbols));
+        }
     }
+
+    private IReadOnlyList<string> GetSymbolsToProcess()
+    {
+        if (_configuredSymbols.Count > 0)
+        {
+            return _configuredSymbols;
+        }
+
+        if (!Directory.Exists(_csvFolderPath))
+        {
+            return Array.Empty<string>();
+        }
+
+        return Directory.EnumerateDirectories(_csvFolderPath)
+            .Select(Path.GetFileName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .OrderBy(name => name!, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string GetSymbolFolderPath(string baseFolderPath, string symbol)
+        => Path.Combine(baseFolderPath, symbol);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -55,70 +86,21 @@ public sealed class BinanceStartupPollingService : BackgroundService
 
         try
         {
-            var lastTimestamp = await _candleRepository.GetLastCandleTimestampAsync(Symbol, Source, IntervalMinutes, stoppingToken);
-            var latestCsvInfo = await GetLatestCsvFileLastOpenTimeAsync(_csvFolderPath, stoppingToken);
-
-            if (!lastTimestamp.HasValue)
+            var symbols = GetSymbolsToProcess();
+            if (!symbols.Any())
             {
-                _logger.LogInformation("No existing candle data found for {Symbol}. Importing CSV history first.", Symbol);
-                await ImportBinanceCsvFilesAsync(stoppingToken);
-            }
-            else if (latestCsvInfo is not null)
-            {
-                var latestCsvOpenTime = latestCsvInfo.OpenTime;
-                var latestCsvOpenTimeExists = await _candleRepository.GetExistingOpenTimesAsync(
-                    Symbol,
-                    Source,
-                    IntervalMinutes,
-                    new[] { latestCsvOpenTime },
-                    stoppingToken);
-
-                if (!latestCsvOpenTimeExists.Any())
-                {
-                    _logger.LogInformation("Latest CSV file '{CsvFile}' is not yet imported. Importing CSV files.", latestCsvInfo.FilePath);
-                    await ImportBinanceCsvFilesAsync(stoppingToken);
-                }
-                else
-                {
-                    _logger.LogInformation("Latest CSV file '{CsvFile}' already imported. Skipping CSV import.", latestCsvInfo.FilePath);
-                }
-            }
-            else
-            {
-                _logger.LogInformation("No CSV files found to import. Skipping CSV import.");
+                _logger.LogWarning("No Binance symbol folders configured or discovered under {CsvFolderPath}. Skipping startup load.", _csvFolderPath);
+                _startupLoadCoordinator.MarkReady();
+                return;
             }
 
-            var dbLastTimestamp = await _candleRepository.GetLastCandleTimestampAsync(Symbol, Source, IntervalMinutes, stoppingToken);
-            DateTime startTime;
-            var currentMinuteUtc = TruncateToMinute(DateTime.UtcNow);
-
-            if (!dbLastTimestamp.HasValue)
+            foreach (var symbol in symbols)
             {
-                startTime = DateTime.UtcNow.AddDays(-DefaultHistoricalDays);
-                _logger.LogInformation("No existing candle data found after CSV import for {Symbol}. Fetching the last {Days} days from {StartTime:O}.", Symbol, DefaultHistoricalDays, startTime);
-            }
-            else if (dbLastTimestamp.Value >= currentMinuteUtc)
-            {
-                _logger.LogInformation("Database already contains the latest candle for {Symbol} at {LastTimestamp:O}. Skipping Binance API sync.", Symbol, dbLastTimestamp.Value);
-                startTime = DateTime.MaxValue;
-            }
-            else
-            {
-                startTime = await DetermineBinanceApiStartTimeAsync(dbLastTimestamp.Value, latestCsvInfo?.OpenTime, stoppingToken);
-                _logger.LogInformation("Last candle in DB for {Symbol} is {LastTimestamp:O}. Fetching missing candles from {StartTime:O}.", Symbol, dbLastTimestamp.Value, startTime);
-            }
-
-            var totalFetched = startTime == DateTime.MaxValue
-                ? 0
-                : await FetchAndSaveMissingBinanceKlinesAsync(startTime, stoppingToken);
-
-            if (totalFetched > 0)
-            {
-                _logger.LogInformation("Binance incremental sync complete. Retrieved and persisted {Count} new klines.", totalFetched);
+                await ProcessSymbolAsync(symbol, stoppingToken);
             }
 
             _startupLoadCoordinator.MarkReady();
-            _logger.LogInformation("Startup data load completed. Binance WebSocket can begin.");
+            _logger.LogInformation("Startup data load completed for {SymbolCount} Binance symbol(s). Binance WebSocket can begin.", symbols.Count);
         }
         catch (Exception ex)
         {
@@ -129,8 +111,73 @@ public sealed class BinanceStartupPollingService : BackgroundService
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
-    private Task ImportBinanceCsvFilesAsync(CancellationToken cancellationToken)
-        => ImportCsvFolderAsync(_csvFolderPath, cancellationToken);
+    private async Task ProcessSymbolAsync(string symbol, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Starting startup load for Binance symbol {Symbol}.", symbol);
+
+        var symbolCsvFolderPath = GetSymbolFolderPath(_csvFolderPath, symbol);
+        var lastTimestamp = await _candleRepository.GetLastCandleTimestampAsync(symbol, Source, IntervalMinutes, cancellationToken);
+        var latestCsvInfo = await GetLatestCsvFileLastOpenTimeAsync(symbolCsvFolderPath, cancellationToken);
+
+        if (!lastTimestamp.HasValue)
+        {
+            _logger.LogInformation("No existing candle data found for {Symbol}. Importing CSV history first.", symbol);
+            await ImportCsvFolderAsync(symbolCsvFolderPath, symbol, cancellationToken);
+        }
+        else if (latestCsvInfo is not null)
+        {
+            var latestCsvOpenTime = latestCsvInfo.OpenTime;
+            var latestCsvOpenTimeExists = await _candleRepository.GetExistingOpenTimesAsync(
+                symbol,
+                Source,
+                IntervalMinutes,
+                new[] { latestCsvOpenTime },
+                cancellationToken);
+
+            if (!latestCsvOpenTimeExists.Any())
+            {
+                _logger.LogInformation("Latest CSV file '{CsvFile}' for {Symbol} is not yet imported. Importing CSV files.", latestCsvInfo.FilePath, symbol);
+                await ImportCsvFolderAsync(symbolCsvFolderPath, symbol, cancellationToken);
+            }
+            else
+            {
+                _logger.LogInformation("Latest CSV file '{CsvFile}' for {Symbol} already imported. Skipping CSV import.", latestCsvInfo.FilePath, symbol);
+            }
+        }
+        else
+        {
+            _logger.LogInformation("No CSV files found to import for {Symbol}. Skipping CSV import.", symbol);
+        }
+
+        var dbLastTimestamp = await _candleRepository.GetLastCandleTimestampAsync(symbol, Source, IntervalMinutes, cancellationToken);
+        DateTime startTime;
+        var currentMinuteUtc = TruncateToMinute(DateTime.UtcNow);
+
+        if (!dbLastTimestamp.HasValue)
+        {
+            startTime = DateTime.UtcNow.AddDays(-DefaultHistoricalDays);
+            _logger.LogInformation("No existing candle data found after CSV import for {Symbol}. Fetching the last {Days} days from {StartTime:O}.", symbol, DefaultHistoricalDays, startTime);
+        }
+        else if (dbLastTimestamp.Value >= currentMinuteUtc)
+        {
+            _logger.LogInformation("Database already contains the latest candle for {Symbol} at {LastTimestamp:O}. Skipping Binance API sync.", symbol, dbLastTimestamp.Value);
+            startTime = DateTime.MaxValue;
+        }
+        else
+        {
+            startTime = await DetermineBinanceApiStartTimeAsync(dbLastTimestamp.Value, latestCsvInfo?.OpenTime, symbol, cancellationToken);
+            _logger.LogInformation("Last candle in DB for {Symbol} is {LastTimestamp:O}. Fetching missing candles from {StartTime:O}.", symbol, dbLastTimestamp.Value, startTime);
+        }
+
+        var totalFetched = startTime == DateTime.MaxValue
+            ? 0
+            : await FetchAndSaveMissingBinanceKlinesAsync(startTime, symbol, cancellationToken);
+
+        if (totalFetched > 0)
+        {
+            _logger.LogInformation("Binance incremental sync for {Symbol} complete. Retrieved and persisted {Count} new klines.", symbol, totalFetched);
+        }
+    }
 
     private async Task<CsvFileLastOpenTime?> GetLatestCsvFileLastOpenTimeAsync(string folderPath, CancellationToken cancellationToken)
     {
@@ -182,13 +229,13 @@ public sealed class BinanceStartupPollingService : BackgroundService
     private static DateTime TruncateToMinute(DateTime dateTime)
         => new(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0, DateTimeKind.Utc);
 
-    private async Task<DateTime> DetermineBinanceApiStartTimeAsync(DateTime dbLastTimestamp, DateTime? latestCsvOpenTime, CancellationToken cancellationToken)
+    private async Task<DateTime> DetermineBinanceApiStartTimeAsync(DateTime dbLastTimestamp, DateTime? latestCsvOpenTime, string symbol, CancellationToken cancellationToken)
     {
         if (latestCsvOpenTime.HasValue)
         {
             var expectedNext = latestCsvOpenTime.Value.AddMinutes(IntervalMinutes);
             var nextExists = await _candleRepository.GetExistingOpenTimesAsync(
-                Symbol,
+                symbol,
                 Source,
                 IntervalMinutes,
                 new[] { expectedNext },
@@ -196,11 +243,11 @@ public sealed class BinanceStartupPollingService : BackgroundService
 
             if (!nextExists.Any())
             {
-                _logger.LogInformation("Next candle after latest CSV ({ExpectedNext:O}) is missing from DB. Fetching from this missing CSV boundary.", expectedNext);
+                _logger.LogInformation("Next candle after latest CSV ({ExpectedNext:O}) is missing from DB for {Symbol}. Fetching from this missing CSV boundary.", expectedNext, symbol);
                 return expectedNext;
             }
 
-            _logger.LogInformation("Next candle after latest CSV ({ExpectedNext:O}) exists in DB. Confirming API sync from latest DB record.", expectedNext);
+            _logger.LogInformation("Next candle after latest CSV ({ExpectedNext:O}) exists in DB for {Symbol}. Confirming API sync from latest DB record.", expectedNext, symbol);
         }
 
         return dbLastTimestamp.AddMinutes(IntervalMinutes);
@@ -208,20 +255,20 @@ public sealed class BinanceStartupPollingService : BackgroundService
 
     private sealed record CsvFileLastOpenTime(string FilePath, DateTime OpenTime);
 
-    private async Task<int> FetchAndSaveMissingBinanceKlinesAsync(DateTime? startTime, CancellationToken cancellationToken)
+    private async Task<int> FetchAndSaveMissingBinanceKlinesAsync(DateTime? startTime, string symbol, CancellationToken cancellationToken)
     {
         var totalSaved = 0;
         var nextStart = startTime;
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            var klines = await FetchMissingBinanceKlinesPageAsync(nextStart, cancellationToken);
+            var klines = await FetchMissingBinanceKlinesPageAsync(nextStart, symbol, cancellationToken);
             if (klines == null || !klines.Any())
             {
                 break;
             }
 
-            await SaveKlinesAsync(klines, cancellationToken);
+            await SaveKlinesAsync(klines, symbol, cancellationToken);
             totalSaved += klines.Count();
 
             if (klines.Count() < ApiFetchLimit)
@@ -235,7 +282,7 @@ public sealed class BinanceStartupPollingService : BackgroundService
         return totalSaved;
     }
 
-    private async Task<IEnumerable<BinanceKline>> FetchMissingBinanceKlinesPageAsync(DateTime? startTime, CancellationToken cancellationToken)
+    private async Task<IEnumerable<BinanceKline>> FetchMissingBinanceKlinesPageAsync(DateTime? startTime, string symbol, CancellationToken cancellationToken)
     {
         const int maxAttempts = 3;
 
@@ -244,37 +291,37 @@ public sealed class BinanceStartupPollingService : BackgroundService
             try
             {
                 var startTimeLabel = startTime.HasValue ? startTime.Value.ToString("o") : "none";
-                _logger.LogInformation("Fetching Binance klines for {Symbol} starting at {StartTime} (attempt {Attempt}/{MaxAttempts})", Symbol, startTimeLabel, attempt, maxAttempts);
-                return await _apiClient.GetHistoricalKlinesAsync(Symbol, "1m", ApiFetchLimit, startTime, cancellationToken);
+                _logger.LogInformation("Fetching Binance klines for {Symbol} starting at {StartTime} (attempt {Attempt}/{MaxAttempts})", symbol, startTimeLabel, attempt, maxAttempts);
+                return await _apiClient.GetHistoricalKlinesAsync(symbol, "1m", ApiFetchLimit, startTime, cancellationToken);
             }
             catch (Exception ex) when (attempt < maxAttempts)
             {
-                _logger.LogWarning(ex, "Binance API fetch failed on attempt {Attempt}/{MaxAttempts}. Retrying in {DelaySeconds}s.", attempt, maxAttempts, attempt * 5);
+                _logger.LogWarning(ex, "Binance API fetch failed for {Symbol} on attempt {Attempt}/{MaxAttempts}. Retrying in {DelaySeconds}s.", symbol, attempt, maxAttempts, attempt * 5);
                 await Task.Delay(TimeSpan.FromSeconds(attempt * 5), cancellationToken);
             }
         }
 
-        _logger.LogWarning("Exceeded Binance API retry attempts for {Symbol}. No klines were retrieved.", Symbol);
+        _logger.LogWarning("Exceeded Binance API retry attempts for {Symbol}. No klines were retrieved.", symbol);
         return Enumerable.Empty<BinanceKline>();
     }
 
-    private async Task SaveKlinesAsync(IEnumerable<BinanceKline> klines, CancellationToken cancellationToken)
+    private async Task SaveKlinesAsync(IEnumerable<BinanceKline> klines, string symbol, CancellationToken cancellationToken)
     {
-        var entities = klines.Select(MapToEntity).ToList();
+        var entities = klines.Select(k => MapToEntity(k, symbol)).ToList();
         if (entities.Count == 0)
         {
-            _logger.LogInformation("No Binance klines were available to save after fetching.");
+            _logger.LogInformation("No Binance klines were available to save after fetching for {Symbol}.", symbol);
             return;
         }
 
         await _candleBulkInserter.BulkInsertAsync(entities, cancellationToken);
-        _logger.LogInformation("Bulk inserted {Count} Binance klines into the database.", entities.Count);
+        _logger.LogInformation("Bulk inserted {Count} Binance klines into the database for {Symbol}.", entities.Count, symbol);
     }
 
-    private static CandleEntity MapToEntity(BinanceKline kline)
+    private static CandleEntity MapToEntity(BinanceKline kline, string symbol)
         => new CandleEntity
         {
-            Symbol = Symbol,
+            Symbol = symbol,
             Source = Source,
             IntervalMinutes = IntervalMinutes,
             OpenTime = kline.OpenTime,
@@ -287,17 +334,17 @@ public sealed class BinanceStartupPollingService : BackgroundService
             CreatedAt = DateTime.UtcNow,
         };
 
-    private async Task ImportCsvFolderAsync(string folderPath, CancellationToken cancellationToken)
+    private async Task ImportCsvFolderAsync(string folderPath, string symbol, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(folderPath))
         {
-            _logger.LogWarning("CSV import folder path is not set. Skipping CSV import.");
+            _logger.LogWarning("CSV import folder path is not set for {Symbol}. Skipping CSV import.", symbol);
             return;
         }
 
         if (!Directory.Exists(folderPath))
         {
-            _logger.LogWarning("CSV import folder does not exist: {FolderPath}", folderPath);
+            _logger.LogWarning("CSV import folder does not exist for {Symbol}: {FolderPath}", symbol, folderPath);
             return;
         }
 
@@ -316,18 +363,18 @@ public sealed class BinanceStartupPollingService : BackgroundService
 
             try
             {
-                await ProcessCsvFileAsync(filePath, cancellationToken);
+                await ProcessCsvFileAsync(filePath, symbol, cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error while processing CSV file {FilePath}: {Message}", filePath, ex.Message);
+                _logger.LogError(ex, "Unexpected error while processing CSV file {FilePath} for {Symbol}: {Message}", filePath, symbol, ex.Message);
             }
         }
     }
 
-    private async Task ProcessCsvFileAsync(string filePath, CancellationToken cancellationToken)
+    private async Task ProcessCsvFileAsync(string filePath, string symbol, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting import of CSV file {FilePath} with target batch size {BatchSize}", filePath, BatchSize);
+        _logger.LogInformation("Starting import of CSV file {FilePath} for {Symbol} with target batch size {BatchSize}", filePath, symbol, BatchSize);
 
         using var reader = new StreamReader(filePath);
         var batch = new List<CandleEntity>(BatchSize);
@@ -360,19 +407,19 @@ public sealed class BinanceStartupPollingService : BackgroundService
 
             try
             {
-                batch.Add(MapToEntity(dto));
+                batch.Add(MapToEntity(dto, symbol));
                 rowsProcessed++;
             }
             catch (Exception ex)
             {
                 rowsSkipped++;
-                _logger.LogWarning(ex, "Skipping CSV line {LineNumber} in {FilePath} due to conversion error: {Message}", lineNumber, filePath, ex.Message);
+                _logger.LogWarning(ex, "Skipping CSV line {LineNumber} in {FilePath} for {Symbol} due to conversion error: {Message}", lineNumber, filePath, symbol, ex.Message);
                 continue;
             }
 
             if (batch.Count >= BatchSize)
             {
-                await SaveBatchAsync(batch, filePath, rowsProcessed, cancellationToken);
+                await SaveBatchAsync(batch, filePath, rowsProcessed, symbol, cancellationToken);
                 batch.Clear();
             }
 
@@ -384,7 +431,7 @@ public sealed class BinanceStartupPollingService : BackgroundService
 
         if (batch.Count > 0)
         {
-            await SaveBatchAsync(batch, filePath, rowsProcessed, cancellationToken);
+            await SaveBatchAsync(batch, filePath, rowsProcessed, symbol, cancellationToken);
         }
 
         if (rowsProcessed == 0)
@@ -513,10 +560,10 @@ public sealed class BinanceStartupPollingService : BackgroundService
         return false;
     }
 
-    private static CandleEntity MapToEntity(BinanceCsvCandleDto dto)
+    private static CandleEntity MapToEntity(BinanceCsvCandleDto dto, string symbol)
         => new CandleEntity
         {
-            Symbol = Symbol,
+            Symbol = symbol,
             Source = Source,
             IntervalMinutes = IntervalMinutes,
             OpenTime = DateTimeOffset.FromUnixTimeMilliseconds(dto.OpenTimeMs).UtcDateTime,
@@ -529,7 +576,7 @@ public sealed class BinanceStartupPollingService : BackgroundService
             CreatedAt = DateTime.UtcNow,
         };
 
-    private async Task SaveBatchAsync(List<CandleEntity> batch, string filePath, int rowsProcessed, CancellationToken cancellationToken)
+    private async Task SaveBatchAsync(List<CandleEntity> batch, string filePath, int rowsProcessed, string symbol, CancellationToken cancellationToken)
     {
         if (batch.Count == 0)
         {
@@ -542,7 +589,7 @@ public sealed class BinanceStartupPollingService : BackgroundService
             .ToList();
 
         var existingOpenTimes = await _candleRepository.GetExistingOpenTimesAsync(
-            Symbol,
+            symbol,
             Source,
             IntervalMinutes,
             openTimes,
