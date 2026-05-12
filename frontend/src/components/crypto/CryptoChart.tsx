@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { CryptoCandle } from '../../types/crypto';
 import './CryptoChart.css';
 
@@ -12,6 +12,12 @@ interface CryptoChartProps {
   chartType: 'line' | 'candles';
 }
 
+interface HoverState {
+  x: number;
+  y: number;
+  candle: CryptoCandle;
+}
+
 function formatTick(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString(undefined, {
@@ -23,6 +29,8 @@ function formatTick(dateString: string): string {
 }
 
 export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, error, range, interval, source, chartType }) => {
+  const [hoverState, setHoverState] = useState<HoverState | null>(null);
+
   const chartData = useMemo(() => {
     if (candles.length === 0) return null;
 
@@ -47,7 +55,7 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
     const coordinates = sortedCandles.map((candle, index) => {
       const x = padding + barWidth / 2 + (xSpan * index) / Math.max(sortedCandles.length - 1, 1);
       const y = padding + innerHeight - ((candle.close - min) / yRange) * innerHeight;
-      return { x, y, label: formatTick(candle.openTime), value: candle.close };
+      return { x, y, label: formatTick(candle.openTime), value: candle.close, candle };
     });
 
     const polylinePoints = coordinates
@@ -78,11 +86,14 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
         xCenter,
         yHigh,
         yLow,
+        yOpen,
+        yClose,
         bodyTop,
         bodyHeight,
         isUp: candle.close >= candle.open,
         barWidth,
         label: formatTick(candle.openTime),
+        candle,
       };
     });
 
@@ -110,6 +121,16 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
       lastPrice: coordinates[coordinates.length - 1].value,
     };
   }, [candles]);
+
+  const formatTooltipDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   return (
     <section className="crypto-chart-card">
@@ -183,13 +204,27 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
                   vectorEffect="non-scaling-stroke"
                 />
                 {chartData.coordinates.map((point, index) => (
-                  <circle key={index} cx={point.x} cy={point.y} r="3.4" fill="#a5f3ff" />
+                  <g
+                    key={index}
+                    onMouseEnter={() => setHoverState({ x: point.x, y: point.y, candle: point.candle })}
+                    onMouseMove={() => setHoverState({ x: point.x, y: point.y, candle: point.candle })}
+                    onMouseLeave={() => setHoverState(null)}
+                  >
+                    <circle cx={point.x} cy={point.y} r="3.4" fill="#a5f3ff" />
+                    <circle cx={point.x} cy={point.y} r="10" fill="transparent" style={{ cursor: 'pointer' }} />
+                  </g>
                 ))}
               </>
             ) : (
               <>
                 {chartData.candleBars.map((bar, index) => (
-                  <g key={index}>
+                  <g
+                    key={index}
+                    onMouseEnter={() => setHoverState({ x: bar.xCenter, y: bar.yHigh, candle: bar.candle })}
+                    onMouseMove={() => setHoverState({ x: bar.xCenter, y: bar.yHigh, candle: bar.candle })}
+                    onMouseLeave={() => setHoverState(null)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <line
                       x1={bar.xCenter}
                       y1={bar.yHigh}
@@ -207,11 +242,33 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
                       fill={bar.isUp ? '#22c55e' : '#f43f5e'}
                       rx="1"
                     />
+                    <rect
+                      x={bar.xCenter - 16}
+                      y={chartData.padding}
+                      width={32}
+                      height={chartData.chartHeight - chartData.padding * 2}
+                      fill="transparent"
+                    />
                   </g>
                 ))}
               </>
             )}
           </svg>
+          {hoverState && (
+            <div
+              className="crypto-chart-tooltip"
+              style={{
+                left: `${(hoverState.x / chartData.chartWidth) * 100}%`,
+                top: `${Math.max(8, (hoverState.y / chartData.chartHeight) * 100)}%`,
+              }}
+            >
+              <div className="tooltip-title">{formatTooltipDate(hoverState.candle.openTime)}</div>
+              <div className="tooltip-row"><span>Open:</span><span>{hoverState.candle.open.toFixed(2)}</span></div>
+              <div className="tooltip-row"><span>High:</span><span>{hoverState.candle.high.toFixed(2)}</span></div>
+              <div className="tooltip-row"><span>Low:</span><span>{hoverState.candle.low.toFixed(2)}</span></div>
+              <div className="tooltip-row"><span>Close:</span><span>{hoverState.candle.close.toFixed(2)}</span></div>
+            </div>
+          )}
           <div className="crypto-chart-ticks">
             {chartData.coordinates.filter((_, index) => index % Math.max(Math.ceil(chartData.coordinates.length / 6), 1) === 0).map((point, index, ticks) => {
               const isFirst = index === 0;

@@ -189,6 +189,25 @@ public sealed class UserAuthController : ControllerBase
     }
 
     /// <summary>
+    /// Logout current user
+    /// POST /api/auth/logout
+    /// </summary>
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    {
+        var userIdClaim = User.FindFirst("userId")?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { error = "Invalid user token" });
+
+        await _userAuthService.UserLogoutAsync(userId, cancellationToken);
+        return Ok(new { success = true, message = "User logged out successfully" });
+    }
+
+    /// <summary>
     /// Step 2 of user login: Verify 2FA code (only required if user has 2FA enabled)
     /// Returns final token after successful 2FA verification
     /// Uses sessionId (from temp token) to retrieve TOTP secret from Redis

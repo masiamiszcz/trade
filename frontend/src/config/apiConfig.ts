@@ -120,6 +120,11 @@ export const API_CONFIG = {
       chart: (symbol: string) => `/crypto/${symbol}/chart`,
     },
 
+    // ==================== FIAT EXCHANGE RATES ====================
+    fiat: {
+      rate: (symbol: string) => `/fiat/rate/${symbol}`,
+    },
+
     // ==================== ADMIN: INSTRUMENTS ====================
         adminInstruments: {
     // GET endpoints

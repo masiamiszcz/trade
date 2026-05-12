@@ -77,82 +77,124 @@
     margin-bottom: 16px;
   }
 }
-/* AuditLogsContent Styles */
 
-.audit-logs-content {
-  padding: 30px;
-  background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
-  min-height: 100vh;
+.audit-log-hint {
+  margin-top: 8px;
+  color: #a4b5d6;
+  font-size: 13px;
 }
 
-.audit-logs-content h2 {
-  color: #00d4ff;
-  font-size: 28px;
-  font-weight: 700;
-  margin: 0 0 24px 0;
-  letter-spacing: 0.5px;
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
-.error-banner {
-  padding: 12px 16px;
-  background-color: rgba(255, 71, 87, 0.1);
-  border: 1px solid #ff4757;
-  border-radius: 8px;
-  color: #ff4757;
-  margin-bottom: 16px;
-  font-weight: 500;
+.clickable-row:hover {
+  background: rgba(0, 212, 255, 0.08);
 }
 
-.logs-info {
-  background: rgba(0, 212, 255, 0.1);
+.audit-log-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.audit-log-modal-content {
+  width: min(94%, 700px);
+  background: #101823;
   border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 20px;
+  border-radius: 16px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
 }
 
-.logs-info p {
+.audit-log-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.audit-log-modal-header h3 {
   margin: 0;
   color: #00d4ff;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.6;
+  font-size: 20px;
 }
 
-.action-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  background: rgba(0, 212, 255, 0.1);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 4px;
-  color: #00d4ff;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.entity-id {
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
+.audit-log-modal-header p {
+  margin: 4px 0 0;
   color: #a4b5d6;
-  font-weight: 600;
+  font-size: 13px;
 }
 
-.ip-address {
+.modal-close-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.audit-log-modal-body {
+  padding: 20px 24px 24px;
+  display: grid;
+  gap: 14px;
+}
+
+.audit-log-detail-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  align-items: start;
+  color: #d7e4ff;
+}
+
+.audit-log-detail-row .label {
+  font-weight: 700;
+  color: #00d4ff;
+}
+
+.audit-log-detail-block {
+  display: grid;
+  gap: 8px;
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.audit-log-detail-block .label {
+  color: #00d4ff;
+  font-weight: 700;
+}
+
+.details-pre {
+  margin: 0;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  color: #e9f1ff;
   font-family: 'Courier New', monospace;
-  font-size: 12px;
-  color: #4caf50;
-  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  max-height: 360px;
+  overflow: auto;
 }
 
-@media (max-width: 768px) {
-  .audit-logs-content {
-    padding: 16px;
-  }
-
-  .audit-logs-content h2 {
-    font-size: 22px;
-    margin-bottom: 16px;
+@media (max-width: 640px) {
+  .audit-log-detail-row {
+    grid-template-columns: 1fr;
   }
 }

@@ -865,6 +865,9 @@ public sealed class AdminAuthService : IAdminAuthService
             await LogAuditAsync(adminId, AdminAuditAction.TwoFactorVerifySuccess, ipAddress, userAgent,
                 "2FA verification successful", cancellationToken);
 
+            await LogAuditAsync(adminId, AdminAuditAction.LoginSuccess, ipAddress, userAgent,
+                "Admin login completed successfully", cancellationToken);
+
             // 🔐 SECURITY: Clean up 2FA session and attempt tracking after successful verification
             // This prevents "ghost locks" and ensures fresh state on next login
             await _redisSessionService.DeleteSessionAsync(sessionId, cancellationToken);
@@ -931,6 +934,30 @@ public sealed class AdminAuthService : IAdminAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to disable 2FA for admin {AdminId}", adminId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Logout admin and record audit event
+    /// </summary>
+    public async Task<bool> AdminLogoutAsync(
+        Guid adminId,
+        string? ipAddress = null,
+        string? userAgent = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await LogAuditAsync(adminId, AdminAuditAction.LogoutSuccess, ipAddress, userAgent,
+                "Admin logged out", cancellationToken);
+
+            _logger.LogInformation("Admin {AdminId} logged out", adminId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to log logout for admin {AdminId}", adminId);
             throw;
         }
     }
@@ -1225,6 +1252,9 @@ public sealed class AdminAuthService : IAdminAuthService
                 $"Admin invited with permissions: {string.Join(",", permissions ?? [])}",
                 ipAddress, userAgent, cancellationToken);
 
+            await LogAuditAsync(superAdminId, AdminAuditAction.InvitationGenerated, ipAddress, userAgent,
+                $"Admin invitation created for {email}", cancellationToken);
+
             _logger.LogInformation("Admin invitation created for {Email} by {SuperAdminId}", email, superAdminId);
 
             // TODO: Send email with invitation link (implement email service later)
@@ -1276,6 +1306,12 @@ public interface IAdminAuthService
     Task<AdminAuthSuccessResponse> VerifyAdminTwoFactorAsync(
         Guid adminId, string sessionId, string code,
         string? ipAddress = null, string? userAgent = null,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> AdminLogoutAsync(
+        Guid adminId,
+        string? ipAddress = null,
+        string? userAgent = null,
         CancellationToken cancellationToken = default);
 
     Task<bool> DisableTwoFactorAsync(

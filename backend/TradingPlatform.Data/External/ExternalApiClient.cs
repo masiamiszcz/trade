@@ -10,6 +10,8 @@ namespace TradingPlatform.Data.External;
 public interface IExternalApiClient
 {
     Task<decimal> GetUsdToPlnFromNbpAsync();
+    Task<decimal> GetEurToPlnFromNbpAsync();
+    Task<decimal> GetGbpToPlnFromNbpAsync();
 }
 
 public class ExternalApiClient : IExternalApiClient
@@ -25,6 +27,28 @@ public class ExternalApiClient : IExternalApiClient
     {
         var response = await _http.GetFromJsonAsync<NbpResponse>(
             "https://api.nbp.pl/api/exchangerates/rates/A/USD/?format=json");
+
+        if (response == null || response.Rates.Count == 0)
+            throw new Exception("NBP error - no rates returned");
+
+        return response.Rates[0].Mid;
+    }
+
+    public async Task<decimal> GetEurToPlnFromNbpAsync()
+    {
+        var response = await _http.GetFromJsonAsync<NbpResponse>(
+            "https://api.nbp.pl/api/exchangerates/rates/A/EUR/?format=json");
+
+        if (response == null || response.Rates.Count == 0)
+            throw new Exception("NBP error - no rates returned");
+
+        return response.Rates[0].Mid;
+    }
+
+    public async Task<decimal> GetGbpToPlnFromNbpAsync()
+    {
+        var response = await _http.GetFromJsonAsync<NbpResponse>(
+            "https://api.nbp.pl/api/exchangerates/rates/A/GBP/?format=json");
 
         if (response == null || response.Rates.Count == 0)
             throw new Exception("NBP error - no rates returned");

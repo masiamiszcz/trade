@@ -106,27 +106,44 @@ public sealed class AdminController : ControllerBase
     }
 
     /// <summary>
-    /// Get admin action audit logs (history of all admin actions)
+    /// Get unified audit logs (admin actions + all entity operations) with pagination
+    /// Combines AdminAuditLog (login/logout/2FA) and AuditLog (instrument/user/approval operations)
     /// </summary>
-    /// <response code="200">List of admin action audit logs</response>
+    /// <response code="200">Paginated list of all audit logs</response>
     /// <response code="401">User not authenticated</response>
     /// <response code="403">User is not an admin or not connected via VPN</response>
     [HttpGet("audit-history")]
-    [ProducesResponseType(typeof(IEnumerable<AdminAuditLogDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<IEnumerable<AdminAuditLogDto>>> GetAdminAuditHistory(CancellationToken cancellationToken)
+    public async Task<ActionResult<object>> GetAdminAuditHistory(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Admin requesting audit history");
+            _logger.LogInformation("Admin requesting unified audit history (page {Page}, size {PageSize})", page, pageSize);
 
-            var logs = await _adminService.GetRecentAdminAuditLogsAsync(cancellationToken: cancellationToken);
-            return Ok(logs);
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+            var (logs, totalCount) = await _adminService.GetUnifiedAuditLogsPagedAsync(page, pageSize, cancellationToken);
+
+            var response = new
+            {
+                items = logs,
+                totalCount,
+                page,
+                pageSize,
+                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+
+            return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving admin audit history");
+            _logger.LogError(ex, "Error retrieving audit history");
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to retrieve audit history" });
         }
     }

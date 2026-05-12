@@ -27,9 +27,43 @@ public class ExchangeRateService : IExchangeRateService
         await _repo.AddAsync(entity);
     }
 
+    public async Task SaveEurRateAsync(decimal rate)
+    {
+        var entity = new ExchangeRateEntity
+        {
+            Id = Guid.NewGuid(),
+            BaseCurrency = "EUR",
+            QuoteCurrency = "PLN",
+            Rate = rate,
+            Timestamp = DateTime.UtcNow
+        };
+
+        await _repo.AddAsync(entity);
+    }
+
+    public async Task SaveGbpRateAsync(decimal rate)
+    {
+        var entity = new ExchangeRateEntity
+        {
+            Id = Guid.NewGuid(),
+            BaseCurrency = "GBP",
+            QuoteCurrency = "PLN",
+            Rate = rate,
+            Timestamp = DateTime.UtcNow
+        };
+
+        await _repo.AddAsync(entity);
+    }
+
     public async Task<decimal?> GetUsdToPlnAsync()
     {
         var entity = await _repo.GetLatestAsync("USD", "PLN");
+        return entity?.Rate;
+    }
+
+    public async Task<decimal?> GetRateAsync(string from, string to)
+    {
+        var entity = await _repo.GetLatestAsync(from.ToUpper(), to.ToUpper());
         return entity?.Rate;
     }
 }

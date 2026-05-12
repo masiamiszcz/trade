@@ -36,6 +36,7 @@ public sealed class UserAuthService : IUserAuthService
     private readonly PasswordHasher<User> _passwordHasher = new();
     private readonly ILogger<UserAuthService> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IAuditLogRepository _auditLogRepository;
 
     // Constants for rate limiting
     private const int MaxFailedAttempts = 5;
@@ -52,7 +53,8 @@ public sealed class UserAuthService : IUserAuthService
         IValidator<RegisterRequest> registerValidator,
         IMapper mapper,
         ILogger<UserAuthService> logger,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IAuditLogRepository auditLogRepository)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _accountService = accountService ?? throw new ArgumentNullException(nameof(accountService));
@@ -64,6 +66,35 @@ public sealed class UserAuthService : IUserAuthService
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        _auditLogRepository = auditLogRepository ?? throw new ArgumentNullException(nameof(auditLogRepository));
+    }
+
+    private string GetRequestIpAddress() =>
+        _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+    private string GetRequestUserAgent() =>
+        _httpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString() ?? "unknown";
+
+    private async Task LogAuditAsync(
+        Guid actorId,
+        string action,
+        string? entityType,
+        Guid? entityId,
+        string details,
+        CancellationToken cancellationToken)
+    {
+        var log = new AuditLog(
+            Id: Guid.NewGuid(),
+            AdminId: actorId,
+            Action: action,
+            EntityType: entityType,
+            EntityId: entityId,
+            Details: details,
+            IpAddress: GetRequestIpAddress(),
+            CreatedAtUtc: DateTimeOffset.UtcNow);
+
+        await _auditLogRepository.AddAsync(log, cancellationToken);
+        await _auditLogRepository.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -633,6 +664,8 @@ public sealed class UserAuthService : IUserAuthService
             if (user == null || string.IsNullOrWhiteSpace(hashedPassword))
             {
                 _logger.LogWarning("Login failed: invalid credentials for '{UserNameOrEmail}'", userNameOrEmail);
+                await LogAuditAsync(Guid.Empty, "USER_LOGIN_FAILED", "User", null,
+                    $"Invalid credentials for '{userNameOrEmail}'", cancellationToken);
                 throw new UnauthorizedAccessException("Invalid credentials");
             }
 
@@ -641,6 +674,8 @@ public sealed class UserAuthService : IUserAuthService
             if (verifyResult == PasswordVerificationResult.Failed)
             {
                 _logger.LogWarning("Login failed: invalid password for user '{UserId}'", user.Id);
+                await LogAuditAsync(user.Id, "USER_LOGIN_FAILED", "User", user.Id,
+                    "Invalid password", cancellationToken);
                 throw new UnauthorizedAccessException("Invalid credentials");
             }
 
@@ -648,6 +683,8 @@ public sealed class UserAuthService : IUserAuthService
             if (user.Status != UserStatus.Active)
             {
                 _logger.LogWarning("Login failed: user '{UserId}' is not active", user.Id);
+                await LogAuditAsync(user.Id, "USER_LOGIN_FAILED", "User", user.Id,
+                    "User account is not active", cancellationToken);
                 throw new UnauthorizedAccessException("User account is not active");
             }
 
@@ -687,6 +724,8 @@ public sealed class UserAuthService : IUserAuthService
                     });
 
                 _logger.LogInformation("Login STEP 1 successful for user '{UserId}' - awaiting 2FA", user.Id);
+                await LogAuditAsync(user.Id, "USER_LOGIN_STEP1_SUCCESS", "User", user.Id,
+                    "User credentials verified and 2FA required", cancellationToken);
 
                 return new UserLoginInitialResponse(
                     Token: tempToken,
@@ -700,6 +739,8 @@ public sealed class UserAuthService : IUserAuthService
                 var finalToken = _jwtTokenGenerator.GenerateToken(user, isTempToken: false);
 
                 _logger.LogInformation("Login successful for user '{UserId}' without 2FA", user.Id);
+                await LogAuditAsync(user.Id, "USER_LOGIN_SUCCESS", "User", user.Id,
+                    "User logged in without 2FA", cancellationToken);
 
                 return new UserLoginInitialResponse(
                     Token: finalToken,
@@ -802,6 +843,8 @@ public sealed class UserAuthService : IUserAuthService
                 _logger.LogWarning(
                     "Login STEP 2: Session {SessionId} not found or expired for user '{UserId}'",
                     sessionId, userId);
+                await LogAuditAsync(userId, "USER_2FA_VERIFY_FAILED", "User", userId,
+                    "Session expired or missing during 2FA verification", cancellationToken);
                 throw new UnauthorizedAccessException("Session expired. Please login again.");
             }
 
@@ -847,6 +890,8 @@ public sealed class UserAuthService : IUserAuthService
                     "Login STEP 2: Invalid 2FA code for user '{UserId}', session {SessionId} - " +
                     "attempt {AttemptNumber} of {MaxAttempts}",
                     userId, sessionId, newAttemptCount, MaxFailedAttempts);
+                await LogAuditAsync(userId, "USER_2FA_VERIFY_FAILED", "User", userId,
+                    $"Invalid 2FA code attempt {newAttemptCount}/{MaxFailedAttempts}", cancellationToken);
 
                 if (newAttemptCount >= MaxFailedAttempts)
                 {
@@ -877,6 +922,8 @@ public sealed class UserAuthService : IUserAuthService
             var finalToken = _jwtTokenGenerator.GenerateToken(user, isTempToken: false);
             var expiresAt = DateTimeOffset.UtcNow.AddMinutes(60).ToUnixTimeSeconds();
 
+            await LogAuditAsync(userId, "USER_2FA_VERIFY_SUCCESS", "User", userId,
+                "User successfully verified 2FA and logged in", cancellationToken);
             _logger.LogInformation("User '{UserId}' authenticated with 2FA", userId);
 
             return new UserAuthCompleteResponse(
@@ -908,6 +955,17 @@ public sealed class UserAuthService : IUserAuthService
             _logger.LogError(ex, "Login STEP 2 error for user '{UserId}'", userId);
             throw new InvalidOperationException("2FA verification failed", ex);
         }
+    }
+
+    public async Task<bool> UserLogoutAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        await LogAuditAsync(userId, "USER_LOGOUT_SUCCESS", "User", userId,
+            "User logged out successfully", cancellationToken);
+
+        _logger.LogInformation("User {UserId} logged out", userId);
+        return true;
     }
 
     /// <summary>

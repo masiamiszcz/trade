@@ -237,6 +237,62 @@ public sealed class AdminService : IAdminService
         return dtos;
     }
 
+    public async Task<(IEnumerable<AdminAuditLogDto> Items, int TotalCount)> GetUnifiedAuditLogsPagedAsync(
+        int pageNumber = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving unified audit logs (page {Page}, size {PageSize})", pageNumber, pageSize);
+
+        // Fetch recent admin logs and entity logs
+        var adminLogs = await _adminAuditLogRepository.GetRecentAsync(500, cancellationToken);
+        var (entityLogs, _) = await _auditLogRepository.GetPagedAsync(1, 500, cancellationToken);
+
+        // Map AdminAuditLog entries
+        var admins = await _userRepository.GetAllUsersAsync(cancellationToken);
+        var adminDict = admins.ToDictionary(a => a.Id, a => a.UserName);
+
+        var adminLogDtos = adminLogs.Select(log =>
+        {
+            Guid adminId = log.AdminId;
+            adminDict.TryGetValue(adminId, out string? adminUserName);
+            return new AdminAuditLogDto(
+                Id: log.Id,
+                AdminId: adminId,
+                AdminUserName: adminUserName ?? "Unknown",
+                Action: log.Action.ToString(),
+                IpAddress: log.IpAddress,
+                UserAgent: log.UserAgent,
+                CreatedAtUtc: log.CreatedAt,
+                Details: log.Details);
+        });
+
+        // Map AuditLog entries to AdminAuditLogDto format
+        var entityLogDtos = entityLogs.Select(log =>
+        {
+            adminDict.TryGetValue(log.AdminId, out string? adminUserName);
+            return new AdminAuditLogDto(
+                Id: log.Id,
+                AdminId: log.AdminId,
+                AdminUserName: adminUserName ?? "Unknown",
+                Action: $"{log.EntityType}_{log.Action}",
+                IpAddress: log.IpAddress,
+                UserAgent: string.Empty,
+                CreatedAtUtc: log.CreatedAtUtc,
+                Details: $"Entity: {log.EntityType} ({log.EntityId}) - {log.Details}");
+        });
+
+        var allLogs = adminLogDtos.Concat(entityLogDtos)
+            .OrderByDescending(l => l.CreatedAtUtc)
+            .ToList();
+
+        var totalCount = allLogs.Count;
+        var skip = (pageNumber - 1) * pageSize;
+        var pagedItems = allLogs.Skip(skip).Take(pageSize);
+
+        return (pagedItems, totalCount);
+    }
+
     // ======== HELPER METHODS ========
 
     /// <summary>

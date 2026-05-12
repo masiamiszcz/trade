@@ -397,6 +397,32 @@ public sealed class AdminAuthController : ControllerBase
     }
 
     /// <summary>
+    /// Logout current admin
+    /// POST /api/auth/admin/logout
+    /// </summary>
+    [HttpPost("admin/logout")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> AdminLogout(CancellationToken cancellationToken = default)
+    {
+        var adminIdClaim = User.FindFirst("sub")?.Value
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+
+        if (!Guid.TryParse(adminIdClaim, out var adminId))
+            return Unauthorized(new AdminAuthErrorResponse(401, "Invalid admin token", "INVALID_TOKEN"));
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers["User-Agent"].ToString();
+
+        await _authService.AdminLogoutAsync(adminId, ipAddress, userAgent, cancellationToken);
+        _logger.LogInformation("Admin {AdminId} logged out via API", adminId);
+
+        return Ok(new { success = true, message = "Admin logged out successfully" });
+    }
+
+    /// <summary>
     /// Verify 2FA code and get final JWT token
     /// POST /api/auth/admin/verify-2fa
     /// 

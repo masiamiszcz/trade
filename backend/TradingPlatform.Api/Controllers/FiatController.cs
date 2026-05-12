@@ -36,4 +36,31 @@ public class FiatController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Get exchange rate for a currency pair (e.g., usdpln, eurpln, gbppln)
+    /// </summary>
+    [HttpGet("rate/{symbol}")]
+    public async Task<IActionResult> GetExchangeRate(string symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol) || symbol.Length != 6)
+            return BadRequest(new { message = "Symbol must be 6 characters (e.g., usdpln)" });
+
+        var from = symbol.Substring(0, 3).ToUpper();
+        var to = symbol.Substring(3, 3).ToUpper();
+
+        try
+        {
+            var rate = await _exchangeRateService.GetRateAsync(from, to);
+            
+            if (rate == null)
+                return NotFound(new { message = $"No {from}/{to} rate found in database" });
+
+            return Ok(new { baseCurrency = from, quoteCurrency = to, rate = rate });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }

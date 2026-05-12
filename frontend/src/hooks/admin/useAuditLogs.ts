@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { httpClient } from '../../services/http/HttpClient';
 import { useAdminAuth } from './useAdminAuth';
-import { AuditLog } from '../../types/admin';
+import { AuditLog, PaginatedResponse } from '../../types/admin';
 
 export const useAuditLogs = () => {
   const { token } = useAdminAuth();
-  const [logs, setLogs] = useState<AuditLog[]>([])
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -30,13 +30,23 @@ export const useAuditLogs = () => {
 
     try {
       console.log('📡 Fetching: /admin/audit-history');
-      const data = await httpClient.fetch<AuditLog[]>({
+      const data = await httpClient.fetch<PaginatedResponse<AuditLog>>({
         url: `/admin/audit-history?page=${currentPage}&pageSize=${pageSize}`,
         method: 'GET',
       });
 
-      console.log('✅ Data received:', Array.isArray(data) ? data.length : 0, 'records');
-      setLogs(Array.isArray(data) ? data : []);
+      if (data && Array.isArray(data.items)) {
+        console.log('✅ Data received:', data.items.length, 'records');
+        setLogs(data.items);
+        setTotalCount(data.totalCount ?? 0);
+        setTotalPages(data.totalPages ?? 1);
+        setCurrentPage(data.page ?? currentPage);
+      } else {
+        console.log('⚠️ Unexpected audit-history payload, falling back to empty array');
+        setLogs([]);
+        setTotalCount(0);
+        setTotalPages(1);
+      }
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch audit logs';

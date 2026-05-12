@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useAccount } from '../hooks/useAccount';
 import { useCryptoInstruments } from '../hooks/useCryptoInstruments';
 import { useSignalR } from '../hooks/useSignalR';
 import { useCryptoChart } from '../hooks/useCryptoChart';
@@ -95,12 +96,14 @@ export const CryptoPage: React.FC = () => {
     }
   }, [intervalMinutes, rangeMinutes]);
 
+  const { account } = useAccount();
+
   const accessTokenFactory = useMemo(
     () => () => localStorage.getItem('auth_token'),
     []
   );
 
-  const { candles, loading: chartLoading, error: chartError, source, interval, refetch, updateLatestCandle } = useCryptoChart(
+  const { candles, loading: chartLoading, error: chartError, source, interval, refetch, updateLatestCandle, exchangeRate, exchangeFromCurrency } = useCryptoChart(
     instrument?.symbol,
     rangeMinutes,
     intervalMinutes,
@@ -119,6 +122,23 @@ export const CryptoPage: React.FC = () => {
     accessTokenFactory,
     onCandleUpdate: handleCandleUpdate,
   });
+
+  const latestPriceDisplay = React.useMemo(() => {
+    if (!latestPrice) return null;
+
+    const targetCurrency = account?.currency?.toUpperCase() || instrument?.quoteCurrency || 'USD';
+    const sourceCurrency = exchangeFromCurrency || instrument?.quoteCurrency || 'USD';
+    const rate = exchangeRate ?? 1;
+
+    const convertedPrice = (targetCurrency && sourceCurrency && targetCurrency !== sourceCurrency && exchangeRate)
+      ? latestPrice.price * rate
+      : latestPrice.price;
+
+    return {
+      price: convertedPrice,
+      currency: targetCurrency,
+    };
+  }, [latestPrice, account?.currency, instrument?.quoteCurrency, exchangeFromCurrency, exchangeRate]);
 
   return (
     <div className="crypto-page">
@@ -220,7 +240,7 @@ export const CryptoPage: React.FC = () => {
                 <div className="live-box">
                   <div className="live-label">Ostatnia cena</div>
                   <div className="live-value">
-                    {latestPrice ? `${latestPrice.price.toFixed(2)} ${instrument.quoteCurrency}` : 'Brak danych'}
+                    {latestPriceDisplay ? `${latestPriceDisplay.price.toFixed(2)} ${latestPriceDisplay.currency}` : 'Brak danych'}
                   </div>
                 </div>
                 <div className="live-box">

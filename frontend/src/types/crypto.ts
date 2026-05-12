@@ -14,4 +14,5 @@ export interface CryptoChartRequest {
   rangeMinutes: number;
   intervalMinutes?: number;
   to?: string | null;
+  userBaseCurrency?: string;
 }

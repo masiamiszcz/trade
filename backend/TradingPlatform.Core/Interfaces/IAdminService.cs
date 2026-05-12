@@ -81,4 +81,12 @@ public interface IAdminService
     /// Get recent admin action audit logs
     /// </summary>
     Task<IEnumerable<AdminAuditLogDto>> GetRecentAdminAuditLogsAsync(int count = 50, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get unified admin audit history, including admin actions and entity operation logs.
+    /// </summary>
+    Task<(IEnumerable<AdminAuditLogDto> Items, int TotalCount)> GetUnifiedAuditLogsPagedAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default);
 }

@@ -21,30 +21,45 @@ public class RateFetcherHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _logger.LogInformation("RateFetcherHostedService starting...");
+        
         // Wait for database migrations to complete (increase to 30s to ensure migration runs)
         await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+        
+        _logger.LogInformation("RateFetcherHostedService started, entering main loop");
         
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                _logger.LogInformation("Fetching USD/PLN from NBP...");
-                
-                var rate = await _api.GetUsdToPlnFromNbpAsync();
-                _logger.LogInformation("NBP response: {Rate}", rate);
-                
+                _logger.LogInformation("Fetching exchange rates from NBP...");
+
+                // USD/PLN
+                var usdRate = await _api.GetUsdToPlnFromNbpAsync();
+                _logger.LogInformation("NBP USD/PLN: {Rate}", usdRate);
+
+                // EUR/PLN
+                var eurRate = await _api.GetEurToPlnFromNbpAsync();
+                _logger.LogInformation("NBP EUR/PLN: {Rate}", eurRate);
+
+                // GBP/PLN
+                var gbpRate = await _api.GetGbpToPlnFromNbpAsync();
+                _logger.LogInformation("NBP GBP/PLN: {Rate}", gbpRate);
+
                 // Create scope for scoped service
                 using (var scope = _serviceProvider.CreateScope())
                 {
                     var service = scope.ServiceProvider.GetRequiredService<IExchangeRateService>();
-                    await service.SaveUsdRateAsync(rate);
+                    await service.SaveUsdRateAsync(usdRate);
+                    await service.SaveEurRateAsync(eurRate);
+                    await service.SaveGbpRateAsync(gbpRate);
                 }
                 
-                _logger.LogInformation("USD/PLN saved: {Rate}", rate);
+                _logger.LogInformation("Exchange rates saved successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "ERROR: {Message}", ex.Message);
+                _logger.LogError(ex, "ERROR fetching rates: {Message}", ex.Message);
             }
 
             await Task.Delay(TimeSpan.FromHours(1), stoppingToken);

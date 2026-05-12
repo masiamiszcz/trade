@@ -97,6 +97,7 @@
         /// Request block (ADMIN only)
         /// </summary>
         [HttpPatch("{id}/block")]
+        [HttpPost("{id}/block")]
         public async Task<ActionResult<InstrumentDto>> RequestBlock(
             Guid id,
             [FromBody] AdminRequestReasonRequest reason,
@@ -112,6 +113,7 @@
         /// Request unblock (ADMIN only)
         /// </summary>
         [HttpPatch("{id}/unblock")]
+        [HttpPost("{id}/unblock")]
         public async Task<ActionResult<InstrumentDto>> RequestUnblock(
             Guid id,
             [FromBody] AdminRequestReasonRequest reason,

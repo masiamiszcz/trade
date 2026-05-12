@@ -74,6 +74,7 @@ public sealed class CryptoController : ControllerBase
                 request.IntervalMinutes,
                 request.To,
                 cancellationToken);
+
             return Ok(candles);
         }
         catch (KeyNotFoundException)

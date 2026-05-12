@@ -80,15 +80,18 @@ public enum AdminAuditAction
     /// <summary>Admin regenerated backup codes</summary>
     BackupCodesRegenerated = 8,
     
+    /// <summary>Admin generated an invitation for another admin</summary>
+    InvitationGenerated = 9,
+    
     /// <summary>Admin logged out</summary>
-    LogoutSuccess = 9,
+    LogoutSuccess = 10,
     
     /// <summary>Admin performed a sensitive operation</summary>
-    SensitiveOperationPerformed = 10,
+    SensitiveOperationPerformed = 11,
     
     /// <summary>Suspicious activity detected</summary>
-    SuspiciousActivityDetected = 11,
+    SuspiciousActivityDetected = 12,
     
     /// <summary>Admin account was locked (too many failed attempts)</summary>
-    AccountLocked = 12
+    AccountLocked = 13
 }

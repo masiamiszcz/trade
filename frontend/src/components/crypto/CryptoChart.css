@@ -35,9 +35,59 @@
 }
 
 .crypto-chart-visual {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.crypto-chart-tooltip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -100%);
+  max-width: 220px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(8, 15, 34, 0.94);
+  border: 1px solid rgba(94, 163, 255, 0.35);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+  color: #e7f5ff;
+  font-size: 0.82rem;
+  z-index: 10;
+}
+
+.crypto-chart-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 8px 8px 0 8px;
+  border-style: solid;
+  border-color: rgba(8, 15, 34, 0.94) transparent transparent transparent;
+}
+
+.crypto-chart-tooltip .tooltip-title {
+  margin-bottom: 6px;
+  color: #c7e8ff;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.crypto-chart-tooltip .tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.crypto-chart-tooltip .tooltip-row span:first-child {
+  color: #8ac6ff;
+}
+
+.crypto-chart-tooltip .tooltip-row span:last-child {
+  font-weight: 700;
 }
 
 .crypto-chart-visual svg {
