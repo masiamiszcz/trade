@@ -60,6 +60,22 @@ public sealed class SqlAccountRepository : IAccountRepository
         await Task.CompletedTask;
     }
 
+    public async Task UpdateAsync(Account account, CancellationToken cancellationToken = default)
+    {
+        var entity = await _dbContext.Accounts.FirstOrDefaultAsync(x => x.Id == account.Id, cancellationToken);
+        
+        if (entity is null)
+            throw new InvalidOperationException($"Account {account.Id} not found");
+
+        // Update balance fields (RowVersion will be checked automatically on SaveChanges)
+        entity.AvailableBalance = account.AvailableBalance;
+        entity.ReservedBalance = account.ReservedBalance;
+        entity.UpdatedAtUtc = DateTimeOffset.UtcNow;
+
+        _dbContext.Accounts.Update(entity);
+        await Task.CompletedTask;
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _dbContext.SaveChangesAsync(cancellationToken);
 

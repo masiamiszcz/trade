@@ -120,6 +120,14 @@ export const API_CONFIG = {
       chart: (symbol: string) => `/crypto/${symbol}/chart`,
     },
 
+    // ==================== CRYPTO PORTFOLIO ====================
+    cryptoPortfolio: {
+      buy: '/cryptoportfolio/buy',
+      sell: '/cryptoportfolio/sell',
+      portfolio: '/cryptoportfolio/portfolio',
+      transactions: '/cryptoportfolio/transactions',
+    },
+
     // ==================== FIAT EXCHANGE RATES ====================
     fiat: {
       rate: (symbol: string) => `/fiat/rate/${symbol}`,

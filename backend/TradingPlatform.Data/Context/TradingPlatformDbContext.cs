@@ -12,6 +12,7 @@ public sealed class TradingPlatformDbContext(DbContextOptions<TradingPlatformDbC
     public DbSet<AccountEntity> Accounts => Set<AccountEntity>();
     public DbSet<InstrumentEntity> Instruments => Set<InstrumentEntity>();
     public DbSet<PositionEntity> Positions => Set<PositionEntity>();
+    public DbSet<CryptoTransactionEntity> CryptoTransactions => Set<CryptoTransactionEntity>();
     public DbSet<AccountTransferEntity> AccountTransfers => Set<AccountTransferEntity>();
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
     public DbSet<AdminInvitationEntity> AdminInvitations => Set<AdminInvitationEntity>();

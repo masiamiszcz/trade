@@ -146,6 +146,12 @@ namespace TradingPlatform.Data.Migrations
                     b.Property<decimal>("ReservedBalance")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -611,9 +617,90 @@ namespace TradingPlatform.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Symbol", "Source", "IntervalMinutes", "OpenTime")
+                        .IsUnique()
                         .HasDatabaseName("IX_Candles_Symbol_Source_Interval_OpenTime");
 
                     b.ToTable("Candles");
+                });
+
+            modelBuilder.Entity("TradingPlatform.Data.Entities.CryptoTransactionEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSDATETIMEOFFSET()");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("ErrorReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("ExecutionPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<Guid>("InstrumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal>("RequestedPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("TotalValue")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstrumentId");
+
+                    b.HasIndex("AccountId", "CreatedAt")
+                        .HasDatabaseName("IX_CryptoTransactions_AccountId_CreatedAt");
+
+                    b.HasIndex("AccountId", "Status")
+                        .HasDatabaseName("IX_CryptoTransactions_AccountId_Status");
+
+                    b.HasIndex("AccountId", "Symbol")
+                        .HasDatabaseName("IX_CryptoTransactions_AccountId_Symbol");
+
+                    b.HasIndex("AccountId", "Type")
+                        .HasDatabaseName("IX_CryptoTransactions_AccountId_Type");
+
+                    b.ToTable("CryptoTransactions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CryptoTransactions_Prices_NonNegative", "[RequestedPrice] > 0 AND [ExecutionPrice] > 0 AND [TotalValue] >= 0");
+
+                            t.HasCheckConstraint("CK_CryptoTransactions_Quantity_NonNegative", "[Quantity] > 0");
+                        });
                 });
 
             modelBuilder.Entity("TradingPlatform.Data.Entities.InstrumentEntity", b =>
@@ -823,6 +910,11 @@ namespace TradingPlatform.Data.Migrations
                     b.Property<Guid>("InstrumentId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset>("LastUpdateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSDATETIMEOFFSET()");
+
                     b.Property<DateTimeOffset>("OpenedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetimeoffset")
@@ -833,6 +925,12 @@ namespace TradingPlatform.Data.Migrations
 
                     b.Property<decimal>("ReservedQuantity")
                         .HasColumnType("decimal(18,8)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<DateTimeOffset?>("UpdatedAtUtc")
                         .HasColumnType("datetimeoffset");
@@ -1044,6 +1142,25 @@ namespace TradingPlatform.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Admin");
+                });
+
+            modelBuilder.Entity("TradingPlatform.Data.Entities.CryptoTransactionEntity", b =>
+                {
+                    b.HasOne("TradingPlatform.Data.Entities.AccountEntity", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TradingPlatform.Data.Entities.InstrumentEntity", "Instrument")
+                        .WithMany()
+                        .HasForeignKey("InstrumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Instrument");
                 });
 
             modelBuilder.Entity("TradingPlatform.Data.Entities.PositionEntity", b =>

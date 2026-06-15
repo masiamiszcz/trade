@@ -17,6 +17,12 @@ public sealed class AccountEntity
     public decimal ReservedBalance { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset? UpdatedAtUtc { get; set; }
+    
+    /// <summary>
+    /// Optimistic concurrency control - prevents race conditions on balance updates
+    /// EF Core automatically increments this on each SaveChanges()
+    /// </summary>
+    public byte[] RowVersion { get; set; } = [];
 
     public UserEntity User { get; set; } = null!;
     public AccountEntity? ParentAccount { get; set; }

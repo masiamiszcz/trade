@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TradingPlatform.Core\TradingPlatform.Core.csproj" />
     <ProjectReference Include="..\TradingPlatform.Data\TradingPlatform.Data.csproj" />
+    <ProjectReference Include="..\TradingPlatform.Api\TradingPlatform.Api.csproj" />
   </ItemGroup>
 
 </Project>

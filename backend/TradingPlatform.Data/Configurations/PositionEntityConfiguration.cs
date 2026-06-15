@@ -27,6 +27,12 @@ public sealed class PositionEntityConfiguration : IEntityTypeConfiguration<Posit
         builder.Property(x => x.OpenedAtUtc)
             .HasDefaultValueSql("SYSDATETIMEOFFSET()");
 
+        builder.Property(x => x.LastUpdateTime)
+            .HasDefaultValueSql("SYSDATETIMEOFFSET()");
+
+        builder.Property(x => x.RowVersion)
+            .IsRowVersion();
+
         builder.HasIndex(x => new { x.AccountId, x.InstrumentId })
             .IsUnique();
 

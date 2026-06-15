@@ -7,10 +7,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TradingPlatform.Core.Dtos;
 using TradingPlatform.Core.Models;
+using TradingPlatform.Core.Interfaces;
 
 namespace TradingPlatform.Data.Services.Market;
 
-public class BinanceWebSocketService : BackgroundService
+public class BinanceWebSocketService : BackgroundService, IBinanceWebSocketService
 {
     private readonly ILogger<BinanceWebSocketService> _logger;
     private readonly MarketProcessingService _marketProcessor;
@@ -134,5 +135,22 @@ public class BinanceWebSocketService : BackgroundService
                 return;
             }
         }
+    }
+
+    public bool IsConnected => true; // WebSocket service is always considered connected when running
+
+    public async Task<decimal?> GetLatestPriceAsync(string symbol, CancellationToken cancellationToken = default)
+    {
+        // Return cached last price or null if not available
+        // In production, you would query from a price cache or feed
+        return _lastPrice > 0 ? _lastPrice : null;
+    }
+
+    public async Task PublishMarketStateAsync(MarketStateDto marketState, CancellationToken cancellationToken = default)
+    {
+        // This method is for publishing market state updates
+        // Currently not implemented as WebSocket is for consuming, not publishing
+        _logger.LogDebug("Market state update received");
+        await Task.CompletedTask;
     }
 }

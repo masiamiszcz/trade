@@ -1,5 +1,6 @@
 using System.Globalization;
 using TradingPlatform.Core.Dtos;
+using TradingPlatform.Core.Models;
 
 public static class TradeMapper
 {

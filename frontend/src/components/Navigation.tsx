@@ -65,6 +65,12 @@ export const Navigation: React.FC<NavigationProps> = ({ onMenuClick }) => {
             ₿ Crypto
           </Link>
           <Link
+            to="/dashboard/crypto-portfolio"
+            className={`market-button ${isActive('/dashboard/crypto-portfolio') ? 'active' : ''}`}
+          >
+            💼 Portfel
+          </Link>
+          <Link
             to="/dashboard/cfd"
             className={`market-button ${isActive('/dashboard/cfd') ? 'active' : ''}`}
           >

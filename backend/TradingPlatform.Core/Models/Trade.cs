@@ -1,3 +1,5 @@
+namespace TradingPlatform.Core.Models;
+
 public class Trade
 {
     public string Symbol { get; init; }

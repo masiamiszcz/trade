@@ -5,6 +5,7 @@ import { useCryptoInstruments } from '../hooks/useCryptoInstruments';
 import { useSignalR } from '../hooks/useSignalR';
 import { useCryptoChart } from '../hooks/useCryptoChart';
 import { CryptoChart } from '../components/crypto/CryptoChart';
+import { BuySellPanel } from '../components/crypto/BuySellPanel';
 import type { CandleUpdate } from '../services/SignalRService';
 import './CryptoPage.css';
 
@@ -256,6 +257,12 @@ export const CryptoPage: React.FC = () => {
             <div className="crypto-note">
               Po wejściu na tę stronę uruchomiono połączenie SignalR dla symbolu {instrument.symbol}. Tutaj możesz obserwować kurs i analizować dane historyczne.
             </div>
+
+            {/* Trading form for this crypto asset - pass latest price */}
+            <BuySellPanel 
+              symbol={instrument.symbol} 
+              latestPrice={latestPrice?.price || 0}
+            />
           </>
         )}
       </div>

@@ -36,6 +36,9 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
         builder.Property(x => x.ReservedBalance)
             .HasColumnType("decimal(18,2)");
 
+        builder.Property(x => x.RowVersion)
+            .IsRowVersion();
+
         builder.Property(x => x.CreatedAtUtc)
             .HasDefaultValueSql("SYSDATETIMEOFFSET()");
 

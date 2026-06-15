@@ -10,6 +10,7 @@ import { AccountPage } from './pages/AccountPage';
 import { StockDashboard } from './pages/StockDashboard';
 import { CryptoDashboard } from './pages/CryptoDashboard';
 import { CryptoPage } from './pages/CryptoPage';
+import { CryptoPortfolioPage } from './pages/CryptoPortfolioPage';
 import { CFDDashboard } from './pages/CFDDashboard';
 import { useAuth } from './hooks/useAuth';
 
@@ -100,6 +101,14 @@ const App: React.FC = () => {
           element={requireAuth(
             <MainLayout>
               <CryptoPage />
+            </MainLayout>
+          )}
+        />
+        <Route
+          path="/dashboard/crypto-portfolio"
+          element={requireAuth(
+            <MainLayout>
+              <CryptoPortfolioPage />
             </MainLayout>
           )}
         />

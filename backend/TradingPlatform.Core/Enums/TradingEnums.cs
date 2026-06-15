@@ -102,3 +102,23 @@ public enum AdminRequestStatus
     Approved = 2,           // Request approved (action succeeded)
     Rejected = 3            // Request rejected (action declined or failed)
 }
+
+/// <summary>
+/// Crypto Transaction Type - Buy or Sell operation
+/// </summary>
+public enum TransactionType
+{
+    Buy = 1,
+    Sell = 2
+}
+
+/// <summary>
+/// Crypto Transaction Status - State machine for transaction lifecycle
+/// </summary>
+public enum TransactionStatus
+{
+    Pending = 1,            // Transaction initiated, awaiting execution
+    Completed = 2,          // Transaction completed successfully
+    Rejected = 3,           // Transaction rejected (insufficient balance, tolerance, etc)
+    Cancelled = 4           // Transaction cancelled by user
+}

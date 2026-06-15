@@ -1,5 +1,14 @@
 # LISTA DO ZROBIENIA: Buying Service Implementation
+## 🗂️ Szybkie Menu Nawigacji
 
+- [📊 Struktura Projektu](#-struktura-projektu---mapa-plików) - Mapa gdzie są wszystkie pliki
+- [📋 Plan Implementacji](#faza-1-core-service-layer-backend-services) - 13 Faz z kodami
+- [📂 Podsumowanie Zmian](#-podsumowanie-zmian-po-lokalizacji) - 32 pliki do modyfikacji
+- [⚠️ Decyzje Krytyczne](#-krytyczne-decyzje-i-warunki) - Ważne warunki
+- [✅ Checklist Done](#-definition-of-done---kompletny-checklist) - Kiedy skończyć
+- [🚀 Od Czego Zacząć](#-powinni-zacząć-od) - Priorytet zadań
+
+---
 ## � Struktura Projektu - Mapa Plików
 
 ```
@@ -112,7 +121,9 @@ trading_project/                                  ← ROOT FOLDER
 ## FAZA 1: Core Service Layer (Backend Services)
 
 ### 1. Create Trading Service Interface
-**Plik:** `backend/TradingPlatform.Core/Interfaces/ITradingService.cs`
+**📍 Plik:** `backend/TradingPlatform.Core/Interfaces/ITradingService.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\Interfaces\ITradingService.cs`
+**Status:** 🆕 NOWY PLIK
 
 ```csharp
 public interface ITradingService
@@ -130,7 +141,9 @@ public interface ITradingService
 ```
 
 ### 2. Implement Trading Service
-**Plik:** `backend/TradingPlatform.Core/Services/TradingService.cs`
+**📍 Plik:** `backend/TradingPlatform.Core/Services/TradingService.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\Services\TradingService.cs`
+**Status:** 🆕 NOWY PLIK
 
 ```csharp
 public class TradingService : ITradingService
@@ -156,9 +169,10 @@ public class TradingService : ITradingService
 
 ## FAZA 2: Repository Layer
 
-### 3. Create Account Transfer Repository
-**Plik:** `backend/TradingPlatform.Data/Repositories/IAccountTransferRepository.cs` (Interface)
-**Plik:** `backend/TradingPlatform.Data/Repositories/SqlAccountTransferRepository.cs` (Implementation)
+### 3. Create Account Transfer Repository Interface
+**📍 Plik:** `backend/TradingPlatform.Core/Interfaces/IAccountTransferRepository.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\Interfaces\IAccountTransferRepository.cs`
+**Status:** 🆕 NOWY PLIK
 
 ```csharp
 public interface IAccountTransferRepository
@@ -170,9 +184,32 @@ public interface IAccountTransferRepository
 }
 ```
 
-### 4. Create Position Repository
-**Plik:** `backend/TradingPlatform.Data/Repositories/IPositionRepository.cs` (Interface)
-**Plik:** `backend/TradingPlatform.Data/Repositories/SqlPositionRepository.cs` (Implementation)
+### 3b. Create Account Transfer Repository Implementation
+**📍 Plik:** `backend/TradingPlatform.Data/Repositories/SqlAccountTransferRepository.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\Repositories\SqlAccountTransferRepository.cs`
+**Status:** 🆕 NOWY PLIK
+
+```csharp
+public class SqlAccountTransferRepository : IAccountTransferRepository
+{
+    private readonly TradingPlatformDbContext _context;
+
+    public async Task<IEnumerable<AccountTransferEntity>> GetByAccountIdAsync(Guid accountId)
+    {
+        return await _context.AccountTransfers
+            .Where(t => t.FromAccountId == accountId || t.ToAccountId == accountId)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+    }
+
+    // Implement other methods...
+}
+```
+
+### 4. Create Position Repository Interface
+**📍 Plik:** `backend/TradingPlatform.Core/Interfaces/IPositionRepository.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\Interfaces\IPositionRepository.cs`
+**Status:** 🆕 NOWY PLIK
 
 ```csharp
 public interface IPositionRepository
@@ -184,8 +221,30 @@ public interface IPositionRepository
 }
 ```
 
+### 4b. Create Position Repository Implementation
+**📍 Plik:** `backend/TradingPlatform.Data/Repositories/SqlPositionRepository.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\Repositories\SqlPositionRepository.cs`
+**Status:** 🆕 NOWY PLIK
+
+```csharp
+public class SqlPositionRepository : IPositionRepository
+{
+    private readonly TradingPlatformDbContext _context;
+
+    public async Task<PositionEntity> GetByAccountAndInstrumentAsync(Guid accountId, Guid instrumentId)
+    {
+        return await _context.Positions
+            .FirstOrDefaultAsync(p => p.AccountId == accountId && p.InstrumentId == instrumentId);
+    }
+
+    // Implement other methods...
+}
+```
+
 ### 5. Extend Account Repository
-**Plik:** `backend/TradingPlatform.Data/Repositories/SqlAccountRepository.cs`
+**📍 Plik:** `backend/TradingPlatform.Data/Repositories/SqlAccountRepository.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\Repositories\SqlAccountRepository.cs`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
 
 - Add method: `UpdateBalanceAsync(Guid accountId, decimal availableBalance, decimal reservedBalance)`
 - Add transaction support methods
@@ -195,7 +254,9 @@ public interface IPositionRepository
 ## FAZA 3: API Controllers
 
 ### 6. Create Trading Controller
-**Plik:** `backend/TradingPlatform.Api/Controllers/TradingController.cs`
+**📍 Plik:** `backend/TradingPlatform.Api/Controllers/TradingController.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\Controllers\TradingController.cs`
+**Status:** 🆕 NOWY PLIK
 
 ```csharp
 [ApiController]
@@ -224,7 +285,9 @@ public class TradingController : ControllerBase
 ```
 
 ### 7. Extend Account Controller
-**Plik:** `backend/TradingPlatform.Api/Controllers/AccountController.cs`
+**📍 Plik:** `backend/TradingPlatform.Api/Controllers/AccountController.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\Controllers\AccountController.cs`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
 
 ```csharp
 [HttpPost("transfer")]
@@ -251,7 +314,10 @@ public async Task<IActionResult> GetTransactions([FromQuery] int pageSize = 50)
 ## FAZA 4: DTOs i Models
 
 ### 8. Create Request/Response DTOs
-**Plik:** `backend/TradingPlatform.Api/DTOs/BuyOrderRequest.cs`
+
+**📍 Plik:** `backend/TradingPlatform.Core/Dtos/BuyOrderRequest.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\Dtos\BuyOrderRequest.cs`
+**Status:** 🆕 NOWY PLIK
 
 ```csharp
 public class BuyOrderRequest
@@ -262,10 +328,21 @@ public class BuyOrderRequest
 }
 ```
 
-**Plik:** `backend/TradingPlatform.Api/DTOs/SellOrderRequest.cs`
-**Plik:** `backend/TradingPlatform.Api/DTOs/TransferRequest.cs`
-**Plik:** `backend/TradingPlatform.Api/DTOs/LockRequest.cs`
-**Plik:** `backend/TradingPlatform.Api/DTOs/TransactionDto.cs`
+**📍 Plik:** `backend/TradingPlatform.Core/Dtos/SellOrderRequest.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\Dtos\SellOrderRequest.cs`
+**Status:** 🆕 NOWY PLIK
+
+**📍 Plik:** `backend/TradingPlatform.Core/Dtos/TransferRequest.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\Dtos\TransferRequest.cs`
+**Status:** 🆕 NOWY PLIK
+
+**📍 Plik:** `backend/TradingPlatform.Core/Dtos/LockRequest.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\Dtos\LockRequest.cs`
+**Status:** 🆕 NOWY PLIK
+
+**📍 Plik:** `backend/TradingPlatform.Core/Dtos/TransactionDto.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\Dtos\TransactionDto.cs`
+**Status:** 🆕 NOWY PLIK
 
 ```csharp
 public class TransactionDto
@@ -285,24 +362,39 @@ public class TransactionDto
 ## FAZA 5: Extend Entity Model
 
 ### 9. Update AccountTransferEntity
-**Plik:** `backend/TradingPlatform.Data/Entities/AccountTransferEntity.cs`
+**📍 Plik:** `backend/TradingPlatform.Data/Entities/AccountTransferEntity.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\Entities\AccountTransferEntity.cs`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
 
 - Add new TransferType values: `BUY`, `SELL`, `LOCK`, `UNLOCK`
 - Add fields: `InstrumentId` (nullable), `OrderDetails` (JSON)
 
 ### 10. Update PositionEntity
-**Plik:** `backend/TradingPlatform.Data/Entities/PositionEntity.cs`
+**📍 Plik:** `backend/TradingPlatform.Data/Entities/PositionEntity.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\Entities\PositionEntity.cs`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
 
 - Verify fields: `Quantity`, `ReservedQuantity`, `AverageOpenPrice`
 - Add: `LastUpdateTime`
+
+### 10b. Update Entity Configurations
+
+**📍 Plik:** `backend/TradingPlatform.Data/Configurations/AccountTransferEntityConfiguration.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\Configurations\AccountTransferEntityConfiguration.cs`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
+
+**📍 Plik:** `backend/TradingPlatform.Data/Configurations/PositionEntityConfiguration.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\Configurations\PositionEntityConfiguration.cs`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
 
 ---
 
 ## FAZA 6: Unit of Work Pattern
 
-### 11. Create Unit of Work
-**Plik:** `backend/TradingPlatform.Data/UnitOfWork/IUnitOfWork.cs` (Interface)
-**Plik:** `backend/TradingPlatform.Data/UnitOfWork/UnitOfWork.cs` (Implementation)
+### 11. Create Unit of Work Interface
+**📍 Plik:** `backend/TradingPlatform.Data/UnitOfWork/IUnitOfWork.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\UnitOfWork\IUnitOfWork.cs`
+**Status:** 🆕 NOWY PLIK
 
 ```csharp
 public interface IUnitOfWork
@@ -310,10 +402,53 @@ public interface IUnitOfWork
     IAccountRepository Accounts { get; }
     IAccountTransferRepository Transfers { get; }
     IPositionRepository Positions { get; }
+    IAuditLogRepository AuditLogs { get; }
     Task BeginTransactionAsync();
     Task CommitAsync();
     Task RollbackAsync();
     Task SaveChangesAsync();
+}
+```
+
+### 11b. Implement Unit of Work
+**📍 Plik:** `backend/TradingPlatform.Data/UnitOfWork/UnitOfWork.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\UnitOfWork\UnitOfWork.cs`
+**Status:** 🆕 NOWY PLIK
+
+```csharp
+public class UnitOfWork : IUnitOfWork
+{
+    private readonly TradingPlatformDbContext _context;
+    private IDbContextTransaction _transaction;
+
+    public IAccountRepository Accounts { get; }
+    public IAccountTransferRepository Transfers { get; }
+    public IPositionRepository Positions { get; }
+    public IAuditLogRepository AuditLogs { get; }
+
+    public async Task BeginTransactionAsync()
+    {
+        _transaction = await _context.Database.BeginTransactionAsync();
+    }
+
+    public async Task CommitAsync()
+    {
+        try
+        {
+            await _context.SaveChangesAsync();
+            await _transaction?.CommitAsync();
+        }
+        catch
+        {
+            await RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task RollbackAsync()
+    {
+        await _transaction?.RollbackAsync();
+    }
 }
 ```
 
@@ -322,13 +457,24 @@ public interface IUnitOfWork
 ## FAZA 7: Dependency Injection
 
 ### 12. Register Services in DI Container
-**Plik:** `backend/TradingPlatform.Api/Program.cs` (w `ConfigureServices`)
+**📍 Plik:** `backend/TradingPlatform.Api/Program.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Api\Program.cs`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
+
+W sekcji `builder.Services.AddScoped(...)` dodaj:
 
 ```csharp
-services.AddScoped<ITradingService, TradingService>();
-services.AddScoped<IUnitOfWork, UnitOfWork>();
-services.AddScoped<IAccountTransferRepository, SqlAccountTransferRepository>();
-services.AddScoped<IPositionRepository, SqlPositionRepository>();
+// Trading Service
+builder.Services.AddScoped<ITradingService, TradingService>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Repositories
+builder.Services.AddScoped<IAccountTransferRepository, SqlAccountTransferRepository>();
+builder.Services.AddScoped<IPositionRepository, SqlPositionRepository>();
+
+// Existing repositories (if not already registered)
+builder.Services.AddScoped<IAccountRepository, SqlAccountRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 ```
 
 ---
@@ -336,26 +482,40 @@ services.AddScoped<IPositionRepository, SqlPositionRepository>();
 ## FAZA 8: Database Migrations
 
 ### 13. Create EF Core Migration
-**Terminal:**
+**📍 Terminal Command:**
+
 ```bash
-cd backend/TradingPlatform.Data
-dotnet ef migrations add AddTradingServiceSupport --project ../TradingPlatform.Data --startup-project ../TradingPlatform.Api
+cd c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data
+dotnet ef migrations add AddTradingServiceSupport --project . --startup-project ../TradingPlatform.Api
 ```
 
-**Automatycznie tworzy:** `backend/TradingPlatform.Data/Migrations/[TIMESTAMP]_AddTradingServiceSupport.cs`
+**Automatycznie tworzy:**
+**📁 Plik:** `backend/TradingPlatform.Data/Migrations/[TIMESTAMP]_AddTradingServiceSupport.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\Migrations\[TIMESTAMP]_AddTradingServiceSupport.cs`
+**Status:** 🆕 AUTO-GENERATED
 
 ---
 
 ## FAZA 9: Audit Logging Enhancement
 
-### 14. Extend Audit Logging
-**Plik:** `backend/TradingPlatform.Core/Models/AuditLog.cs`
+### 14. Extend Audit Logging Model
+**📍 Plik:** `backend/TradingPlatform.Core/Models/AuditLog.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\Models\AuditLog.cs`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
 
 - Add Action values: `BUY_EXECUTED`, `SELL_EXECUTED`, `TRANSFER_COMPLETED`, `FUNDS_RESERVED`, `FUNDS_RELEASED`
 - Add field: `TransactionId`
 
 ### 15. Update Audit Logger
-**Plik:** `backend/TradingPlatform.Data/Repositories/AuditLogRepository.cs`
+**📍 Plik:** `backend/TradingPlatform.Core/Interfaces/IAuditLogRepository.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Core\Interfaces\IAuditLogRepository.cs`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
+
+- Add method: `LogTransactionAsync(Guid userId, string action, Guid entityId, object details)`
+
+**📍 Plik:** `backend/TradingPlatform.Data/Repositories/AuditLogRepository.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Data\Repositories\AuditLogRepository.cs`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
 
 ```csharp
 public async Task LogTransactionAsync(
@@ -364,8 +524,17 @@ public async Task LogTransactionAsync(
     Guid entityId, 
     object details)
 {
-    // Create AuditLogEntity
-    // Persist to database
+    var auditLog = new AuditLogEntity
+    {
+        Id = Guid.NewGuid(),
+        UserId = userId,
+        Action = action,
+        EntityId = entityId,
+        Details = JsonSerializer.Serialize(details),
+        CreatedAt = DateTime.UtcNow
+    };
+    
+    await _context.AuditLogs.AddAsync(auditLog);
 }
 ```
 
@@ -374,7 +543,9 @@ public async Task LogTransactionAsync(
 ## FAZA 10: Frontend Integration
 
 ### 16. Update useTransactions Hook
-**Plik:** `frontend/src/hooks/useTransactions.ts`
+**📍 Plik:** `frontend/src/hooks/useTransactions.ts`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\frontend\src\hooks\useTransactions.ts`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
 
 ```typescript
 import { useQuery } from '@tanstack/react-query';
@@ -386,6 +557,7 @@ export function useTransactions(accountId: string) {
       const response = await fetch(`/api/account/transactions?pageSize=50`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!response.ok) throw new Error('Failed to fetch transactions');
       return response.json();
     }
   });
@@ -393,7 +565,9 @@ export function useTransactions(accountId: string) {
 ```
 
 ### 17. Update TransactionHistory Component
-**Plik:** `frontend/src/components/user/TransactionHistory.tsx`
+**📍 Plik:** `frontend/src/components/user/TransactionHistory.tsx`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\frontend\src\components\user\TransactionHistory.tsx`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
 
 - Replace mock data with real hook
 - Remove TODO comment
@@ -403,8 +577,10 @@ export function useTransactions(accountId: string) {
 
 ## FAZA 11: Integration Tests
 
-### 18. Create Integration Tests
-**Plik:** `backend/TradingPlatform.Tests/Integration/TradingServiceTests.cs`
+### 18. Create Trading Service Tests
+**📍 Plik:** `backend/TradingPlatform.Tests/Integration/TradingServiceTests.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Tests\Integration\TradingServiceTests.cs`
+**Status:** 🆕 NOWY PLIK
 
 ```csharp
 [TestClass]
@@ -439,7 +615,9 @@ public class TradingServiceTests
 ```
 
 ### 19. Create API Tests
-**Plik:** `backend/TradingPlatform.Tests/Integration/TradingControllerTests.cs`
+**📍 Plik:** `backend/TradingPlatform.Tests/Integration/TradingControllerTests.cs`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\TradingPlatform.Tests\Integration\TradingControllerTests.cs`
+**Status:** 🆕 NOWY PLIK
 
 ```csharp
 [TestClass]
@@ -464,14 +642,16 @@ public class TradingControllerTests
 ## FAZA 12: Docker & Deployment
 
 ### 20. Update Docker Compose
-**Plik:** `docker/docker-compose.yaml`
+**📍 Plik:** `docker/docker-compose.yaml`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\docker\docker-compose.yaml`
+**Status:** ✓ ISTNIEJĄCY - DO EDYCJI
 
 - Ensure database migrations run on startup
 - Verify backend service rebuilds with new code
 
 **Terminal:**
 ```bash
-cd docker
+cd c:\Users\kubac\Desktop\Studia\P1\trading_project\docker
 docker compose down
 docker compose up --build
 ```
@@ -481,14 +661,18 @@ docker compose up --build
 ## FAZA 13: Documentation & Validation
 
 ### 21. Update API Documentation
-**Plik:** `backend/API_DOCUMENTATION.md` (create if not exists)
+**📍 Plik:** `backend/API_DOCUMENTATION.md` (create if not exists)
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\backend\API_DOCUMENTATION.md`
+**Status:** 🆕 NOWY PLIK / ✓ DO EDYCJI
 
 - Document all new endpoints
 - Include request/response examples
 - List error codes
 
-### 22. Validate Against Audit Checklist
-**Plik:** `audits/buyingservice/IMPLEMENTATION_VALIDATION.md` (create new)
+### 22. Create Implementation Validation Checklist
+**📍 Plik:** `audits/buyingservice/IMPLEMENTATION_VALIDATION.md`
+**📁 Pełna ścieżka:** `c:\Users\kubac\Desktop\Studia\P1\trading_project\audits\buyingservice\IMPLEMENTATION_VALIDATION.md`
+**Status:** 🆕 NOWY PLIK
 
 - [x] ITradingService interface created
 - [x] TradingService implemented
@@ -509,50 +693,238 @@ docker compose up --build
 
 ## 📊 Implementation Timeline
 
-| Faza | Zadanie | Szacowana Czas | Status |
-|------|---------|----------------|--------|
-| 1 | ITradingService + Implementation | 2-3h | ⏳ |
-| 2 | Repositories | 1-2h | ⏳ |
-| 3 | API Controllers | 1-2h | ⏳ |
-| 4 | DTOs | 30min | ⏳ |
-| 5 | Entity Extensions | 30min | ⏳ |
-| 6 | Unit of Work | 1h | ⏳ |
-| 7 | DI Configuration | 15min | ⏳ |
-| 8 | Database Migration | 15min | ⏳ |
-| 9 | Audit Logging | 30min | ⏳ |
-| 10 | Frontend Integration | 1h | ⏳ |
-| 11 | Integration Tests | 2-3h | ⏳ |
-| 12 | Docker Validation | 30min | ⏳ |
-| 13 | Documentation | 1h | ⏳ |
-| **RAZEM** | | **~15-17h** | |
+| Faza | Zadanie | Szacowana Czas | Pliki | Status |
+|------|---------|----------------|-------|--------|
+| 1 | ITradingService + Implementation | 2-3h | 2 nowe | ⏳ |
+| 2 | Repositories (Transfer + Position) | 1-2h | 4 nowe | ⏳ |
+| 3 | API Controllers (Trading + extend Account) | 1-2h | 2 edycje | ⏳ |
+| 4 | DTOs (5 typów) | 30min | 5 nowych | ⏳ |
+| 5 | Entity Extensions | 30min | 4 edycje | ⏳ |
+| 6 | Unit of Work Pattern | 1h | 2 nowe | ⏳ |
+| 7 | DI Configuration | 15min | 1 edycja | ⏳ |
+| 8 | Database Migration | 15min | 1 auto-gen | ⏳ |
+| 9 | Audit Logging | 30min | 2-3 edycje | ⏳ |
+| 10 | Frontend Integration | 1h | 2 edycje | ⏳ |
+| 11 | Integration Tests | 2-3h | 2 nowe | ⏳ |
+| 12 | Docker Validation | 30min | 1 edycja | ⏳ |
+| 13 | Documentation | 1h | 2 nowe | ⏳ |
+| **RAZEM** | | **~15-17h** | **32 pliki** | |
 
 ---
 
-## ⚠️ Krytyczne Decyzje
+## 📂 Podsumowanie Zmian po Lokalizacji
 
-1. **Atomic Transactions**: Wszystkie operacje multi-entity używają `BeginTransactionAsync()` + rollback
-2. **Balance Validation**: Zawsze sprawdzaj `AvailableBalance >= Amount` przed operacją
-3. **Audit Trail**: Każda transakcja musi być zloggowana z `Action`, `EntityId`, `Details`
-4. **Error Handling**: Zwracaj `Result<T>` z szczegółowymi error messages
-5. **Authorization**: Wszystkie endpointy wymagają `[Authorize]` i user ID z JWT
+### 🆕 NOWE PLIKI DO STWORZENIA (12 plików)
+
+**Backend/Services:**
+1. `backend/TradingPlatform.Core/Interfaces/ITradingService.cs`
+2. `backend/TradingPlatform.Core/Services/TradingService.cs`
+
+**Backend/Repositories:**
+3. `backend/TradingPlatform.Core/Interfaces/IAccountTransferRepository.cs`
+4. `backend/TradingPlatform.Data/Repositories/SqlAccountTransferRepository.cs`
+5. `backend/TradingPlatform.Core/Interfaces/IPositionRepository.cs`
+6. `backend/TradingPlatform.Data/Repositories/SqlPositionRepository.cs`
+
+**Backend/Controllers:**
+7. `backend/TradingPlatform.Api/Controllers/TradingController.cs`
+
+**Backend/DTOs:**
+8. `backend/TradingPlatform.Core/Dtos/BuyOrderRequest.cs`
+9. `backend/TradingPlatform.Core/Dtos/SellOrderRequest.cs`
+10. `backend/TradingPlatform.Core/Dtos/TransferRequest.cs`
+11. `backend/TradingPlatform.Core/Dtos/LockRequest.cs`
+12. `backend/TradingPlatform.Core/Dtos/TransactionDto.cs`
+
+**Backend/UnitOfWork:**
+13. `backend/TradingPlatform.Data/UnitOfWork/IUnitOfWork.cs`
+14. `backend/TradingPlatform.Data/UnitOfWork/UnitOfWork.cs`
+
+**Backend/Tests:**
+15. `backend/TradingPlatform.Tests/Integration/TradingServiceTests.cs`
+16. `backend/TradingPlatform.Tests/Integration/TradingControllerTests.cs`
+
+**Database/Migrations:**
+17. `backend/TradingPlatform.Data/Migrations/[TIMESTAMP]_AddTradingServiceSupport.cs` (auto-generated)
+
+**Documentation:**
+18. `backend/API_DOCUMENTATION.md` (nowy)
+19. `audits/buyingservice/IMPLEMENTATION_VALIDATION.md` (nowy)
 
 ---
 
-## ✅ Definition of Done
+### ✏️ PLIKI DO EDYCJI (9 plików)
 
-- [ ] Wszystkie pliki stworzone i edytowane
-- [ ] Kod kompiluje się bez błędów
-- [ ] Migracje bazy danych zastosowane
-- [ ] Unit testy: 100% pass
-- [ ] Integration testy: 100% pass
-- [ ] E2E testy na frontendie: pass
-- [ ] Docker build successful
+**Backend/API:**
+1. `backend/TradingPlatform.Api/Controllers/AccountController.cs`
+   - Add: `Transfer()`, `Lock()`, `GetTransactions()` endpoints
+
+2. `backend/TradingPlatform.Api/Program.cs`
+   - Register ITradingService, IUnitOfWork, repositories
+
+**Backend/Data:**
+3. `backend/TradingPlatform.Data/Entities/AccountTransferEntity.cs`
+   - Add: TransferType values (BUY, SELL, LOCK, UNLOCK)
+   - Add: InstrumentId, OrderDetails fields
+
+4. `backend/TradingPlatform.Data/Entities/PositionEntity.cs`
+   - Verify: Quantity, ReservedQuantity, AverageOpenPrice
+   - Add: LastUpdateTime
+
+5. `backend/TradingPlatform.Data/Repositories/SqlAccountRepository.cs`
+   - Add: UpdateBalanceAsync() method
+
+6. `backend/TradingPlatform.Data/Configurations/AccountTransferEntityConfiguration.cs`
+   - Update mapping for new fields
+
+7. `backend/TradingPlatform.Data/Configurations/PositionEntityConfiguration.cs`
+   - Update mapping for LastUpdateTime
+
+**Backend/Core:**
+8. `backend/TradingPlatform.Core/Models/AuditLog.cs`
+   - Add: Action values (BUY_EXECUTED, SELL_EXECUTED, etc.)
+   - Add: TransactionId field
+
+9. `backend/TradingPlatform.Core/Interfaces/IAuditLogRepository.cs`
+   - Add: LogTransactionAsync() method
+
+10. `backend/TradingPlatform.Data/Repositories/AuditLogRepository.cs`
+    - Implement: LogTransactionAsync() method
+
+**Frontend:**
+11. `frontend/src/hooks/useTransactions.ts`
+    - Replace mock with real API call to `/api/account/transactions`
+
+12. `frontend/src/components/user/TransactionHistory.tsx`
+    - Replace mock data with useTransactions hook
+    - Remove TODO comment
+
+**Docker:**
+13. `docker/docker-compose.yaml`
+    - Ensure migrations run on startup
+
+---
+
+## ⚠️ Krytyczne Decyzje i Warunki
+
+1. **Atomic Transactions**: 
+   - Wszystkie operacje multi-entity MUSZĄ używać `BeginTransactionAsync()`
+   - Rollback przy każdej klauzule `catch`
+
+2. **Balance Validation**: 
+   - Zawsze sprawdzaj: `AvailableBalance >= Amount` przed operacją
+   - ReservedBalance nigdy nie może przekroczyć AvailableBalance + ReservedBalance
+
+3. **Audit Trail**: 
+   - Każda transakcja = log event z `Action`, `EntityId`, `Details`
+   - Action values: `BUY_EXECUTED`, `SELL_EXECUTED`, `TRANSFER_COMPLETED`, `FUNDS_RESERVED`, `FUNDS_RELEASED`
+
+4. **Error Handling**: 
+   - Zwracaj `Result<T>` z szczegółowymi error messages
+   - Nie zwracaj raw exceptions, zawsze wrap w Result
+
+5. **Authorization**: 
+   - Wszystkie endpointy wymagają `[Authorize]` attribute
+   - Extract user ID z JWT claims: `User.FindFirst(ClaimTypes.NameIdentifier)`
+
+6. **Idempotency**: 
+   - Jeśli możliwe, dodaj idempotency keys do trade operations
+   - Zapobiegnie duplikacjom przy retry
+
+---
+
+## ✅ Definition of Done - Kompletny Checklist
+
+### Code Quality
+- [ ] Wszystkie pliki kompilują się bez błędów
+- [ ] Brak compiler warnings
+- [ ] Code follows existing patterns i conventions
+- [ ] Proper null checking i validation
+- [ ] Async/await used correctly
+- [ ] IDisposable properly implemented
+
+### Database
+- [ ] EF Core migration generated successfully
+- [ ] Migration applies cleanly to fresh database
+- [ ] All new columns have proper constraints
+- [ ] Foreign keys properly configured
+- [ ] Indexes added for performance
+
+### Business Logic
+- [ ] Balance calculations are correct
+- [ ] Atomic transactions work end-to-end
+- [ ] Edge cases handled (zero balance, negative, etc.)
+- [ ] Audit logging captures all events
+- [ ] Position averaging works correctly
+
+### API
+- [ ] All endpoints return proper status codes
+- [ ] Request validation works
+- [ ] Error responses include clear messages
+- [ ] Authorization checks work on all endpoints
+- [ ] API is backward compatible
+
+### Testing
+- [ ] Unit tests: 100% pass rate
+- [ ] Integration tests: 100% pass rate
+- [ ] E2E tests: Buy/Sell/Transfer scenarios
+- [ ] Edge case tests: insufficient funds, etc.
+- [ ] Performance tests: response time < 200ms
+
+### Frontend
+- [ ] useTransactions hook no longer mocks data
+- [ ] TransactionHistory displays real transactions
+- [ ] Loading states work properly
+- [ ] Error handling displays user-friendly messages
+- [ ] Pagination works if enabled
+
+### Docker
+- [ ] Docker image builds successfully
+- [ ] Migrations run automatically on startup
+- [ ] Backend service starts without errors
+- [ ] Database connection works in container
+- [ ] All environment variables are set
+
+### Documentation
+- [ ] API endpoints documented with examples
+- [ ] All new services documented
+- [ ] README updated with new features
+- [ ] Deployment instructions updated
+- [ ] Architecture diagram updated
+
+### Deployment Readiness
 - [ ] Code review approved
-- [ ] Deployed to staging
+- [ ] All tests passing in CI/CD
+- [ ] Staging deployment successful
 - [ ] Manual testing on staging completed
+- [ ] Performance monitoring enabled
+- [ ] Error tracking configured
+- [ ] Rollback plan documented
 
 ---
 
-**Wersja:** 1.0  
+## 🚀 Powinni Zacząć Od
+
+1. **Create ITradingService interface** (FAZA 1.1) - 15min
+2. **Create DTOs** (FAZA 4) - 30min
+3. **Create Repositories** (FAZA 2) - 1-2h
+4. **Implement TradingService** (FAZA 1.2) - 2-3h
+5. **Reszta...** - Follow plan
+
+---
+
+## 📞 Pytania Decyzyjne Przed Startem
+
+1. Czy chcemy Idempotency Keys dla trade operations?
+2. Czy transfery wewnętrzne mogą być natychmiastowe czy czekają na approval?
+3. Czy chcemy limit trades per day/hour?
+4. Czy ReservedBalance liczy się do Available przy kalkulacji?
+5. Jaki format chcemy dla OrderDetails (JSON/XML)?
+
+---
+
+**Wersja:** 2.0 (z pełną lokalizacją plików)  
 **Data:** 2026-06-12  
-**Status:** ⏳ Ready for Implementation
+**Status:** ✅ Ready for Implementation  
+**Całkowita Liczba Plików do Modyfikacji:** 32  
+**Szacowana Długość:** 15-17 godzin pracy

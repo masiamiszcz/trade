@@ -12,6 +12,8 @@ using TradingPlatform.Data.Providers;
 using TradingPlatform.Data.Repositories;
 using TradingPlatform.Data.Services;
 using TradingPlatform.Data.Services.Market;
+using TradingPlatform.Data.UnitOfWork;
+using UnitOfWorkImpl = TradingPlatform.Data.UnitOfWork.UnitOfWork;
 
 namespace TradingPlatform.Data.Extensions;
 
@@ -68,6 +70,7 @@ public static class ServiceCollectionExtensions
         // Register exchange rate system - MINIMAL
         services.AddScoped<Data.Repositories.IExchangeRateRepository, SqlExchangeRateRepository>();
         services.AddScoped<IExchangeRateService, Data.Services.ExchangeRateService>();
+        services.AddScoped<IExchangeService, ExchangeService>();
         
         // Single HTTP client for all external APIs
         services.AddHttpClient<IExternalApiClient, ExternalApiClient>();
@@ -112,6 +115,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICandleStreamActivationService>(provider => provider.GetRequiredService<MarketProcessingService>());
         services.AddHostedService<MarketProcessingService>();
         services.AddHostedService<BinanceWebSocketService>();
+
+        // Crypto Portfolio Services (ETAP 4-5)
+        services.AddScoped<IPositionRepository, SqlPositionRepository>();
+        services.AddScoped<ICryptoTransactionRepository, SqlCryptoTransactionRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWorkImpl>();
+        services.AddScoped<IBinanceWebSocketService, BinanceWebSocketService>();
+        services.AddScoped<IPortfolioTransactionService, PortfolioTransactionService>();
 
         return services;
     }
