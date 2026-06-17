@@ -19,7 +19,8 @@ public class BinanceWebSocketService : BackgroundService, IBinanceWebSocketServi
     private readonly BinanceSettings _settings;
     private readonly IStartupLoadCoordinator _startupLoadCoordinator;
 
-    private decimal _lastPrice;
+    // ✅ FIX: Cache prices per symbol (not single price for all symbols)
+    private readonly Dictionary<string, decimal> _priceCache = new();
 
     public BinanceWebSocketService(
         ILogger<BinanceWebSocketService> logger,
@@ -120,6 +121,13 @@ public class BinanceWebSocketService : BackgroundService, IBinanceWebSocketServi
                     }
 
                     var trade = TradeMapper.Map(dto);
+                    // ✅ FIX: Update price cache for this specific symbol (thread-safe)
+                    // Always normalize symbol to UPPERCASE to avoid cache misses
+                    var normalizedSymbol = trade.Symbol.Trim().ToUpperInvariant();
+                    lock (_priceCache)
+                    {
+                        _priceCache[normalizedSymbol] = trade.Price;
+                    }
                     await _marketProcessor.HandleAsync(trade);
                     await _channel.Writer.WriteAsync(trade);
                 }
@@ -139,11 +147,19 @@ public class BinanceWebSocketService : BackgroundService, IBinanceWebSocketServi
 
     public bool IsConnected => true; // WebSocket service is always considered connected when running
 
-    public async Task<decimal?> GetLatestPriceAsync(string symbol, CancellationToken cancellationToken = default)
+    public Task<decimal?> GetLatestPriceAsync(string symbol, CancellationToken cancellationToken = default)
     {
-        // Return cached last price or null if not available
-        // In production, you would query from a price cache or feed
-        return _lastPrice > 0 ? _lastPrice : null;
+        // ✅ FIX: Return price for specific symbol from cache (not single price for all symbols)
+        if (string.IsNullOrWhiteSpace(symbol))
+            return Task.FromResult<decimal?>(null);
+
+        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
+        lock (_priceCache)
+        {
+            if (_priceCache.TryGetValue(normalizedSymbol, out var p) && p > 0)
+                return Task.FromResult<decimal?>(p);
+            return Task.FromResult<decimal?>(null);
+        }
     }
 
     public async Task PublishMarketStateAsync(MarketStateDto marketState, CancellationToken cancellationToken = default)

@@ -63,7 +63,36 @@ export interface PaginatedResult<T> {
 class CryptoPortfolioService {
   private handleError(error: unknown): Error {
     if (error instanceof ApiError) {
-      return new Error(error.message);
+      // Extract errorCode from API response details
+      const details = error.details as any;
+      const errorCode = details?.errorCode;
+      const errorMessage = details?.errorMessage;
+      
+      // Create user-friendly messages based on error code
+      if (errorCode === 'PriceUnavailable') {
+        return new Error('Cena rynkowa niedostępna. Spróbuj ponownie za kilka sekund.');
+      }
+      if (errorCode === 'PriceTolerance') {
+        return new Error('Różnica ceny > 0.01%. Cena zmieniła się zbyt znacznie. Spróbuj ponownie.');
+      }
+      if (errorCode === 'InsufficientFunds' || errorCode === 'InsufficientBalance') {
+        return new Error('Niewystarczające saldo. Sprawdź dostępne środki.');
+      }
+      if (errorCode === 'InsufficientPosition') {
+        return new Error('Niewystarczająca ilość do sprzedania.');
+      }
+      if (errorCode === 'InvalidQuantity') {
+        return new Error('Ilość musi być większa od zera.');
+      }
+      if (errorCode === 'InvalidPrice') {
+        return new Error('Cena musi być większa od zera.');
+      }
+      if (errorCode === 'AccountNotFound') {
+        return new Error('Konto nie znalezione. Odśwież stronę.');
+      }
+      
+      // Fallback to error message from API
+      return new Error(errorMessage || error.message || 'Błąd transakcji');
     }
     return error instanceof Error ? error : new Error('Unknown error');
   }

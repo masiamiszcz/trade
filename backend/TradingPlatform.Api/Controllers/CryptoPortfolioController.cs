@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -19,10 +20,17 @@ namespace TradingPlatform.Api.Controllers
     public class CryptoPortfolioController : ControllerBase
     {
         private readonly IPortfolioTransactionService _transactionService;
+        private readonly IAccountService _accountService;
+        private readonly ILogger<CryptoPortfolioController> _logger;
 
-        public CryptoPortfolioController(IPortfolioTransactionService transactionService)
+        public CryptoPortfolioController(
+            IPortfolioTransactionService transactionService,
+            IAccountService accountService,
+            ILogger<CryptoPortfolioController> logger)
         {
             _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
+            _accountService = accountService ?? throw new ArgumentNullException(nameof(accountService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
@@ -61,14 +69,20 @@ namespace TradingPlatform.Api.Controllers
             if (request.TolerancePercent < 0)
                 return BadRequest(new ErrorResponse("InvalidTolerance", "Tolerance percent cannot be negative"));
 
-            // Get account ID from claims
-            var accountIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("oid")?.Value;
-            if (!Guid.TryParse(accountIdClaim, out var accountId))
-                return Unauthorized(new ErrorResponse("InvalidAccount", "Account ID not found in token"));
+            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("oid")?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new ErrorResponse("InvalidUser", "User ID not found in token"));
+            }
 
-            // Execute buy transaction
+            var account = await _accountService.GetMainAccountByUserIdAsync(userId, cancellationToken);
+            if (account == null)
+            {
+                return NotFound(new ErrorResponse("AccountNotFound", "Main account not found"));
+            }
+
             var result = await _transactionService.ExecuteBuyAsync(
-                accountId,
+                account.Id,
                 request.Symbol.ToUpper(),
                 request.Quantity,
                 request.RequestedPrice,
@@ -129,14 +143,20 @@ namespace TradingPlatform.Api.Controllers
             if (request.TolerancePercent < 0)
                 return BadRequest(new ErrorResponse("InvalidTolerance", "Tolerance percent cannot be negative"));
 
-            // Get account ID from claims
-            var accountIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("oid")?.Value;
-            if (!Guid.TryParse(accountIdClaim, out var accountId))
-                return Unauthorized(new ErrorResponse("InvalidAccount", "Account ID not found in token"));
+            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("oid")?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new ErrorResponse("InvalidUser", "User ID not found in token"));
+            }
 
-            // Execute sell transaction
+            var account = await _accountService.GetMainAccountByUserIdAsync(userId, cancellationToken);
+            if (account == null)
+            {
+                return NotFound(new ErrorResponse("AccountNotFound", "Main account not found"));
+            }
+
             var result = await _transactionService.ExecuteSellAsync(
-                accountId,
+                account.Id,
                 request.Symbol.ToUpper(),
                 request.Quantity,
                 request.RequestedPrice,
@@ -175,13 +195,11 @@ namespace TradingPlatform.Api.Controllers
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetPortfolioAsync(CancellationToken cancellationToken = default)
         {
-            // Get account ID from claims
-            var accountIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("oid")?.Value;
-            if (!Guid.TryParse(accountIdClaim, out var accountId))
-                return Unauthorized(new ErrorResponse("InvalidAccount", "Account ID not found in token"));
+            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("oid")?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new ErrorResponse("InvalidUser", "User ID not found in token"));
 
-            // Get portfolio
-            var result = await _transactionService.GetPortfolioAsync(accountId, cancellationToken);
+            var result = await _transactionService.GetPortfolioAsync(userId, cancellationToken);
 
             if (!result.IsSuccess)
             {
@@ -238,14 +256,12 @@ namespace TradingPlatform.Api.Controllers
                 status != "Completed" && status != "Pending" && status != "Rejected" && status != "Cancelled")
                 return BadRequest(new ErrorResponse("InvalidStatus", "Status must be 'Completed', 'Pending', 'Rejected', or 'Cancelled'"));
 
-            // Get account ID from claims
-            var accountIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("oid")?.Value;
-            if (!Guid.TryParse(accountIdClaim, out var accountId))
-                return Unauthorized(new ErrorResponse("InvalidAccount", "Account ID not found in token"));
+            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("oid")?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new ErrorResponse("InvalidUser", "User ID not found in token"));
 
-            // Get transactions
             var result = await _transactionService.GetTransactionsAsync(
-                accountId,
+                userId,
                 limit,
                 offset,
                 type,

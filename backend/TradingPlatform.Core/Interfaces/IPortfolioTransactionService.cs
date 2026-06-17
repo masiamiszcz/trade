@@ -46,18 +46,18 @@ public interface IPortfolioTransactionService
     /// Get user's complete portfolio with positions and aggregate P&L
     /// </summary>
     Task<Result<PortfolioSummaryDto>> GetPortfolioAsync(
-        Guid accountId,
+        Guid userId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get transaction history with pagination and filtering
     /// </summary>
     Task<Result<PaginatedResult<CryptoTransactionDto>>> GetTransactionsAsync(
-        Guid accountId,
+        Guid userId,
         int limit = 50,
         int offset = 0,
-        string? type = null, // "Buy" or "Sell"
-        string? status = null, // "Completed", "Rejected", "Pending"
+        string? type = null,
+        string? status = null,
         CancellationToken cancellationToken = default);
 }
 

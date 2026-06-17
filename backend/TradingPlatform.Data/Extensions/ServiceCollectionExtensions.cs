@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Models;
@@ -113,14 +114,19 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MarketProcessingService>();  // Singleton - injected into BinanceWebSocketService
         services.AddSingleton<IActiveCandleSubscriptionRegistry, ActiveCandleSubscriptionRegistry>();
         services.AddSingleton<ICandleStreamActivationService>(provider => provider.GetRequiredService<MarketProcessingService>());
+        
+        // ✅ FIX: Register BinanceWebSocketService as Singleton for BOTH HostedService and PortfolioTransactionService
+        services.AddSingleton<BinanceWebSocketService>();
+        services.AddSingleton<IBinanceWebSocketService>(provider => provider.GetRequiredService<BinanceWebSocketService>());
+        services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<BinanceWebSocketService>());
+        
+        services.AddHostedService<BinanceStartupPollingService>();  // Must be before WebSocket
         services.AddHostedService<MarketProcessingService>();
-        services.AddHostedService<BinanceWebSocketService>();
 
         // Crypto Portfolio Services (ETAP 4-5)
         services.AddScoped<IPositionRepository, SqlPositionRepository>();
         services.AddScoped<ICryptoTransactionRepository, SqlCryptoTransactionRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWorkImpl>();
-        services.AddScoped<IBinanceWebSocketService, BinanceWebSocketService>();
         services.AddScoped<IPortfolioTransactionService, PortfolioTransactionService>();
 
         return services;

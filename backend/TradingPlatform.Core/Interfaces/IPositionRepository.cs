@@ -14,10 +14,10 @@ public interface IPositionRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get all positions for an account
+    /// Get all positions for a user
     /// </summary>
-    Task<IEnumerable<Position>> GetByAccountIdAsync(
-        Guid accountId,
+    Task<IEnumerable<Position>> GetByUserIdAsync(
+        Guid userId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -31,10 +31,10 @@ public interface IPositionRepository
     Task UpdateAsync(Position position, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get by Symbol (string, e.g. "BTCUSDT") - helper for frontend
+    /// Get by user and symbol
     /// </summary>
-    Task<Position?> GetByAccountAndSymbolAsync(
-        Guid accountId,
+    Task<Position?> GetByUserAndSymbolAsync(
+        Guid userId,
         string symbol,
         CancellationToken cancellationToken = default);
 
@@ -49,9 +49,10 @@ public interface IPositionRepository
 /// </summary>
 public sealed record Position(
     Guid Id,
+    Guid UserId,
     Guid AccountId,
     Guid InstrumentId,
-    string Symbol, // e.g. "BTCUSDT"
+    string Symbol,
     decimal Quantity,
     decimal ReservedQuantity,
     decimal AverageOpenPrice,

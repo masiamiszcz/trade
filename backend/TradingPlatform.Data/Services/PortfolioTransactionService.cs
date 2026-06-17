@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Enums;
 using TradingPlatform.Core.Dtos;
@@ -14,11 +15,19 @@ namespace TradingPlatform.Data.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IBinanceWebSocketService _priceService;
+        private readonly IExchangeService _exchangeService;
+        private readonly ILogger<PortfolioTransactionService> _logger;
 
-        public PortfolioTransactionService(IUnitOfWork unitOfWork, IBinanceWebSocketService priceService)
+        public PortfolioTransactionService(
+            IUnitOfWork unitOfWork, 
+            IBinanceWebSocketService priceService,
+            IExchangeService exchangeService,
+            ILogger<PortfolioTransactionService> logger)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _priceService = priceService ?? throw new ArgumentNullException(nameof(priceService));
+            _exchangeService = exchangeService ?? throw new ArgumentNullException(nameof(exchangeService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<Result<CryptoTransactionDto>> ExecuteBuyAsync(Guid accountId, string symbol, decimal quantity, decimal requestedPrice, decimal tolerancePercent, CancellationToken cancellationToken)
@@ -31,8 +40,8 @@ namespace TradingPlatform.Data.Services
                 return Result<CryptoTransactionDto>.Failure("PriceUnavailable", "Could not obtain execution price");
 
             var executionPrice = executionPriceNullable.Value;
-            if (!ValidatePriceTolerance(requestedPrice, executionPrice, tolerancePercent))
-                return Result<CryptoTransactionDto>.Failure("PriceTolerance", "Execution price outside tolerance");
+            if (!ValidatePriceTolerance(requestedPrice, executionPrice))
+                return Result<CryptoTransactionDto>.Failure("PriceTolerance", $"Execution price differs by more than 0.01%. Requested: {requestedPrice}, Current: {executionPrice}");
 
             return await ExecuteBuyAsyncImpl(accountId, symbol, quantity, requestedPrice, executionPrice, cancellationToken);
         }
@@ -47,7 +56,12 @@ namespace TradingPlatform.Data.Services
                 await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
                 var account = await _unitOfWork.Accounts.GetByIdAsync(accountId, cancellationToken);
-                if (account == null) return Result<CryptoTransactionDto>.Failure("AccountNotFound", "Account not found");
+                
+                if (account == null)
+                {
+                    _logger.LogError("❌ Account NOT FOUND for ID: {AccountId}", accountId);
+                    return Result<CryptoTransactionDto>.Failure("AccountNotFound", "Account not found");
+                }
 
                 if (account.AvailableBalance < totalValue)
                 {
@@ -55,35 +69,47 @@ namespace TradingPlatform.Data.Services
                     return Result<CryptoTransactionDto>.Failure("InsufficientFunds", "Not enough available balance");
                 }
 
-                var pendingTx = new Core.Interfaces.CryptoTransaction(
+                var amountInAccountCurrency = await _exchangeService.ConvertCurrencyAsync("USD", account.Currency, totalValue);
+
+                var instrument = await _unitOfWork.Instruments.GetBySymbolAsync(symbol, cancellationToken);
+                if (instrument == null)
+                {
+                    await _unitOfWork.RollbackAsync(cancellationToken);
+                    return Result<CryptoTransactionDto>.Failure("InstrumentNotFound", $"Instrument '{symbol}' not found. Please contact admin to add this instrument.");
+                }
+                var instrumentId = instrument.Id;
+
+                var completedTx = new Core.Interfaces.CryptoTransaction(
                     txId,
+                    account.UserId,
                     accountId,
-                    Guid.Empty,
+                    instrumentId,
                     symbol,
                     TransactionType.Buy.ToString(),
                     quantity,
                     requestedPrice,
                     executionPrice,
                     totalValue,
-                    TransactionStatus.Pending.ToString(),
+                    TransactionStatus.Completed.ToString(),
                     "USD",
                     DateTimeOffset.UtcNow,
-                    null,
+                    DateTimeOffset.UtcNow,
                     null
                 );
 
-                await _unitOfWork.CryptoTransactions.AddAsync(pendingTx, cancellationToken);
+                await _unitOfWork.CryptoTransactions.AddAsync(completedTx, cancellationToken);
 
-                var updatedAccount = account with { AvailableBalance = account.AvailableBalance - totalValue };
+                var updatedAccount = account with { AvailableBalance = account.AvailableBalance - amountInAccountCurrency };
                 await _unitOfWork.Accounts.UpdateAsync(updatedAccount, cancellationToken);
 
-                var position = await _unitOfWork.Positions.GetByAccountAndSymbolAsync(accountId, symbol, cancellationToken);
+                var position = await _unitOfWork.Positions.GetByUserAndSymbolAsync(account.UserId, symbol, cancellationToken);
                 if (position == null)
                 {
                     var newPosition = new Core.Interfaces.Position(
                         Guid.NewGuid(),
+                        account.UserId,
                         accountId,
-                        Guid.Empty,
+                        instrumentId,
                         symbol,
                         quantity,
                         0m,
@@ -101,9 +127,6 @@ namespace TradingPlatform.Data.Services
                     var updatedPosition = position with { Quantity = newQty, AverageOpenPrice = avg, LastUpdatedAt = DateTimeOffset.UtcNow };
                     await _unitOfWork.Positions.UpdateAsync(updatedPosition, cancellationToken);
                 }
-
-                var completedTx = pendingTx with { Status = TransactionStatus.Completed.ToString(), CompletedAt = DateTimeOffset.UtcNow };
-                await _unitOfWork.CryptoTransactions.UpdateAsync(completedTx, cancellationToken);
 
                 await _unitOfWork.CommitAsync(cancellationToken);
 
@@ -140,8 +163,8 @@ namespace TradingPlatform.Data.Services
                 return Result<CryptoTransactionDto>.Failure("PriceUnavailable", "Could not obtain execution price");
 
             var executionPrice = executionPriceNullable.Value;
-            if (!ValidatePriceTolerance(requestedPrice, executionPrice, tolerancePercent))
-                return Result<CryptoTransactionDto>.Failure("PriceTolerance", "Execution price outside tolerance");
+            if (!ValidatePriceTolerance(requestedPrice, executionPrice))
+                return Result<CryptoTransactionDto>.Failure("PriceTolerance", $"Execution price differs by more than 0.01%. Requested: {requestedPrice}, Current: {executionPrice}");
 
             return await ExecuteSellAsyncImpl(accountId, symbol, quantity, requestedPrice, executionPrice, cancellationToken);
         }
@@ -156,33 +179,49 @@ namespace TradingPlatform.Data.Services
                 await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
                 var account = await _unitOfWork.Accounts.GetByIdAsync(accountId, cancellationToken);
-                if (account == null) return Result<CryptoTransactionDto>.Failure("AccountNotFound", "Account not found");
+                
+                if (account == null)
+                {
+                    _logger.LogError("❌ Account NOT FOUND for ID: {AccountId}", accountId);
+                    return Result<CryptoTransactionDto>.Failure("AccountNotFound", "Account not found");
+                }
 
-                var position = await _unitOfWork.Positions.GetByAccountAndSymbolAsync(accountId, symbol, cancellationToken);
+                var position = await _unitOfWork.Positions.GetByUserAndSymbolAsync(account.UserId, symbol, cancellationToken);
                 if (position == null || position.Quantity < quantity)
                 {
                     await _unitOfWork.RollbackAsync(cancellationToken);
                     return Result<CryptoTransactionDto>.Failure("InsufficientPosition", "Not enough quantity to sell");
                 }
 
-                var pendingTx = new Core.Interfaces.CryptoTransaction(
+                var amountInAccountCurrency = await _exchangeService.ConvertCurrencyAsync("USD", account.Currency, totalValue);
+
+                var instrument = await _unitOfWork.Instruments.GetBySymbolAsync(symbol, cancellationToken);
+                if (instrument == null)
+                {
+                    await _unitOfWork.RollbackAsync(cancellationToken);
+                    return Result<CryptoTransactionDto>.Failure("InstrumentNotFound", $"Instrument '{symbol}' not found. Please contact admin to add this instrument.");
+                }
+                var instrumentId = instrument.Id;
+
+                var completedTx = new Core.Interfaces.CryptoTransaction(
                     txId,
+                    account.UserId,
                     accountId,
-                    Guid.Empty,
+                    instrumentId,
                     symbol,
                     TransactionType.Sell.ToString(),
                     quantity,
                     requestedPrice,
                     executionPrice,
                     totalValue,
-                    TransactionStatus.Pending.ToString(),
+                    TransactionStatus.Completed.ToString(),
                     "USD",
                     DateTimeOffset.UtcNow,
-                    null,
+                    DateTimeOffset.UtcNow,
                     null
                 );
 
-                await _unitOfWork.CryptoTransactions.AddAsync(pendingTx, cancellationToken);
+                await _unitOfWork.CryptoTransactions.AddAsync(completedTx, cancellationToken);
 
                 var newQty = position.Quantity - quantity;
                 if (newQty == 0)
@@ -196,11 +235,8 @@ namespace TradingPlatform.Data.Services
                     await _unitOfWork.Positions.UpdateAsync(updatedPosition, cancellationToken);
                 }
 
-                var updatedAccount = account with { AvailableBalance = account.AvailableBalance + totalValue };
+                var updatedAccount = account with { AvailableBalance = account.AvailableBalance + amountInAccountCurrency };
                 await _unitOfWork.Accounts.UpdateAsync(updatedAccount, cancellationToken);
-
-                var completedTx = pendingTx with { Status = TransactionStatus.Completed.ToString(), CompletedAt = DateTimeOffset.UtcNow };
-                await _unitOfWork.CryptoTransactions.UpdateAsync(completedTx, cancellationToken);
 
                 await _unitOfWork.CommitAsync(cancellationToken);
 
@@ -227,9 +263,9 @@ namespace TradingPlatform.Data.Services
             }
         }
 
-        public async Task<Result<PortfolioSummaryDto>> GetPortfolioAsync(Guid accountId, CancellationToken cancellationToken)
+        public async Task<Result<PortfolioSummaryDto>> GetPortfolioAsync(Guid userId, CancellationToken cancellationToken)
         {
-            var positions = (await _unitOfWork.Positions.GetByAccountIdAsync(accountId, cancellationToken)).ToList();
+            var positions = (await _unitOfWork.Positions.GetByUserIdAsync(userId, cancellationToken)).ToList();
             var items = new List<PortfolioPositionDto>();
 
             foreach (var p in positions)
@@ -253,9 +289,9 @@ namespace TradingPlatform.Data.Services
             return Result<PortfolioSummaryDto>.Success(summary);
         }
 
-        public async Task<Result<PaginatedResult<CryptoTransactionDto>>> GetTransactionsAsync(Guid accountId, int limit, int offset, string? type, string? status, CancellationToken cancellationToken)
+        public async Task<Result<PaginatedResult<CryptoTransactionDto>>> GetTransactionsAsync(Guid userId, int limit, int offset, string? type, string? status, CancellationToken cancellationToken)
         {
-            var txs = (await _unitOfWork.CryptoTransactions.GetByAccountIdAsync(accountId, limit, offset, cancellationToken)).ToList();
+            var txs = (await _unitOfWork.CryptoTransactions.GetByUserIdAsync(userId, limit, offset, cancellationToken)).ToList();
 
             if (!string.IsNullOrWhiteSpace(type)) txs = txs.Where(t => t.Type == type).ToList();
             if (!string.IsNullOrWhiteSpace(status)) txs = txs.Where(t => t.Status == status).ToList();
@@ -278,12 +314,16 @@ namespace TradingPlatform.Data.Services
             return Result<PaginatedResult<CryptoTransactionDto>>.Success(result);
         }
 
-        private bool ValidatePriceTolerance(decimal requestedPrice, decimal executionPrice, decimal tolerancePercent)
+        private bool ValidatePriceTolerance(decimal requestedPrice, decimal executionPrice)
         {
-            if (tolerancePercent < 0) return false;
+            const decimal TOLERANCE = 0.0001m;  
+            
             var diff = Math.Abs(requestedPrice - executionPrice);
-            var rel = diff / requestedPrice;
-            return rel <= tolerancePercent;
+            var relDiff = executionPrice > 0 ? diff / executionPrice : diff;
+            
+            return relDiff <= TOLERANCE;
         }
+
+
     }
 }

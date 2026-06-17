@@ -7,6 +7,7 @@ namespace TradingPlatform.Data.Entities;
 public sealed class CryptoTransactionEntity
 {
     public Guid Id { get; set; }
+    public Guid UserId { get; set; }
     public Guid AccountId { get; set; }
     public Guid InstrumentId { get; set; }
     

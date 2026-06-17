@@ -13,36 +13,36 @@ public interface ICryptoTransactionRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get all transactions for an account with pagination
+    /// Get all transactions for a user with pagination
     /// </summary>
-    Task<IEnumerable<CryptoTransaction>> GetByAccountIdAsync(
-        Guid accountId,
+    Task<IEnumerable<CryptoTransaction>> GetByUserIdAsync(
+        Guid userId,
         int limit = 50,
         int offset = 0,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get transaction count for account
+    /// Get transaction count for user
     /// </summary>
-    Task<int> GetCountByAccountIdAsync(
-        Guid accountId,
+    Task<int> GetCountByUserIdAsync(
+        Guid userId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get transactions by symbol
+    /// Get transactions by user and symbol
     /// </summary>
-    Task<IEnumerable<CryptoTransaction>> GetBySymbolAsync(
-        Guid accountId,
+    Task<IEnumerable<CryptoTransaction>> GetByUserAndSymbolAsync(
+        Guid userId,
         string symbol,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get transactions filtered by type and status
+    /// Get transactions filtered by user, type and status
     /// </summary>
-    Task<IEnumerable<CryptoTransaction>> GetFilteredAsync(
-        Guid accountId,
-        string? type = null, // "Buy" or "Sell"
-        string? status = null, // "Completed", "Rejected", "Pending"
+    Task<IEnumerable<CryptoTransaction>> GetFilteredByUserAsync(
+        Guid userId,
+        string? type = null,
+        string? status = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -66,16 +66,17 @@ public interface ICryptoTransactionRepository
 /// </summary>
 public sealed record CryptoTransaction(
     Guid Id,
+    Guid UserId,
     Guid AccountId,
     Guid InstrumentId,
-    string Symbol, // e.g. "BTCUSDT"
-    string Type, // "Buy" or "Sell"
+    string Symbol,
+    string Type,
     decimal Quantity,
     decimal RequestedPrice,
     decimal ExecutionPrice,
     decimal TotalValue,
-    string Status, // "Completed", "Rejected", "Pending"
-    string Currency, // USD, EUR, etc.
+    string Status,
+    string Currency,
     DateTimeOffset CreatedAt,
     DateTimeOffset? CompletedAt = null,
     string? ErrorReason = null);

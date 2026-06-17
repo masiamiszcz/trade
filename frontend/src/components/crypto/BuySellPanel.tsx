@@ -92,7 +92,9 @@ export const BuySellPanel: React.FC<BuySellPanelProps> = ({
         });
       }
     } catch (err) {
-      // Error already handled in hook
+      // Error from hook already set in state
+      // Scroll to top to show error message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 

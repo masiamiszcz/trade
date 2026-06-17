@@ -27,25 +27,25 @@ public sealed class SqlPositionRepository : IPositionRepository
         return entity is null ? null : MapToDomain(entity);
     }
 
-    public async Task<IEnumerable<Position>> GetByAccountIdAsync(
-        Guid accountId,
+    public async Task<IEnumerable<Position>> GetByUserIdAsync(
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
         var entities = await _dbContext.Positions
-            .Where(p => p.AccountId == accountId)
+            .Where(p => p.UserId == userId)
             .Include(p => p.Instrument)
             .ToListAsync(cancellationToken);
 
         return entities.Select(MapToDomain);
     }
 
-    public async Task<Position?> GetByAccountAndSymbolAsync(
-        Guid accountId,
+    public async Task<Position?> GetByUserAndSymbolAsync(
+        Guid userId,
         string symbol,
         CancellationToken cancellationToken = default)
     {
         var entity = await _dbContext.Positions
-            .Where(p => p.AccountId == accountId && p.Instrument.Symbol == symbol)
+            .Where(p => p.UserId == userId && p.Instrument.Symbol == symbol)
             .Include(p => p.Instrument)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -57,6 +57,7 @@ public sealed class SqlPositionRepository : IPositionRepository
         var entity = new PositionEntity
         {
             Id = position.Id,
+            UserId = position.UserId,
             AccountId = position.AccountId,
             InstrumentId = position.InstrumentId,
             Quantity = position.Quantity,
@@ -67,7 +68,7 @@ public sealed class SqlPositionRepository : IPositionRepository
         };
 
         _dbContext.Positions.Add(entity);
-        await Task.CompletedTask; // No immediate save
+        await Task.CompletedTask;
     }
 
     public async Task UpdateAsync(Position position, CancellationToken cancellationToken = default)
@@ -97,6 +98,7 @@ public sealed class SqlPositionRepository : IPositionRepository
     {
         return new Position(
             Id: entity.Id,
+            UserId: entity.UserId,
             AccountId: entity.AccountId,
             InstrumentId: entity.InstrumentId,
             Symbol: entity.Instrument.Symbol,

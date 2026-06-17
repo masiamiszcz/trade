@@ -24,14 +24,14 @@ public sealed class SqlCryptoTransactionRepository : ICryptoTransactionRepositor
         return entity is null ? null : MapToDomain(entity);
     }
 
-    public async Task<IEnumerable<CryptoTransaction>> GetByAccountIdAsync(
-        Guid accountId,
+    public async Task<IEnumerable<CryptoTransaction>> GetByUserIdAsync(
+        Guid userId,
         int limit = 50,
         int offset = 0,
         CancellationToken cancellationToken = default)
     {
         var entities = await _dbContext.CryptoTransactions
-            .Where(x => x.AccountId == accountId)
+            .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.CreatedAt)
             .Skip(offset)
             .Take(limit)
@@ -40,36 +40,36 @@ public sealed class SqlCryptoTransactionRepository : ICryptoTransactionRepositor
         return entities.Select(MapToDomain);
     }
 
-    public async Task<int> GetCountByAccountIdAsync(
-        Guid accountId,
+    public async Task<int> GetCountByUserIdAsync(
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
         return await _dbContext.CryptoTransactions
-            .Where(x => x.AccountId == accountId)
+            .Where(x => x.UserId == userId)
             .CountAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<CryptoTransaction>> GetBySymbolAsync(
-        Guid accountId,
+    public async Task<IEnumerable<CryptoTransaction>> GetByUserAndSymbolAsync(
+        Guid userId,
         string symbol,
         CancellationToken cancellationToken = default)
     {
         var entities = await _dbContext.CryptoTransactions
-            .Where(x => x.AccountId == accountId && x.Symbol == symbol)
+            .Where(x => x.UserId == userId && x.Symbol == symbol)
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
         return entities.Select(MapToDomain);
     }
 
-    public async Task<IEnumerable<CryptoTransaction>> GetFilteredAsync(
-        Guid accountId,
+    public async Task<IEnumerable<CryptoTransaction>> GetFilteredByUserAsync(
+        Guid userId,
         string? type = null,
         string? status = null,
         CancellationToken cancellationToken = default)
     {
         var query = _dbContext.CryptoTransactions
-            .Where(x => x.AccountId == accountId);
+            .Where(x => x.UserId == userId);
 
         if (!string.IsNullOrEmpty(type))
             query = query.Where(x => x.Type == type);
@@ -89,6 +89,7 @@ public sealed class SqlCryptoTransactionRepository : ICryptoTransactionRepositor
         var entity = new CryptoTransactionEntity
         {
             Id = transaction.Id,
+            UserId = transaction.UserId,
             AccountId = transaction.AccountId,
             InstrumentId = transaction.InstrumentId,
             Symbol = transaction.Symbol,
@@ -134,6 +135,7 @@ public sealed class SqlCryptoTransactionRepository : ICryptoTransactionRepositor
     {
         return new CryptoTransaction(
             Id: entity.Id,
+            UserId: entity.UserId,
             AccountId: entity.AccountId,
             InstrumentId: entity.InstrumentId,
             Symbol: entity.Symbol,
