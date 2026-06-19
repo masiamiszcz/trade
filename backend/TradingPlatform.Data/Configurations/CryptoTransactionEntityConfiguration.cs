@@ -73,5 +73,12 @@ public sealed class CryptoTransactionEntityConfiguration : IEntityTypeConfigurat
             .WithMany()
             .HasForeignKey(x => x.InstrumentId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.User)
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.UserId);
     }
 }

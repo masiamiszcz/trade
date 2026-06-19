@@ -20,6 +20,7 @@ public sealed class BinanceStartupPollingService : BackgroundService
 
     private readonly string _csvFolderPath;
     private readonly IReadOnlyList<string> _configuredSymbols;
+    private readonly bool _csvEnabled;
     private readonly IBinanceApiClient _apiClient;
     private readonly ICandleRepository _candleRepository;
     private readonly ICandleBulkInserter _candleBulkInserter;
@@ -39,6 +40,8 @@ public sealed class BinanceStartupPollingService : BackgroundService
         _candleBulkInserter = candleBulkInserter;
         _startupLoadCoordinator = startupLoadCoordinator;
         _logger = logger;
+
+        _csvEnabled = configuration.GetValue<bool>("BinanceCsv:Enabled", defaultValue: true);
 
         var configuredPath = configuration["BinanceCsv:FolderPath"];
         _csvFolderPath = !string.IsNullOrWhiteSpace(configuredPath)
@@ -83,6 +86,14 @@ public sealed class BinanceStartupPollingService : BackgroundService
     {
         _logger.LogInformation("Startup Binance polling service initialising...");
         await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+
+        if (!_csvEnabled)
+        {
+            _logger.LogWarning("CSV import is DISABLED in configuration. Skipping CSV load step.");
+            _startupLoadCoordinator.MarkReady();
+            await Task.Delay(Timeout.Infinite, stoppingToken);
+            return;
+        }
 
         try
         {

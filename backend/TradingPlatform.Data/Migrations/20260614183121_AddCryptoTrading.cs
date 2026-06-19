@@ -15,6 +15,12 @@ namespace TradingPlatform.Data.Migrations
                 name: "IX_Candles_Symbol_Source_Interval_OpenTime",
                 table: "Candles");
 
+            migrationBuilder.AddColumn<Guid>(
+                name: "UserId",
+                table: "Positions",
+                type: "uniqueidentifier",
+                nullable: true);
+
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "LastUpdateTime",
                 table: "Positions",
@@ -43,6 +49,7 @@ namespace TradingPlatform.Data.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     AccountId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     InstrumentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Symbol = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
@@ -72,6 +79,12 @@ namespace TradingPlatform.Data.Migrations
                         name: "FK_CryptoTransactions_Instruments_InstrumentId",
                         column: x => x.InstrumentId,
                         principalTable: "Instruments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CryptoTransactions_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -106,17 +119,51 @@ namespace TradingPlatform.Data.Migrations
                 name: "IX_CryptoTransactions_InstrumentId",
                 table: "CryptoTransactions",
                 column: "InstrumentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CryptoTransactions_UserId",
+                table: "CryptoTransactions",
+                column: "UserId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Positions_Users_UserId",
+                table: "Positions",
+                column: "UserId",
+                principalTable: "Users",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Positions_UserId",
+                table: "Positions",
+                column: "UserId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_Positions_Users_UserId",
+                table: "Positions");
+
+            migrationBuilder.DropIndex(
+                name: "IX_CryptoTransactions_UserId",
+                table: "CryptoTransactions");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Positions_UserId",
+                table: "Positions");
+
             migrationBuilder.DropTable(
                 name: "CryptoTransactions");
 
             migrationBuilder.DropIndex(
                 name: "IX_Candles_Symbol_Source_Interval_OpenTime",
                 table: "Candles");
+
+            migrationBuilder.DropColumn(
+                name: "UserId",
+                table: "Positions");
 
             migrationBuilder.DropColumn(
                 name: "LastUpdateTime",

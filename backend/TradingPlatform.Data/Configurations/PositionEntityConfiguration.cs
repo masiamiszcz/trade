@@ -40,5 +40,17 @@ public sealed class PositionEntityConfiguration : IEntityTypeConfiguration<Posit
             .WithMany(x => x.Positions)
             .HasForeignKey(x => x.InstrumentId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Account)
+            .WithMany(x => x.Positions)
+            .HasForeignKey(x => x.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.User)
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.UserId);
     }
 }

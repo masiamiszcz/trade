@@ -632,6 +632,9 @@ namespace TradingPlatform.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("AccountId")
                         .HasColumnType("uniqueidentifier");
 
@@ -685,6 +688,8 @@ namespace TradingPlatform.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("InstrumentId");
+
+                    b.HasIndex("UserId");
 
                     b.HasIndex("AccountId", "CreatedAt")
                         .HasDatabaseName("IX_CryptoTransactions_AccountId_CreatedAt");
@@ -904,6 +909,9 @@ namespace TradingPlatform.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("AccountId")
                         .HasColumnType("uniqueidentifier");
 
@@ -941,6 +949,8 @@ namespace TradingPlatform.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("InstrumentId");
+
+                    b.HasIndex("UserId");
 
                     b.HasIndex("AccountId", "InstrumentId")
                         .IsUnique();
@@ -1161,9 +1171,17 @@ namespace TradingPlatform.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("TradingPlatform.Data.Entities.UserEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Account");
 
                     b.Navigation("Instrument");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TradingPlatform.Data.Entities.PositionEntity", b =>
@@ -1180,9 +1198,16 @@ namespace TradingPlatform.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("TradingPlatform.Data.Entities.UserEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Account");
 
                     b.Navigation("Instrument");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TradingPlatform.Data.Entities.AccountEntity", b =>

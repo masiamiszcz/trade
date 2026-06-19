@@ -70,4 +70,5 @@ public sealed class CryptoTransactionEntity
     // Navigation properties
     public AccountEntity Account { get; set; } = null!;
     public InstrumentEntity Instrument { get; set; } = null!;
+    public UserEntity User { get; set; } = null!;
 }
