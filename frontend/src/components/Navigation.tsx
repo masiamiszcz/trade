@@ -65,12 +65,6 @@ export const Navigation: React.FC<NavigationProps> = ({ onMenuClick }) => {
             ₿ Crypto
           </Link>
           <Link
-            to="/dashboard/crypto-portfolio"
-            className={`market-button ${isActive('/dashboard/crypto-portfolio') ? 'active' : ''}`}
-          >
-            💼 Portfel
-          </Link>
-          <Link
             to="/dashboard/cfd"
             className={`market-button ${isActive('/dashboard/cfd') ? 'active' : ''}`}
           >
@@ -84,11 +78,12 @@ export const Navigation: React.FC<NavigationProps> = ({ onMenuClick }) => {
           <>
             {/* Balance/Wallet Section - Link to Account Page */}
             <Link
-              to="/dashboard/account"
-              className={`wallet-section ${isActive('/dashboard/account') ? 'active' : ''}`}
-              aria-label="Account details"
+              to="/dashboard/account-portfolio"
+              className={`wallet-section ${isActive('/dashboard/account-portfolio') ? 'active' : ''}`}
+              aria-label="Account and portfolio"
             >
-              <span className="wallet-label">Saldo:</span>
+              <span className="wallet-icon">💼</span>
+              <span className="wallet-label">Portfel</span>
               <span className="wallet-amount">
                 {account ? (
                   <>

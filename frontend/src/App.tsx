@@ -11,6 +11,7 @@ import { StockDashboard } from './pages/StockDashboard';
 import { CryptoDashboard } from './pages/CryptoDashboard';
 import { CryptoPage } from './pages/CryptoPage';
 import { CryptoPortfolioPage } from './pages/CryptoPortfolioPage';
+import { AccountWithPortfolioPage } from './pages/AccountWithPortfolioPage';
 import { CFDDashboard } from './pages/CFDDashboard';
 import { useAuth } from './hooks/useAuth';
 
@@ -75,6 +76,16 @@ const App: React.FC = () => {
           element={requireAuth(
             <MainLayout>
               <AccountPage />
+            </MainLayout>
+          )}
+        />
+
+        {/* Account & Portfolio - Combined View with Secondary Navbar */}
+        <Route
+          path="/dashboard/account-portfolio"
+          element={requireAuth(
+            <MainLayout>
+              <AccountWithPortfolioPage />
             </MainLayout>
           )}
         />

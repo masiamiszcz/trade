@@ -1,12 +1,10 @@
 services:
-  # Database Layer - accessible only to backend
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: trading-sql
     environment:
       SA_PASSWORD: "YourStrong!Passw0rd"
       ACCEPT_EULA: "Y"
-    # NO PORT EXPOSURE - only internal network
     networks:
       - backend-sql
     healthcheck:
@@ -22,7 +20,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Application Backend - accessible only to nginx, communicates with SQL
   backend:
     build:
       context: ../backend
@@ -40,7 +37,6 @@ services:
       BinanceCsv__FolderPath: "/app/csv"
     volumes:
       - C:\Users\kubac\Desktop\Studia\P1\CSV:/app/csv:ro
-    # NO PORT EXPOSURE - only internal networks
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -56,13 +52,13 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Frontend Web Application - accessible only to nginx
+
   frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
     container_name: trading-frontend
-    # NO PORT EXPOSURE - only internal network
+
     networks:
       - frontend-nginx
     restart: unless-stopped
@@ -72,11 +68,10 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Cache Layer for 2FA sessions - accessible only to backend
   redis:
     image: redis:7-alpine
     container_name: trading-redis
-    # NO PORT EXPOSURE - only internal network
+
     networks:
       - backend-nginx
     restart: on-failure
@@ -86,7 +81,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Reverse Proxy - ONLY exposed port (80)
+
   nginx:
     image: nginx:alpine
     container_name: trading-nginx
@@ -107,23 +102,22 @@ services:
         max-size: "10m"
         max-file: "3"
 
-# Three separate networks for security isolation
+
 networks:
-  # Frontend communicates with Nginx only
+
   frontend-nginx:
     driver: bridge
     ipam:
       config:
         - subnet: 172.20.0.0/16
 
-  # Backend communicates with Nginx only
+ 
   backend-nginx:
     driver: bridge
     ipam:
       config:
         - subnet: 172.21.0.0/16
 
-  # Backend communicates with SQL only
   backend-sql:
     driver: bridge
     ipam:

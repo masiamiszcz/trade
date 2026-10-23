@@ -54,12 +54,27 @@ public sealed class InstrumentEntityConfiguration : IEntityTypeConfiguration<Ins
             new InstrumentEntity
             {
                 Id = new Guid("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
-                Symbol = "BTCUSD",
+                Symbol = "BTCUSDT",
                 Name = "Bitcoin / US Dollar",
                 Description = "Bitcoin cryptocurrency",
                 Type = InstrumentType.Crypto,
                 Pillar = AccountPillar.Crypto,
-                BaseCurrency = "BTC",
+                BaseCurrency = "USD",
+                QuoteCurrency = "USD",
+                Status = InstrumentStatus.Approved,
+                IsBlocked = false,
+                CreatedBy = Guid.Empty,
+                CreatedAtUtc = new DateTimeOffset(2026, 3, 31, 0, 0, 0, TimeSpan.Zero)
+            },
+            new InstrumentEntity
+            {
+                Id = new Guid("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+                Symbol = "ETCUSDT",
+                Name = "Ethereum Classic / US Dollar",
+                Description = "Ethereum Classic cryptocurrency",
+                Type = InstrumentType.Crypto,
+                Pillar = AccountPillar.Crypto,
+                BaseCurrency = "USD",
                 QuoteCurrency = "USD",
                 Status = InstrumentStatus.Approved,
                 IsBlocked = false,
@@ -69,9 +84,9 @@ public sealed class InstrumentEntityConfiguration : IEntityTypeConfiguration<Ins
             new InstrumentEntity
             {
                 Id = new Guid("cccccccc-cccc-cccc-cccc-cccccccccccc"),
-                Symbol = "US500CFD",
-                Name = "S&P 500 CFD",
-                Description = "S&P 500 Contract for Difference",
+                Symbol = "BTCUSDTCFD",
+                Name = "Bitcoin / US Dollar CFD",
+                Description = "Bitcoin / US Dollar Contract for Difference",
                 Type = InstrumentType.Cfd,
                 Pillar = AccountPillar.Cfd,
                 BaseCurrency = "USD",

@@ -184,12 +184,18 @@
   transform: translateY(0px);
 }
 
+.wallet-icon {
+  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+}
+
 .wallet-label {
   color: #00d4ff;
-  font-size: 0.85rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
 }
 
 .wallet-amount {

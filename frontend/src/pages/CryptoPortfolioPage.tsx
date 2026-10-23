@@ -13,7 +13,8 @@ export const CryptoPortfolioPage: React.FC = () => {
         <p>Manage your cryptocurrency holdings and trading history</p>
       </header>
 
-      <div className="tabs">
+      {/* Hidden Tab Navigation - kept for backwards compatibility but hidden */}
+      <div className="tabs" style={{ display: 'none' }}>
         <button
           className={`tab-btn ${activeTab === 'portfolio' ? 'active' : ''}`}
           onClick={() => setActiveTab('portfolio')}
@@ -28,13 +29,9 @@ export const CryptoPortfolioPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Only show portfolio content */}
       <div className="tab-content">
-        {activeTab === 'portfolio' && (
-          <PortfolioPanel onRefresh={() => console.log('Portfolio refreshed')} />
-        )}
-        {activeTab === 'history' && (
-          <TransactionHistory limit={50} />
-        )}
+        <PortfolioPanel onRefresh={() => console.log('Portfolio refreshed')} />
       </div>
     </div>
   );

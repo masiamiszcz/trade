@@ -1,15 +1,18 @@
 .transaction-history {
-  background: white;
-  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(255, 20, 147, 0.08) 100%);
+  border: 2px solid rgba(0, 212, 255, 0.25);
+  border-radius: 10px;
   padding: 20px;
   margin: 20px 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.15);
+  transition: all 0.3s ease;
 }
 
 .transaction-history h3 {
   margin: 0 0 20px 0;
-  color: #333;
+  color: #00d4ff;
   font-size: 18px;
+  font-weight: 700;
 }
 
 .filters {
@@ -21,30 +24,42 @@
 
 .filters select {
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  color: #e0e0e0;
   cursor: pointer;
   font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.filters select:focus {
+  outline: none;
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
 }
 
 .filters button {
   padding: 8px 16px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(255, 20, 147, 0.2) 100%);
+  border: 2px solid rgba(0, 212, 255, 0.4);
+  color: #00d4ff;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .filters button:hover:not(:disabled) {
-  background: #0056b3;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.3) 0%, rgba(255, 20, 147, 0.3) 100%);
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .filters button:disabled {
-  background: #ccc;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -62,30 +77,32 @@
 }
 
 .transactions-table thead {
-  background: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
+  background: rgba(0, 212, 255, 0.05);
+  border-bottom: 2px solid rgba(0, 212, 255, 0.2);
 }
 
 .transactions-table th {
   padding: 12px;
   text-align: left;
   font-weight: 600;
-  color: #333;
+  color: #00d4ff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .transactions-table td {
   padding: 12px;
-  border-bottom: 1px solid #dee2e6;
-  color: #555;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  color: #e0e0e0;
 }
 
 .transactions-table td.BUY {
-  color: #28a745;
+  color: #1de9b6;
   font-weight: 500;
 }
 
 .transactions-table td.SELL {
-  color: #dc3545;
+  color: #ff9bbf;
   font-weight: 500;
 }
 
@@ -94,16 +111,18 @@
   border-radius: 4px;
   font-weight: 500;
   text-align: center;
+  text-transform: uppercase;
+  font-size: 12px;
 }
 
 .transactions-table .status.completed {
-  background: #d4edda;
-  color: #155724;
+  background: rgba(29, 233, 182, 0.2);
+  color: #1de9b6;
 }
 
 .transactions-table .status.failed {
-  background: #f8d7da;
-  color: #721c24;
+  background: rgba(255, 155, 191, 0.2);
+  color: #ff9bbf;
 }
 
 .pagination {
@@ -117,34 +136,38 @@
 
 .pagination button {
   padding: 8px 16px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(255, 20, 147, 0.2) 100%);
+  border: 2px solid rgba(0, 212, 255, 0.4);
+  color: #00d4ff;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .pagination button:hover:not(:disabled) {
-  background: #0056b3;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.3) 0%, rgba(255, 20, 147, 0.3) 100%);
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .pagination button:disabled {
-  background: #ccc;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .alert {
   padding: 12px;
-  border-radius: 4px;
+  border-radius: 8px;
   margin-bottom: 20px;
 }
 
 .alert.error {
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
-  color: #721c24;
+  background: rgba(255, 155, 191, 0.15);
+  border: 1px solid rgba(255, 155, 191, 0.3);
+  color: #ff9bbf;
 }
 
 @media (max-width: 768px) {

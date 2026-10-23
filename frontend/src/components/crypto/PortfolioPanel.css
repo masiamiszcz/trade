@@ -1,9 +1,17 @@
 .portfolio-panel {
-  background: #ffffff;
-  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(255, 20, 147, 0.08) 100%);
+  border: 2px solid rgba(0, 212, 255, 0.25);
+  border-radius: 10px;
   padding: 20px;
   margin: 20px 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.15);
+  transition: all 0.3s ease;
+}
+
+.portfolio-panel:hover {
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 212, 255, 0.25);
+  transform: translateY(-2px);
 }
 
 .portfolio-panel.error {
@@ -19,27 +27,35 @@
 
 .portfolio-header h2 {
   margin: 0;
-  color: #333;
+  background: linear-gradient(135deg, #00d4ff, #ff1493);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   font-size: 24px;
 }
 
 .btn-refresh {
   padding: 8px 16px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(255, 20, 147, 0.2) 100%);
+  border: 2px solid rgba(0, 212, 255, 0.4);
+  color: #00d4ff;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .btn-refresh:hover:not(:disabled) {
-  background: #0056b3;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.3) 0%, rgba(255, 20, 147, 0.3) 100%);
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .btn-refresh:disabled {
-  background: #ccc;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -49,8 +65,9 @@
   gap: 15px;
   margin-bottom: 30px;
   padding: 15px;
-  background: #f8f9fa;
-  border-radius: 6px;
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 8px;
 }
 
 .summary-item {
@@ -61,22 +78,73 @@
 
 .summary-item label {
   font-weight: 600;
-  color: #666;
+  color: #b0b0b0;
   margin-right: 10px;
 }
 
 .summary-item .value {
   font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: #ffffff;
 }
 
 .summary-item .value.positive {
-  color: #28a745;
+  color: #1de9b6;
 }
 
 .summary-item .value.negative {
-  color: #dc3545;
+  color: #ff9bbf;
+}
+
+/* Currency conversion display */
+.value-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.value-row .usd-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.value-row .converted-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00d4ff;
+  opacity: 0.8;
+}
+
+.value-row .usd-value.positive,
+.value-row .converted-value.positive {
+  color: #1de9b6;
+}
+
+.value-row .usd-value.negative,
+.value-row .converted-value.negative {
+  color: #ff9bbf;
+}
+
+/* Table cell value stacking */
+.value-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.value-stack .usd-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.value-stack .converted-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: #00d4ff;
+  opacity: 0.7;
 }
 
 .positions-list {
@@ -85,8 +153,9 @@
 
 .positions-list h3 {
   margin: 0 0 15px 0;
-  color: #333;
+  color: #00d4ff;
   font-size: 18px;
+  font-weight: 700;
 }
 
 .positions-table {
@@ -96,47 +165,52 @@
 }
 
 .positions-table thead {
-  background: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
+  background: rgba(0, 212, 255, 0.05);
+  border-bottom: 2px solid rgba(0, 212, 255, 0.2);
 }
 
 .positions-table th {
   padding: 12px;
   text-align: left;
   font-weight: 600;
-  color: #333;
+  color: #00d4ff;
   font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .positions-table td {
   padding: 12px;
-  border-bottom: 1px solid #dee2e6;
-  color: #555;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  color: #e0e0e0;
 }
 
 .positions-table td.positive {
-  color: #28a745;
+  color: #1de9b6;
   font-weight: 500;
 }
 
 .positions-table td.negative {
-  color: #dc3545;
+  color: #ff9bbf;
   font-weight: 500;
 }
 
 .positions-table .btn-small {
   padding: 6px 12px;
-  background: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(255, 20, 147, 0.2) 100%);
+  border: 2px solid rgba(0, 212, 255, 0.4);
+  color: #00d4ff;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
-  transition: background 0.3s;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .positions-table .btn-small:hover {
-  background: #218838;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.3) 0%, rgba(255, 20, 147, 0.3) 100%);
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.2);
 }
 
 @media (max-width: 768px) {
