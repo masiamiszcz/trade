@@ -12,7 +12,7 @@ public class CryptoPricesHub : Hub
 
     private sealed record SubscriptionState(string Symbol, int RangeMinutes, int IntervalMinutes, DateTime StartTime);
 
-    private static readonly ConcurrentDictionary<string, SubscriptionState> ConnectionSubscriptions = new();
+    private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, SubscriptionState>> ConnectionSubscriptions = new();
 
     public CryptoPricesHub(
         IActiveCandleSubscriptionRegistry subscriptionRegistry,
@@ -23,38 +23,79 @@ public class CryptoPricesHub : Hub
     }
 
     public async Task SubscribeToSymbol(string symbol, int rangeMinutes)
+        => await SubscribeToSymbols(new[] { symbol }, rangeMinutes);
+
+    public async Task SubscribeToSymbols(string[] symbols, int rangeMinutes)
     {
         if (rangeMinutes <= 0)
         {
             throw new HubException("RangeMinutes must be greater than zero.");
         }
+        if (symbols is null)
+        {
+            throw new HubException("At least one symbol must be provided.");
+        }
 
-        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
+        var normalizedSymbols = symbols
+            .Where(symbol => !string.IsNullOrWhiteSpace(symbol))
+            .Select(symbol => symbol.Trim().ToUpperInvariant())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (normalizedSymbols.Length == 0 || normalizedSymbols.Length > 4)
+        {
+            throw new HubException("Between one and four symbols must be provided.");
+        }
+
         var intervalMinutes = ResolveIntervalMinutes(rangeMinutes);
-        var symbolGroup = GetSymbolGroup(normalizedSymbol);
-        var candleGroup = GetCandleGroup(symbolGroup, GetIntervalKey(intervalMinutes));
-
         await CleanupPreviousSubscriptionAsync();
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, symbolGroup);
-        await Groups.AddToGroupAsync(Context.ConnectionId, candleGroup);
-
-        ConnectionSubscriptions[Context.ConnectionId] = new SubscriptionState(
-            normalizedSymbol,
-            rangeMinutes,
-            intervalMinutes,
-            DateTime.UtcNow);
-
-        if (_subscriptionRegistry.TryAddActiveInterval(normalizedSymbol, intervalMinutes))
+        var subscriptions = ConnectionSubscriptions.GetOrAdd(
+            Context.ConnectionId,
+            _ => new ConcurrentDictionary<string, SubscriptionState>(StringComparer.OrdinalIgnoreCase));
+        try
         {
-            await _streamActivationService.InitializeActiveIntervalAsync(normalizedSymbol, intervalMinutes);
+            foreach (var normalizedSymbol in normalizedSymbols)
+            {
+                var symbolGroup = GetSymbolGroup(normalizedSymbol);
+                var candleGroup = GetCandleGroup(symbolGroup, GetIntervalKey(intervalMinutes));
+
+                subscriptions[normalizedSymbol] = new SubscriptionState(
+                    normalizedSymbol,
+                    rangeMinutes,
+                    intervalMinutes,
+                    DateTime.UtcNow);
+                await Groups.AddToGroupAsync(Context.ConnectionId, symbolGroup);
+                await Groups.AddToGroupAsync(Context.ConnectionId, candleGroup);
+
+                if (_subscriptionRegistry.TryAddActiveInterval(normalizedSymbol, intervalMinutes))
+                {
+                    await _streamActivationService.InitializeActiveIntervalAsync(normalizedSymbol, intervalMinutes);
+                }
+            }
+        }
+        catch
+        {
+            await CleanupPreviousSubscriptionAsync();
+            throw;
         }
     }
 
     public async Task UnsubscribeFromSymbol(string symbol)
+        => await UnsubscribeFromSymbols(new[] { symbol });
+
+    public async Task UnsubscribeFromSymbols(string[] symbols)
     {
-        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
-        await CleanupPreviousSubscriptionAsync(normalizedSymbol);
+        if (symbols is null)
+        {
+            return;
+        }
+
+        var normalizedSymbols = symbols
+            .Where(symbol => !string.IsNullOrWhiteSpace(symbol))
+            .Select(symbol => symbol.Trim().ToUpperInvariant())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        await CleanupPreviousSubscriptionAsync(normalizedSymbols);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
@@ -68,21 +109,47 @@ public class CryptoPricesHub : Hub
         await Clients.Group(GetSymbolGroup(update.Symbol)).SendAsync("ReceiveMarketUpdate", new MarketStreamUpdateDto(update, null));
     }
 
-    private async Task CleanupPreviousSubscriptionAsync(string? fallbackSymbol = null)
+    private async Task CleanupPreviousSubscriptionAsync(IReadOnlyCollection<string>? symbolsToRemove = null)
     {
-        if (ConnectionSubscriptions.TryRemove(Context.ConnectionId, out var subscription))
+        if (!ConnectionSubscriptions.TryGetValue(Context.ConnectionId, out var subscriptions))
         {
-            await Task.WhenAll(
-                Groups.RemoveFromGroupAsync(Context.ConnectionId, GetSymbolGroup(subscription.Symbol)),
-                Groups.RemoveFromGroupAsync(Context.ConnectionId, GetCandleGroup(GetSymbolGroup(subscription.Symbol), GetIntervalKey(subscription.IntervalMinutes))));
-
-            _subscriptionRegistry.TryRemoveActiveInterval(subscription.Symbol, subscription.IntervalMinutes);
+            if (symbolsToRemove is not null)
+            {
+                await RemoveFallbackGroupsAsync(symbolsToRemove);
+            }
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(fallbackSymbol))
+        var symbols = symbolsToRemove is null
+            ? subscriptions.Keys.ToArray()
+            : symbolsToRemove;
+        foreach (var symbol in symbols)
         {
-            var symbolGroup = GetSymbolGroup(fallbackSymbol);
+            if (subscriptions.TryRemove(symbol, out var subscription))
+            {
+                var symbolGroup = GetSymbolGroup(subscription.Symbol);
+                await Task.WhenAll(
+                    Groups.RemoveFromGroupAsync(Context.ConnectionId, symbolGroup),
+                    Groups.RemoveFromGroupAsync(Context.ConnectionId, GetCandleGroup(symbolGroup, GetIntervalKey(subscription.IntervalMinutes))));
+                _subscriptionRegistry.TryRemoveActiveInterval(subscription.Symbol, subscription.IntervalMinutes);
+            }
+            else if (symbolsToRemove is not null)
+            {
+                await RemoveFallbackGroupsAsync(new[] { symbol });
+            }
+        }
+
+        if (subscriptions.IsEmpty)
+        {
+            ConnectionSubscriptions.TryRemove(Context.ConnectionId, out _);
+        }
+    }
+
+    private async Task RemoveFallbackGroupsAsync(IEnumerable<string> symbols)
+    {
+        foreach (var symbol in symbols)
+        {
+            var symbolGroup = GetSymbolGroup(symbol);
             await Task.WhenAll(
                 Groups.RemoveFromGroupAsync(Context.ConnectionId, symbolGroup),
                 Groups.RemoveFromGroupAsync(Context.ConnectionId, GetCandleGroup(symbolGroup, "1m")),

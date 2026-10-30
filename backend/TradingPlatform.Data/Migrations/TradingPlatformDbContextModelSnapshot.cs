@@ -623,6 +623,41 @@ namespace TradingPlatform.Data.Migrations
                     b.ToTable("Candles");
                 });
 
+            modelBuilder.Entity("TradingPlatform.Data.Entities.CfdChartViewEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ConfigurationJson")
+                        .IsRequired()
+                        .HasMaxLength(16384)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ConfigurationVersion")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "UpdatedAtUtc");
+
+                    b.ToTable("CfdChartViews", (string)null);
+                });
+
             modelBuilder.Entity("TradingPlatform.Data.Entities.CryptoTransactionEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1168,6 +1203,15 @@ namespace TradingPlatform.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Admin");
+                });
+
+            modelBuilder.Entity("TradingPlatform.Data.Entities.CfdChartViewEntity", b =>
+                {
+                    b.HasOne("TradingPlatform.Data.Entities.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TradingPlatform.Data.Entities.CryptoTransactionEntity", b =>

@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCfdInstruments } from '../hooks/useCfdInstruments';
+import { useCfdChartViews } from '../hooks/useCfdChartViews';
 import type { CfdInstrumentSummary } from '../services/MarketDataService';
+import { CfdInstrumentPickerDialog } from '../components/cfd/CfdInstrumentPickerDialog';
 import './CFDDashboard.css';
+import '../components/cfd/CfdComponents.css';
 
 const formatPrice = (value: number | null, currency: string) => (
   value === null ? '—' : `${value.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${currency}`
@@ -103,7 +106,11 @@ const CfdRow: React.FC<{
 
 export const CFDDashboard: React.FC = () => {
   const { instruments, loading, error, refetch } = useCfdInstruments();
+  const { views, loading: viewsLoading, error: viewsError, refresh: refreshViews, remove: removeView } = useCfdChartViews();
   const [now, setNow] = useState(() => Date.now());
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [viewActionError, setViewActionError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let timeoutId: number;
@@ -119,6 +126,36 @@ export const CFDDashboard: React.FC = () => {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
+  const openCustomView = (symbols: string[]) => {
+    setPickerOpen(false);
+    if (symbols.length === 0) return;
+    const query = symbols.length > 1 ? `?symbols=${encodeURIComponent(symbols.join(','))}` : '';
+    navigate(`/dashboard/cfd/${encodeURIComponent(symbols[0])}${query}`);
+  };
+
+  const openSavedView = (id: string) => {
+    const view = views.find((item) => item.id === id);
+    if (!view) return;
+    const { configuration } = view;
+    const query = new URLSearchParams();
+    if (configuration.symbols.length > 1) query.set('symbols', configuration.symbols.join(','));
+    query.set('range', String(configuration.rangeMinutes));
+    query.set('interval', String(configuration.intervalMinutes));
+    query.set('chartType', configuration.chartType);
+    query.set('viewId', id);
+    navigate(`/dashboard/cfd/${encodeURIComponent(configuration.highlightedSymbol)}?${query.toString()}`);
+  };
+
+  const handleRemoveView = async (id: string, name: string) => {
+    if (!window.confirm(`Usunąć zapisany widok „${name}”?`)) return;
+    setViewActionError(null);
+    try {
+      await removeView(id);
+    } catch (removeError) {
+      setViewActionError(removeError instanceof Error ? removeError.message : String(removeError));
+    }
+  };
+
   return (
     <main className="cfd-dashboard">
       <header className="cfd-dashboard-header">
@@ -127,9 +164,14 @@ export const CFDDashboard: React.FC = () => {
           <h1>Kontrakty CFD</h1>
           <p>Rynek w skrócie — zakresy 1h i 24h oraz trend z ostatnich 7 dni.</p>
         </div>
-        <button className="cfd-refresh" type="button" onClick={() => void refetch()} disabled={loading}>
-          {loading ? 'Odświeżanie…' : 'Odśwież dane'}
-        </button>
+        <div className="cfd-dashboard-actions">
+          <button className="cfd-create-view" type="button" onClick={() => setPickerOpen(true)}>
+            <span aria-hidden="true">+</span> Własny widok
+          </button>
+          <button className="cfd-refresh" type="button" onClick={() => void refetch()} disabled={loading}>
+            {loading ? 'Odświeżanie…' : 'Odśwież dane'}
+          </button>
+        </div>
       </header>
 
       <section className="cfd-market-list" aria-label="Dostępne instrumenty CFD">
@@ -170,6 +212,62 @@ export const CFDDashboard: React.FC = () => {
         Zmiana procentowa pokazuje zmianę ceny w oknie. Ekstrema pochodzą z zapisanych świec 1m;
         miniwykres korzysta ze świec 4h z ostatnich 7 dni.
       </p>
+      <section className="cfd-saved-views" aria-labelledby="cfd-saved-views-title">
+        <header className="cfd-saved-views-header">
+          <div>
+            <span className="cfd-eyebrow">TWOJE USTAWIENIA</span>
+            <h2 id="cfd-saved-views-title">Moje widoki</h2>
+            <p>Zapisane konfiguracje instrumentów i wykresów.</p>
+          </div>
+          <button type="button" className="cfd-refresh" onClick={() => void refreshViews()} disabled={viewsLoading}>
+            {viewsLoading ? 'Ładowanie…' : 'Odśwież widoki'}
+          </button>
+        </header>
+        {viewActionError && <p className="cfd-saved-views-error" role="alert">{viewActionError}</p>}
+        {viewsError ? (
+          <div className="cfd-saved-views-state cfd-saved-views-error" role="alert">
+            Nie udało się pobrać zapisanych widoków: {viewsError}
+          </div>
+        ) : viewsLoading && views.length === 0 ? (
+          <div className="cfd-saved-views-state">Ładowanie zapisanych widoków…</div>
+        ) : views.length === 0 ? (
+          <div className="cfd-saved-views-state">Nie masz jeszcze zapisanych widoków. Otwórz wykres CFD i wybierz „Zapisz widok”.</div>
+        ) : (
+          <div className="cfd-saved-views-grid">
+            {views.map(({ id, name, configuration }) => (
+              <article className="cfd-saved-view-card" key={id}>
+                <div className="cfd-saved-view-card-copy">
+                  <h3>{name}</h3>
+                  <p>{configuration.symbols.join(' · ')}</p>
+                  <span>
+                    {configuration.rangeMinutes} min · świece {configuration.intervalMinutes} min · {
+                      configuration.chartType === 'candles' ? 'Świece' : configuration.chartType === 'line' ? 'Linia' : 'OHLC'
+                    }
+                  </span>
+                </div>
+                <div className="cfd-saved-view-actions">
+                  <button type="button" className="cfd-saved-view-open" onClick={() => openSavedView(id)}>Otwórz</button>
+                  <button
+                    type="button"
+                    className="cfd-saved-view-delete"
+                    onClick={() => void handleRemoveView(id, name)}
+                    aria-label={`Usuń widok ${name}`}
+                  >
+                    Usuń
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+      <CfdInstrumentPickerDialog
+        open={pickerOpen}
+        instruments={instruments}
+        initialSymbols={[]}
+        onClose={() => setPickerOpen(false)}
+        onConfirm={openCustomView}
+      />
     </main>
   );
 };

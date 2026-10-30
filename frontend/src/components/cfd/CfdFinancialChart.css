@@ -1,0 +1,87 @@
+.cfd-financial-chart {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(126, 160, 199, 0.17);
+  border-radius: 16px;
+  background: rgba(12, 24, 41, 0.95);
+}
+
+.cfd-financial-chart-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px 24px;
+  padding: 18px 20px 10px;
+}
+
+.cfd-financial-chart-header > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.cfd-financial-chart-header > div:first-child strong {
+  color: #e8f3ff;
+  font-size: 1rem;
+}
+
+.cfd-financial-chart-header > div:first-child span,
+.cfd-candle-readout,
+.cfd-chart-volume-note {
+  color: #899bb3;
+  font-size: 0.72rem;
+}
+
+.cfd-candle-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cfd-candle-readout b {
+  color: #dce8f8;
+  font-weight: 700;
+}
+
+.cfd-financial-chart-surface {
+  position: relative;
+}
+
+.cfd-financial-chart-canvas {
+  width: 100%;
+  height: clamp(340px, 52vw, 560px);
+}
+
+.cfd-financial-chart-status {
+  padding: 4px 20px 10px;
+  color: #9fc7ff;
+  font-size: 0.78rem;
+}
+
+.cfd-financial-chart-status.is-error {
+  color: #ff9aaa;
+}
+
+.cfd-chart-volume-note {
+  margin: 0;
+  padding: 8px 20px 13px;
+  font-size: 0.67rem;
+}
+
+@media (max-width: 700px) {
+  .cfd-financial-chart-header {
+    padding: 14px;
+  }
+
+  .cfd-chart-volume-note {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .cfd-financial-chart-canvas {
+    height: 380px;
+  }
+}

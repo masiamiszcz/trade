@@ -22,6 +22,7 @@ public sealed class TradingPlatformDbContext(DbContextOptions<TradingPlatformDbC
     public DbSet<Core.Entities.ExchangeRateEntity> ExchangeRates => Set<Core.Entities.ExchangeRateEntity>();
     public DbSet<CandleEntity> Candles => Set<CandleEntity>();
     public DbSet<AssetMappingEntity> AssetMappings => Set<AssetMappingEntity>();
+    public DbSet<CfdChartViewEntity> CfdChartViews => Set<CfdChartViewEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

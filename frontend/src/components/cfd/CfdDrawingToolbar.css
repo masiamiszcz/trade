@@ -1,0 +1,52 @@
+.cfd-drawing-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 0 20px 10px;
+}
+
+.cfd-drawing-tool-list,
+.cfd-drawing-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.cfd-drawing-toolbar button {
+  min-height: 31px;
+  padding: 5px 9px;
+  border: 1px solid rgba(126, 160, 199, 0.2);
+  border-radius: 7px;
+  color: #cbd9eb;
+  background: rgba(18, 33, 54, 0.95);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.cfd-drawing-toolbar .cfd-drawing-tool.is-selected {
+  border-color: rgba(244, 184, 96, 0.65);
+  color: #ffda9d;
+  background: rgba(133, 86, 27, 0.2);
+}
+
+.cfd-drawing-toolbar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.cfd-drawing-edit-actions > span {
+  padding-left: 5px;
+  color: #899bb3;
+  font-size: 0.68rem;
+}
+
+@media (max-width: 700px) {
+  .cfd-drawing-toolbar {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+}

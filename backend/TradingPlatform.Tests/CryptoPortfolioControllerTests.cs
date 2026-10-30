@@ -1,7 +1,9 @@
 using Moq;
 using TradingPlatform.Api.Controllers;
 using TradingPlatform.Core.Dtos;
+using TradingPlatform.Core.Enums;
 using TradingPlatform.Core.Interfaces;
+using TradingPlatform.Core.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
@@ -17,8 +19,28 @@ public class CryptoPortfolioControllerTests
     public CryptoPortfolioControllerTests()
     {
         _mockService = new Mock<IPortfolioTransactionService>();
-        _controller = new CryptoPortfolioController(_mockService.Object);
         _testAccountId = Guid.NewGuid();
+        var accountService = new Mock<IAccountService>();
+        accountService
+            .Setup(service => service.GetMainAccountByUserIdAsync(
+                _testAccountId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Account(
+                _testAccountId,
+                _testAccountId,
+                null,
+                "TEST",
+                "Test account",
+                AccountType.Main,
+                AccountPillar.Crypto,
+                AccountStatus.Active,
+                "USD",
+                10000m,
+                0m,
+                DateTimeOffset.UtcNow));
+        _controller = new CryptoPortfolioController(
+            _mockService.Object,
+            accountService.Object,
+            Mock.Of<Microsoft.Extensions.Logging.ILogger<CryptoPortfolioController>>());
 
         // Setup JWT claims context
         var claims = new List<Claim> { new("sub", _testAccountId.ToString()) };

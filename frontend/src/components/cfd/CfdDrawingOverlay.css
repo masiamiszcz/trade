@@ -1,0 +1,31 @@
+.cfd-drawing-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: visible;
+}
+
+.cfd-drawing-overlay.is-select {
+  pointer-events: none;
+}
+
+.cfd-drawing-overlay.is-drawing {
+  pointer-events: all;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.cfd-drawing-shape {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.cfd-drawing-label {
+  fill: #f4b860;
+  stroke: #081021;
+  stroke-width: 3px;
+  paint-order: stroke;
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
+}

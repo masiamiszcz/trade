@@ -124,6 +124,8 @@ export const API_CONFIG = {
     cfd: {
       instruments: '/cfd/instruments',
       chart: (symbol: string) => `/cfd/${symbol}/chart`,
+      views: '/cfd/views',
+      view: (id: string) => `/cfd/views/${encodeURIComponent(id)}`,
     },
 
     // ==================== CRYPTO PORTFOLIO ====================

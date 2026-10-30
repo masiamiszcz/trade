@@ -51,6 +51,34 @@ public sealed class CfdServiceTests
     }
 
     [Fact]
+    public async Task GetAvailableCfdInstrumentsAsync_IncludesEthWhenMarketDataSourceIsConfigured()
+    {
+        var ethCfd = CreateInstrument("ETHUSDT", InstrumentType.Cfd.ToString());
+        var instrumentService = new Mock<IInstrumentService>();
+        instrumentService
+            .Setup(service => service.GetAllActiveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { ethCfd });
+
+        var candleRepository = new Mock<ICandleRepository>();
+        candleRepository
+            .Setup(repository => repository.GetBySymbolSourceIntervalAsync(
+                "ETHUSDT", "binance", 1, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CandleEntity> { CreateCandle("ETHUSDT", 1) });
+        candleRepository
+            .Setup(repository => repository.GetAggregatedFromOneMinuteSourceAsync(
+                "ETHUSDT", "binance", 240, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CandleEntity> { CreateCandle("ETHUSDT", 240) });
+
+        var service = new CfdService(instrumentService.Object, candleRepository.Object);
+
+        var summary = Assert.Single(await service.GetAvailableCfdInstrumentsAsync());
+
+        Assert.Equal("ETHUSDT", summary.Instrument.Symbol);
+        Assert.Equal(100m, summary.CurrentPrice);
+        candleRepository.VerifyAll();
+    }
+
+    [Fact]
     public async Task GetChartCandlesAsync_WhenCfdHasNoConfiguredSource_ThrowsNotFound()
     {
         var cfd = CreateInstrument("US500CFD", InstrumentType.Cfd.ToString());
@@ -103,6 +131,38 @@ public sealed class CfdServiceTests
         var candle = Assert.Single(result);
         Assert.Equal("BTCUSDT", candle.Symbol);
         Assert.Equal("1m", candle.Interval);
+        candleRepository.VerifyAll();
+    }
+
+    [Fact]
+    public async Task GetChartCandlesAsync_UsesConfiguredEthereumBinanceSource()
+    {
+        var cfd = CreateInstrument("ETHUSDT", InstrumentType.Cfd.ToString());
+        var instrumentService = new Mock<IInstrumentService>();
+        instrumentService
+            .Setup(service => service.GetBySymbolAsync(
+                "ETHUSDT",
+                InstrumentType.Cfd,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(cfd);
+
+        var sourceCandle = CreateCandle("ETHUSDT", 1);
+        var candleRepository = new Mock<ICandleRepository>();
+        candleRepository
+            .Setup(repository => repository.GetBySymbolSourceIntervalAsync(
+                "ETHUSDT",
+                "binance",
+                1,
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CandleEntity> { sourceCandle });
+
+        var service = new CfdService(instrumentService.Object, candleRepository.Object);
+
+        var result = (await service.GetChartCandlesAsync("ethusdt", 60, 1)).ToList();
+
+        Assert.Equal("ETHUSDT", Assert.Single(result).Symbol);
         candleRepository.VerifyAll();
     }
 

@@ -7,7 +7,8 @@ public static class CfdMarketDataSourceMap
     private static readonly IReadOnlyDictionary<string, CfdMarketDataSource> Sources =
         new Dictionary<string, CfdMarketDataSource>(StringComparer.OrdinalIgnoreCase)
         {
-            ["BTCUSDT"] = new("binance", "BTCUSDT")
+            ["BTCUSDT"] = new("binance", "BTCUSDT"),
+            ["ETHUSDT"] = new("binance", "ETHUSDT")
         };
 
     public static bool TryGetSource(string instrumentSymbol, out CfdMarketDataSource source)

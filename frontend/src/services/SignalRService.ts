@@ -38,7 +38,7 @@ export class SignalRService {
   private connection: HubConnection | null = null;
   private options: SignalRServiceOptions;
   private hubUrl = `${API_CONFIG.baseUrl.replace(/\/api\/?$/, '')}/hubs/prices`;
-  private currentSymbol?: string;
+  private currentSymbols: string[] = [];
   private currentRangeMinutes?: number;
 
   constructor(options: SignalRServiceOptions) {
@@ -63,10 +63,15 @@ export class SignalRService {
       this.options.onConnected?.();
       console.log('[SignalR] Reconnected to hub');
 
-      if (this.currentSymbol && this.currentRangeMinutes !== undefined) {
+      if (this.currentSymbols.length > 0 && this.currentRangeMinutes !== undefined) {
+        const symbols = [...this.currentSymbols];
+        const rangeMinutes = this.currentRangeMinutes;
         try {
-          await this.subscribeToSymbol(this.currentSymbol, this.currentRangeMinutes);
+          this.currentSymbols = [];
+          await this.subscribeToSymbols(symbols, rangeMinutes);
         } catch (error) {
+          this.currentSymbols = symbols;
+          this.currentRangeMinutes = rangeMinutes;
           console.warn('[SignalR] Failed to re-subscribe after reconnect', error);
         }
       }
@@ -97,7 +102,7 @@ export class SignalRService {
     } catch (error) {
       console.warn('[SignalR] Error during disconnect', error);
     } finally {
-      this.currentSymbol = undefined;
+      this.currentSymbols = [];
       this.currentRangeMinutes = undefined;
       this.connection = null;
     }
@@ -108,33 +113,56 @@ export class SignalRService {
   }
 
   public async subscribeToSymbol(symbol: string, rangeMinutes: number): Promise<void> {
+    await this.subscribeToSymbols([symbol], rangeMinutes);
+  }
+
+  public async subscribeToSymbols(symbols: string[], rangeMinutes: number): Promise<void> {
     if (!this.connection || this.connection.state !== HubConnectionState.Connected) {
       throw new Error('SignalR connection is not established');
     }
 
-    const normalizedSymbol = symbol.toUpperCase();
-    if (this.currentSymbol === normalizedSymbol && this.currentRangeMinutes === rangeMinutes) {
-      console.log('[SignalR] Subscription already active for', normalizedSymbol, 'rangeMinutes', rangeMinutes);
+    const normalizedSymbols = [...new Set(symbols.map((symbol) => symbol.trim().toUpperCase()).filter(Boolean))];
+    if (normalizedSymbols.length === 0 || normalizedSymbols.length > 4) {
+      throw new Error('SignalR subscriptions require between one and four symbols');
+    }
+
+    if (normalizedSymbols.length === this.currentSymbols.length
+      && normalizedSymbols.every((symbol, index) => symbol === this.currentSymbols[index])
+      && this.currentRangeMinutes === rangeMinutes) {
+      console.log('[SignalR] Subscriptions already active for', normalizedSymbols, 'rangeMinutes', rangeMinutes);
       return;
     }
 
-    this.currentSymbol = normalizedSymbol;
+    if (normalizedSymbols.length === 1) {
+      await this.connection.invoke('SubscribeToSymbol', normalizedSymbols[0], rangeMinutes);
+    } else {
+      await this.connection.invoke('SubscribeToSymbols', normalizedSymbols, rangeMinutes);
+    }
+    this.currentSymbols = normalizedSymbols;
     this.currentRangeMinutes = rangeMinutes;
-
-    await this.connection.invoke('SubscribeToSymbol', this.currentSymbol, this.currentRangeMinutes);
-    console.log('[SignalR] Subscribed to symbol', this.currentSymbol, 'rangeMinutes', this.currentRangeMinutes);
+    console.log('[SignalR] Subscribed to symbols', normalizedSymbols, 'rangeMinutes', rangeMinutes);
   }
 
   public async unsubscribeFromSymbol(symbol: string): Promise<void> {
+    await this.unsubscribeFromSymbols([symbol]);
+  }
+
+  public async unsubscribeFromSymbols(symbols: string[]): Promise<void> {
     if (!this.connection || this.connection.state !== HubConnectionState.Connected) {
       return;
     }
 
-    await this.connection.invoke('UnsubscribeFromSymbol', symbol.toUpperCase());
-    console.log('[SignalR] Unsubscribed from symbol', symbol.toUpperCase());
+    const normalizedSymbols = [...new Set(symbols.map((symbol) => symbol.trim().toUpperCase()).filter(Boolean))];
+    if (normalizedSymbols.length === 0) return;
+    if (normalizedSymbols.length === 1) {
+      await this.connection.invoke('UnsubscribeFromSymbol', normalizedSymbols[0]);
+    } else {
+      await this.connection.invoke('UnsubscribeFromSymbols', normalizedSymbols);
+    }
+    console.log('[SignalR] Unsubscribed from symbols', normalizedSymbols);
 
-    if (this.currentSymbol === symbol.toUpperCase()) {
-      this.currentSymbol = undefined;
+    this.currentSymbols = this.currentSymbols.filter((symbol) => !normalizedSymbols.includes(symbol));
+    if (this.currentSymbols.length === 0) {
       this.currentRangeMinutes = undefined;
     }
   }

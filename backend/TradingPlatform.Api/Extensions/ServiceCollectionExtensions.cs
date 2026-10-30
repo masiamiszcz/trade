@@ -4,6 +4,7 @@ using TradingPlatform.Api.Services;
 using TradingPlatform.Core.Interfaces;
 using TradingPlatform.Core.Models;
 using TradingPlatform.Data.Services;
+using TradingPlatform.Data.Services.Cfd;
 
 namespace TradingPlatform.Api.Extensions;
 
@@ -16,6 +17,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPriceUpdatePublisher, PriceUpdatePublisher>();
         services.AddScoped<ICryptoService, CryptoService>();
         services.AddScoped<ICfdService, CfdService>();
+        services.AddScoped<ICfdChartViewService, CfdChartViewService>();
         return services;
     }
 }

@@ -1,0 +1,463 @@
+.cfd-assets-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cfd-assets-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cfd-asset-chip {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--asset-color) 35%, transparent);
+  border-radius: 10px;
+  background: rgba(12, 24, 41, 0.88);
+}
+
+.cfd-asset-chip.is-highlighted {
+  border-color: var(--asset-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--asset-color) 32%, transparent);
+}
+
+.cfd-asset-select,
+.cfd-asset-remove,
+.cfd-add-asset {
+  border: 0;
+  color: #dce8f8;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.cfd-asset-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.cfd-asset-select small {
+  color: #8294aa;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.cfd-asset-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--asset-color);
+}
+
+.cfd-asset-remove {
+  padding: 0 10px;
+  color: #899bb3;
+  font-size: 1.1rem;
+}
+
+.cfd-asset-remove:hover {
+  color: #ff9aaa;
+  background: rgba(255, 127, 145, 0.1);
+}
+
+.cfd-add-asset,
+.cfd-create-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px dashed rgba(101, 214, 162, 0.5);
+  border-radius: 10px;
+  color: #8ce2c0;
+  background: rgba(34, 86, 74, 0.14);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cfd-add-asset span,
+.cfd-create-view span {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.cfd-add-asset:hover,
+.cfd-create-view:hover {
+  background: rgba(34, 86, 74, 0.3);
+}
+
+.cfd-comparison-card {
+  overflow: hidden;
+  border: 1px solid rgba(126, 160, 199, 0.17);
+  border-radius: 16px;
+  background: rgba(12, 24, 41, 0.88);
+}
+
+.cfd-comparison-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 22px 10px;
+}
+
+.cfd-comparison-header h2 {
+  margin: 0 0 5px;
+  color: #e8f3ff;
+  font-size: 1.05rem;
+}
+
+.cfd-comparison-header p,
+.cfd-comparison-focus {
+  margin: 0;
+  color: #899bb3;
+  font-size: 0.76rem;
+}
+
+.cfd-comparison-focus {
+  color: #65d6a2;
+}
+
+.cfd-comparison-visual {
+  position: relative;
+  min-height: 280px;
+  padding: 0 14px 14px;
+}
+
+.cfd-comparison-visual svg {
+  display: block;
+  width: 100%;
+  min-height: 280px;
+}
+
+.cfd-comparison-visual svg {
+  touch-action: pan-y;
+}
+
+.cfd-comparison-tooltip {
+  position: absolute;
+  z-index: 1;
+  top: 14px;
+  min-width: 190px;
+  max-width: min(280px, 72vw);
+  padding: 10px 12px;
+  border: 1px solid rgba(126, 160, 199, 0.24);
+  border-radius: 10px;
+  color: #e8f3ff;
+  background: rgba(8, 16, 33, 0.96);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  font-size: 0.75rem;
+}
+
+.cfd-comparison-tooltip > strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #9fc7ff;
+  font-size: 0.72rem;
+}
+
+.cfd-comparison-tooltip-row,
+.cfd-comparison-tooltip-row > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cfd-comparison-tooltip-row + .cfd-comparison-tooltip-row {
+  margin-top: 7px;
+}
+
+.cfd-comparison-tooltip-row > span:first-child {
+  justify-content: flex-start;
+  color: #cbd9eb;
+}
+
+.cfd-comparison-tooltip-row i {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+}
+
+.cfd-comparison-tooltip-row > span:last-child {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  white-space: nowrap;
+}
+
+.cfd-comparison-tooltip-row b {
+  color: #e8f3ff;
+  font-size: 0.75rem;
+}
+
+.cfd-comparison-tooltip-row small {
+  color: #899bb3;
+  font-size: 0.67rem;
+}
+
+.cfd-comparison-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.cfd-comparison-legend-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(126, 160, 199, 0.12);
+  border-radius: 9px;
+  background: rgba(5, 14, 26, 0.42);
+  opacity: 0.62;
+}
+
+.cfd-comparison-legend-item.is-highlighted {
+  border-color: rgba(101, 214, 162, 0.36);
+  background: rgba(34, 86, 74, 0.16);
+  opacity: 1;
+}
+
+.cfd-comparison-legend-name,
+.cfd-comparison-legend-values {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cfd-comparison-legend-name {
+  color: #dce8f8;
+  font-size: 0.78rem;
+}
+
+.cfd-comparison-legend-name i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cfd-comparison-legend-values {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.cfd-comparison-legend-values b {
+  color: #e8f3ff;
+  font-size: 0.8rem;
+}
+
+.cfd-comparison-legend-values small {
+  color: #899bb3;
+  font-size: 0.67rem;
+  white-space: nowrap;
+}
+
+.cfd-comparison-state {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+  color: #9eacc1;
+}
+
+.cfd-series-errors {
+  padding: 8px 22px;
+  color: #ffb36b;
+  font-size: 0.78rem;
+}
+
+.cfd-dialog-backdrop {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 8, 18, 0.76);
+  backdrop-filter: blur(7px);
+}
+
+.cfd-picker-dialog {
+  width: min(100%, 520px);
+  max-height: min(80vh, 680px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(126, 160, 199, 0.24);
+  border-radius: 18px;
+  color: #ecf3ff;
+  background: #101c2d;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.48);
+}
+
+.cfd-picker-header,
+.cfd-picker-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 22px;
+}
+
+.cfd-picker-header {
+  border-bottom: 1px solid rgba(126, 160, 199, 0.13);
+}
+
+.cfd-picker-header h2 {
+  margin: 7px 0 4px;
+  font-size: 1.25rem;
+}
+
+.cfd-picker-header p,
+.cfd-picker-footer > span {
+  margin: 0;
+  color: #899bb3;
+  font-size: 0.8rem;
+}
+
+.cfd-dialog-close {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(126, 160, 199, 0.2);
+  border-radius: 9px;
+  color: #c3d1e4;
+  background: rgba(18, 33, 54, 0.95);
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.cfd-picker-list {
+  display: grid;
+  gap: 8px;
+  overflow-y: auto;
+  padding: 16px 22px;
+}
+
+.cfd-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(126, 160, 199, 0.14);
+  border-radius: 10px;
+  background: rgba(5, 14, 26, 0.45);
+  cursor: pointer;
+}
+
+.cfd-picker-option.is-selected {
+  border-color: rgba(101, 214, 162, 0.55);
+  background: rgba(34, 86, 74, 0.2);
+}
+
+.cfd-picker-option input {
+  accent-color: #65d6a2;
+}
+
+.cfd-picker-option span {
+  display: grid;
+  gap: 3px;
+}
+
+.cfd-picker-option strong {
+  font-size: 0.87rem;
+}
+
+.cfd-picker-option small,
+.cfd-picker-empty {
+  color: #899bb3;
+  font-size: 0.76rem;
+}
+
+.cfd-picker-footer {
+  border-top: 1px solid rgba(126, 160, 199, 0.13);
+}
+
+.cfd-picker-confirm {
+  padding: 10px 15px;
+  border: 0;
+  border-radius: 9px;
+  color: #071a16;
+  background: #65d6a2;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cfd-picker-confirm:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.cfd-save-view-dialog {
+  max-height: min(80vh, 500px);
+}
+
+.cfd-save-view-content {
+  display: grid;
+  gap: 9px;
+  padding: 20px 22px;
+}
+
+.cfd-save-view-content label {
+  color: #b7c7da;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cfd-save-view-content input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid rgba(126, 160, 199, 0.26);
+  border-radius: 9px;
+  outline: none;
+  color: #ecf3ff;
+  background: rgba(5, 14, 26, 0.65);
+  font: inherit;
+}
+
+.cfd-save-view-content input:focus {
+  border-color: #65d6a2;
+  box-shadow: 0 0 0 2px rgba(101, 214, 162, 0.14);
+}
+
+.cfd-save-view-error {
+  margin: 0;
+  color: #ff9aaa;
+  font-size: 0.78rem;
+}
+
+.cfd-dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .cfd-asset-select small {
+    display: none;
+  }
+
+  .cfd-picker-header,
+  .cfd-picker-footer {
+    padding: 16px;
+  }
+}

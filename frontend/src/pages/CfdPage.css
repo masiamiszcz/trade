@@ -1,0 +1,278 @@
+.cfd-page {
+  position: relative;
+  left: 50%;
+  width: 100vw;
+  max-width: 100vw;
+  min-height: 100vh;
+  margin-left: -50vw;
+  padding: 32px clamp(18px, 4vw, 64px);
+  box-sizing: border-box;
+  overflow-x: hidden;
+  color: #ecf3ff;
+  background:
+    radial-gradient(ellipse at 86% 0%, rgba(42, 116, 206, 0.18), transparent 34%),
+    linear-gradient(145deg, #08111f, #0b1424 55%, #0d192b);
+}
+
+.cfd-page-header,
+.cfd-assets-toolbar,
+.cfd-chart-toolbar,
+.cfd-live-panel,
+.cfd-page-note,
+.cfd-save-view-message,
+.cfd-page-state,
+.cfd-comparison-card {
+  width: 100%;
+  max-width: 1480px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.cfd-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.cfd-page-header h1 {
+  margin: 10px 0 8px;
+  color: #f3f7ff;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.cfd-page-subtitle,
+.cfd-page-note {
+  color: #9eacc1;
+}
+
+.cfd-save-view-message {
+  margin-top: -6px;
+  margin-bottom: 14px;
+  color: #65d6a2;
+  font-size: 0.84rem;
+}
+
+.cfd-back-link {
+  flex: 0 0 auto;
+  color: #77dfcb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cfd-back-link:hover {
+  text-decoration: underline;
+}
+
+.cfd-page-state {
+  padding: 22px;
+  border: 1px solid rgba(126, 160, 199, 0.18);
+  border-radius: 14px;
+  color: #c4d3e6;
+  background: rgba(12, 24, 41, 0.88);
+}
+
+.cfd-page-state.is-error {
+  color: #ff9aaa;
+}
+
+.cfd-chart-toolbar {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid rgba(126, 160, 199, 0.17);
+  border-radius: 16px;
+  background: rgba(12, 24, 41, 0.88);
+}
+
+.cfd-toolbar-group {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.cfd-toolbar-label {
+  color: #899bb3;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cfd-button-strip {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 2px 2px 5px;
+  scrollbar-width: thin;
+}
+
+.cfd-option-button,
+.cfd-trade-button {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid rgba(126, 160, 199, 0.2);
+  border-radius: 9px;
+  color: #bac9dc;
+  background: rgba(18, 33, 54, 0.95);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.cfd-option-button:hover:not(:disabled) {
+  border-color: rgba(101, 214, 162, 0.55);
+  color: #f0fff8;
+}
+
+.cfd-option-button.is-selected {
+  border-color: rgba(101, 214, 162, 0.65);
+  color: #071a16;
+  background: #65d6a2;
+}
+
+.cfd-chart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cfd-trade-button {
+  min-width: 76px;
+  color: #8392a8;
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.cfd-trade-long {
+  border-color: rgba(72, 214, 165, 0.34);
+}
+
+.cfd-trade-short {
+  border-color: rgba(255, 127, 145, 0.34);
+}
+
+.cfd-page .crypto-chart-card {
+  width: 100%;
+  max-width: 1480px;
+  min-height: 530px;
+  margin: 0 auto;
+  border: 1px solid rgba(126, 160, 199, 0.17);
+  background: rgba(12, 24, 41, 0.88);
+}
+
+.cfd-page .crypto-chart-visual,
+.cfd-page .crypto-chart-visual svg {
+  min-height: 480px;
+}
+
+.cfd-live-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px 22px;
+  border: 1px solid rgba(126, 160, 199, 0.17);
+  border-radius: 16px;
+  background: rgba(12, 24, 41, 0.88);
+}
+
+.cfd-live-connection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9eacc1;
+  font-size: 0.82rem;
+}
+
+.cfd-live-connection strong {
+  color: #e7f2ff;
+}
+
+.cfd-connection-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f4b860;
+}
+
+.cfd-connection-indicator.is-connected {
+  background: #48d6a5;
+  box-shadow: 0 0 10px rgba(72, 214, 165, 0.65);
+}
+
+.cfd-connection-indicator.is-disconnected {
+  background: #ff7f91;
+}
+
+.cfd-live-error,
+.cfd-live-price small {
+  color: #ff9aaa;
+}
+
+.cfd-live-prices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cfd-live-price {
+  display: grid;
+  gap: 4px;
+  min-width: 160px;
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: rgba(5, 14, 26, 0.58);
+}
+
+.cfd-live-price span {
+  color: #899bb3;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.cfd-live-price strong {
+  color: #e8f3ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.cfd-page-note {
+  margin-top: 14px;
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  .cfd-page {
+    padding: 24px 14px;
+  }
+
+  .cfd-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cfd-toolbar-group {
+    grid-template-columns: 1fr;
+  }
+
+  .cfd-chart-actions {
+    justify-content: flex-start;
+  }
+
+  .cfd-page .crypto-chart-card {
+    min-height: 390px;
+  }
+
+  .cfd-page .crypto-chart-visual,
+  .cfd-page .crypto-chart-visual svg {
+    min-height: 350px;
+  }
+}
