@@ -120,6 +120,12 @@ export const API_CONFIG = {
       chart: (symbol: string) => `/crypto/${symbol}/chart`,
     },
 
+    // ==================== CFD MARKET DATA ====================
+    cfd: {
+      instruments: '/cfd/instruments',
+      chart: (symbol: string) => `/cfd/${symbol}/chart`,
+    },
+
     // ==================== CRYPTO PORTFOLIO ====================
     cryptoPortfolio: {
       buy: '/cryptoportfolio/buy',

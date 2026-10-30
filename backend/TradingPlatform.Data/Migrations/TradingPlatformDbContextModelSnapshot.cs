@@ -629,9 +629,6 @@ namespace TradingPlatform.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("AccountId")
                         .HasColumnType("uniqueidentifier");
 
@@ -774,7 +771,7 @@ namespace TradingPlatform.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Symbol")
+                    b.HasIndex("Symbol", "Type")
                         .IsUnique();
 
                     b.ToTable("Instruments", (string)null);
@@ -799,7 +796,7 @@ namespace TradingPlatform.Data.Migrations
                         new
                         {
                             Id = new Guid("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
-                            BaseCurrency = "BTC",
+                            BaseCurrency = "USD",
                             CreatedAtUtc = new DateTimeOffset(new DateTime(2026, 3, 31, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             CreatedBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             Description = "Bitcoin cryptocurrency",
@@ -809,23 +806,39 @@ namespace TradingPlatform.Data.Migrations
                             QuoteCurrency = "USD",
                             RowVersion = 0L,
                             Status = 3,
-                            Symbol = "BTCUSD",
+                            Symbol = "BTCUSDT",
+                            Type = 2
+                        },
+                        new
+                        {
+                            Id = new Guid("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+                            BaseCurrency = "USD",
+                            CreatedAtUtc = new DateTimeOffset(new DateTime(2026, 3, 31, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Description = "Ethereum Classic cryptocurrency",
+                            IsBlocked = false,
+                            Name = "Ethereum Classic / US Dollar",
+                            Pillar = 3,
+                            QuoteCurrency = "USD",
+                            RowVersion = 0L,
+                            Status = 3,
+                            Symbol = "ETCUSDT",
                             Type = 2
                         },
                         new
                         {
                             Id = new Guid("cccccccc-cccc-cccc-cccc-cccccccccccc"),
-                            BaseCurrency = "USD",
+                            BaseCurrency = "BTC",
                             CreatedAtUtc = new DateTimeOffset(new DateTime(2026, 3, 31, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             CreatedBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            Description = "S&P 500 Contract for Difference",
+                            Description = "Bitcoin / Tether Contract for Difference",
                             IsBlocked = false,
-                            Name = "S&P 500 CFD",
+                            Name = "Bitcoin / Tether CFD",
                             Pillar = 4,
-                            QuoteCurrency = "USD",
+                            QuoteCurrency = "USDT",
                             RowVersion = 0L,
                             Status = 3,
-                            Symbol = "US500CFD",
+                            Symbol = "BTCUSDT",
                             Type = 3
                         });
                 });
@@ -943,7 +956,7 @@ namespace TradingPlatform.Data.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAtUtc")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -1201,7 +1214,8 @@ namespace TradingPlatform.Data.Migrations
                     b.HasOne("TradingPlatform.Data.Entities.UserEntity", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Account");
 

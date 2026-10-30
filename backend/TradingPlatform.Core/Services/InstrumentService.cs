@@ -50,6 +50,18 @@ public sealed class InstrumentService : IInstrumentService
         return _mapper.Map<InstrumentDto>(instrument);
     }
 
+    public async Task<InstrumentDto> GetBySymbolAsync(
+        string symbol,
+        InstrumentType type,
+        CancellationToken cancellationToken = default)
+    {
+        var instrument = await _instrumentRepository.GetBySymbolAsync(symbol, type, cancellationToken);
+        if (instrument is null)
+            throw new InvalidOperationException($"Instrument with symbol {symbol} and type {type} not found.");
+
+        return _mapper.Map<InstrumentDto>(instrument);
+    }
+
     public async Task<IEnumerable<InstrumentDto>> GetAllAsync(int page = 1, int pageSize = 50, CancellationToken cancellationToken = default)
     {
 
@@ -79,14 +91,14 @@ public sealed class InstrumentService : IInstrumentService
     {
         _logger.LogInformation("Requesting creation for new instrument {Symbol} by admin {AdminId}", request.Symbol, adminId);
 
-        // Check if instrument with this symbol already exists
-        var existing = await _instrumentRepository.GetBySymbolAsync(request.Symbol, cancellationToken);
-        if (existing is not null)
-            throw new InvalidOperationException($"Instrument with symbol {request.Symbol} already exists.");
-
         // Validate enum values early
         if (!Enum.TryParse<InstrumentType>(request.Type, true, out var instrumentType))
             throw new ArgumentException($"Invalid instrument type: {request.Type}");
+
+        // The symbol is unique within an instrument type.
+        var existing = await _instrumentRepository.GetBySymbolAsync(request.Symbol, instrumentType, cancellationToken);
+        if (existing is not null)
+            throw new InvalidOperationException($"Instrument with symbol {request.Symbol} and type {instrumentType} already exists.");
 
         if (!Enum.TryParse<AccountPillar>(request.Pillar, true, out var pillar))
             throw new ArgumentException($"Invalid pillar: {request.Pillar}");
@@ -498,10 +510,13 @@ public sealed class InstrumentService : IInstrumentService
 
             if (!string.IsNullOrWhiteSpace(symbol) && !string.Equals(symbol, instrument.Symbol, StringComparison.OrdinalIgnoreCase))
             {
-                var existingBySymbol = await _instrumentRepository.GetBySymbolAsync(symbol, cancellationToken);
+                var existingBySymbol = await _instrumentRepository.GetBySymbolAsync(
+                    symbol,
+                    instrument.Type,
+                    cancellationToken);
                 if (existingBySymbol is not null && existingBySymbol.Id != id)
                 {
-                    throw new InvalidOperationException($"Instrument with symbol {symbol} already exists.");
+                    throw new InvalidOperationException($"Instrument with symbol {symbol} and type {instrument.Type} already exists.");
                 }
             }
 
@@ -604,11 +619,6 @@ public sealed class InstrumentService : IInstrumentService
             var payload = JsonSerializer.Deserialize<JsonElement>(payloadJson);
             var symbol = payload.GetProperty("symbol").GetString()?.ToUpper() ?? throw new InvalidOperationException("Symbol not found in payload");
             
-            // Check if instrument with this symbol already exists (double-check safety)
-            var existingBySymbol = await _instrumentRepository.GetBySymbolAsync(symbol, cancellationToken);
-            if (existingBySymbol is not null)
-                throw new InvalidOperationException($"Instrument with symbol {symbol} already exists.");
-
             // Parse enums from payload
             var typeStr = payload.GetProperty("type").GetString() ?? throw new InvalidOperationException("Type not found in payload");
             var pillarStr = payload.GetProperty("pillar").GetString() ?? throw new InvalidOperationException("Pillar not found in payload");
@@ -618,6 +628,11 @@ public sealed class InstrumentService : IInstrumentService
             
             if (!Enum.TryParse<AccountPillar>(pillarStr, true, out var pillar))
                 throw new ArgumentException($"Invalid pillar in payload: {pillarStr}");
+
+            // Check whether this symbol/type pair already exists (double-check safety).
+            var existingBySymbol = await _instrumentRepository.GetBySymbolAsync(symbol, instrumentType, cancellationToken);
+            if (existingBySymbol is not null)
+                throw new InvalidOperationException($"Instrument with symbol {symbol} and type {instrumentType} already exists.");
 
             // Create new instrument from payload
             var newInstrument = new Instrument(

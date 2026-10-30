@@ -6,6 +6,7 @@ export interface PriceUpdate {
   price: number;
   volume: number;
   timestamp: string;
+  updateId?: string;
 }
 
 export interface CandleUpdate {

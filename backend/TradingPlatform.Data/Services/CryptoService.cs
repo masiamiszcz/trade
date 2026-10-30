@@ -149,7 +149,10 @@ public sealed class CryptoService : ICryptoService
 
         try
         {
-            instrument = await _instrumentService.GetBySymbolAsync(symbol, cancellationToken);
+            instrument = await _instrumentService.GetBySymbolAsync(
+                symbol,
+                InstrumentType.Crypto,
+                cancellationToken);
         }
         catch (InvalidOperationException ex)
         {

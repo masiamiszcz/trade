@@ -8,6 +8,7 @@ export interface CryptoCandle {
   close: number;
   volume: number;
   interval?: string;
+  colorDirection?: 'up' | 'down';
 }
 
 export interface CryptoChartRequest {

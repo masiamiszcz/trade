@@ -1,0 +1,281 @@
+.cfd-dashboard {
+  min-height: 100vh;
+  padding: 38px clamp(18px, 4vw, 64px);
+  color: #ecf3ff;
+  background:
+    radial-gradient(ellipse at 85% 0%, rgba(42, 116, 206, 0.2), transparent 38%),
+    linear-gradient(145deg, #08111f, #0b1424 55%, #0d192b);
+}
+
+.cfd-dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  max-width: 1440px;
+  margin: 0 auto 30px;
+}
+
+.cfd-eyebrow {
+  color: #60d7c4;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.cfd-dashboard-header h1 {
+  margin: 10px 0 8px;
+  color: #f3f7ff;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.cfd-dashboard-header p,
+.cfd-footnote {
+  color: #9eacc1;
+}
+
+.cfd-refresh,
+.cfd-state button {
+  border: 1px solid rgba(115, 151, 193, 0.3);
+  border-radius: 10px;
+  padding: 11px 16px;
+  color: #e5f5ff;
+  background: rgba(23, 42, 66, 0.9);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cfd-refresh:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.cfd-market-list {
+  max-width: 1440px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(126, 160, 199, 0.17);
+  border-radius: 16px;
+  background: rgba(12, 24, 41, 0.88);
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.22);
+}
+
+.cfd-market-head,
+.cfd-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.25fr) minmax(140px, 0.95fr) minmax(190px, 1.25fr) minmax(210px, 1.4fr) minmax(150px, 20%);
+  align-items: center;
+  gap: 18px;
+  padding: 16px 22px;
+}
+
+.cfd-market-head {
+  color: #8194ad;
+  background: rgba(5, 14, 26, 0.58);
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cfd-row {
+  display: grid;
+  width: 100%;
+  border: 0;
+  border-top: 1px solid rgba(126, 160, 199, 0.12);
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 140ms ease;
+}
+
+.cfd-row:hover,
+.cfd-row:focus-visible {
+  outline: none;
+  background: rgba(41, 77, 115, 0.24);
+}
+
+.cfd-instrument,
+.cfd-price-block,
+.cfd-range-block,
+.cfd-sparkline-wrap {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cfd-symbol {
+  color: #f1f6ff;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.cfd-name,
+.cfd-cell-label,
+.cfd-sparkline-empty {
+  color: #899bb3;
+  font-size: 0.76rem;
+}
+
+.cfd-price-block strong {
+  color: #e8f3ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.cfd-update-time {
+  color: #72869f;
+  font-size: 0.68rem;
+}
+
+.cfd-update-time.is-stale {
+  color: #ffb36b;
+}
+
+.cfd-update-time.is-current {
+  color: #65d6a2;
+}
+
+.cfd-range-block {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  column-gap: 10px;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cfd-low-high {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.cfd-low-high small {
+  color: #8294aa;
+  font-size: 0.68rem;
+}
+
+.cfd-range-block .cfd-cell-label {
+  grid-column: 1 / -1;
+}
+
+.cfd-range-block strong {
+  justify-self: end;
+}
+
+.cfd-range-block .positive {
+  color: #48d6a5;
+}
+
+.cfd-range-block .negative {
+  color: #ff7f91;
+}
+
+.cfd-sparkline-wrap {
+  width: 100%;
+  max-width: 100%;
+}
+
+.cfd-sparkline {
+  display: block;
+  width: 100%;
+  height: 38px;
+  overflow: visible;
+}
+
+.cfd-sparkline polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.cfd-sparkline.is-up {
+  color: #48d6a5;
+}
+
+.cfd-sparkline.is-down {
+  color: #ff7f91;
+}
+
+.cfd-sparkline-empty {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+}
+
+.cfd-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  min-height: 110px;
+  padding: 20px;
+  color: #a9b8cb;
+  text-align: center;
+}
+
+.cfd-state-error {
+  color: #ff9aaa;
+}
+
+.cfd-footnote {
+  max-width: 1440px;
+  margin: 14px auto 0;
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 960px) {
+  .cfd-market-head {
+    display: none;
+  }
+
+  .cfd-row {
+    grid-template-columns: minmax(140px, 1fr) minmax(120px, 0.8fr) minmax(125px, 0.7fr);
+    gap: 14px;
+  }
+
+  .cfd-range-block:nth-of-type(4) {
+    grid-column: 2;
+  }
+
+  .cfd-sparkline-wrap {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}
+
+@media (max-width: 600px) {
+  .cfd-dashboard {
+    padding: 26px 14px;
+  }
+
+  .cfd-dashboard-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cfd-row {
+    grid-template-columns: 1fr 1fr;
+    padding: 15px;
+  }
+
+  .cfd-sparkline-wrap {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    max-width: 100%;
+  }
+
+  .cfd-range-block:nth-of-type(4) {
+    grid-column: auto;
+  }
+}

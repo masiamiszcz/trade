@@ -24,7 +24,28 @@ public sealed class SqlInstrumentRepository : IInstrumentRepository
 
     public async Task<Instrument?> GetBySymbolAsync(string symbol, CancellationToken cancellationToken = default)
     {
-        var entity = await _dbContext.Instruments.FirstOrDefaultAsync(x => x.Symbol == symbol, cancellationToken);
+        var matchingEntities = await _dbContext.Instruments
+            .Where(x => x.Symbol == symbol)
+            .Take(2)
+            .ToListAsync(cancellationToken);
+
+        if (matchingEntities.Count > 1)
+        {
+            throw new InvalidOperationException(
+                $"More than one instrument uses symbol '{symbol}'. Specify the instrument type.");
+        }
+
+        var entity = matchingEntities.SingleOrDefault();
+        return entity is null ? null : MapToDomain(entity);
+    }
+
+    public async Task<Instrument?> GetBySymbolAsync(
+        string symbol,
+        TradingPlatform.Core.Enums.InstrumentType type,
+        CancellationToken cancellationToken = default)
+    {
+        var entity = await _dbContext.Instruments
+            .FirstOrDefaultAsync(x => x.Symbol == symbol && x.Type == type, cancellationToken);
         return entity is null ? null : MapToDomain(entity);
     }
 

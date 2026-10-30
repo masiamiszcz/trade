@@ -13,6 +13,7 @@ import { CryptoPage } from './pages/CryptoPage';
 import { CryptoPortfolioPage } from './pages/CryptoPortfolioPage';
 import { AccountWithPortfolioPage } from './pages/AccountWithPortfolioPage';
 import { CFDDashboard } from './pages/CFDDashboard';
+import { CfdPage } from './pages/CfdPage';
 import { useAuth } from './hooks/useAuth';
 
 // ===== ADMIN AUTH SYSTEM =====
@@ -128,6 +129,14 @@ const App: React.FC = () => {
           element={requireAuth(
             <MainLayout>
               <CFDDashboard />
+            </MainLayout>
+          )}
+        />
+        <Route
+          path="/dashboard/cfd/:symbol"
+          element={requireAuth(
+            <MainLayout>
+              <CfdPage />
             </MainLayout>
           )}
         />

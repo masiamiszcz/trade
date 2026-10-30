@@ -15,6 +15,7 @@ public static class ServiceCollectionExtensions
         services.AddSignalR();
         services.AddSingleton<IPriceUpdatePublisher, PriceUpdatePublisher>();
         services.AddScoped<ICryptoService, CryptoService>();
+        services.AddScoped<ICfdService, CfdService>();
         return services;
     }
 }

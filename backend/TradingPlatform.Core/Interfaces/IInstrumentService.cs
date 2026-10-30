@@ -1,5 +1,6 @@
 
 using TradingPlatform.Core.Dtos;
+using TradingPlatform.Core.Enums;
 using TradingPlatform.Core.Models;
 
 namespace TradingPlatform.Core.Interfaces;
@@ -8,6 +9,7 @@ public interface IInstrumentService
 {
     Task<InstrumentDto> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<InstrumentDto> GetBySymbolAsync(string symbol, CancellationToken cancellationToken = default);
+    Task<InstrumentDto> GetBySymbolAsync(string symbol, InstrumentType type, CancellationToken cancellationToken = default);
     Task<IEnumerable<InstrumentDto>> GetAllAsync(int page = 1, int pageSize = 50, CancellationToken cancellationToken = default);
     Task<IEnumerable<InstrumentDto>> GetAllActiveAsync(CancellationToken cancellationToken = default);
 

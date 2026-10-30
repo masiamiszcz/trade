@@ -9,7 +9,10 @@ export interface UseInstrumentResult {
   refetch: () => Promise<void>;
 }
 
-export const useInstrument = (symbol: string | undefined): UseInstrumentResult => {
+export const useInstrument = (
+  symbol: string | undefined,
+  type: Instrument['type'] = 'Crypto',
+): UseInstrumentResult => {
   const [instrument, setInstrument] = useState<Instrument | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -26,7 +29,9 @@ export const useInstrument = (symbol: string | undefined): UseInstrumentResult =
 
     try {
       const instruments = await marketDataService.getAvailableInstruments();
-      const found = instruments.find(inst => inst.symbol.toLowerCase() === symbol.toLowerCase());
+      const found = instruments.find(
+        inst => inst.symbol.toLowerCase() === symbol.toLowerCase() && inst.type === type
+      );
       setInstrument(found || null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch instrument'));
@@ -34,7 +39,7 @@ export const useInstrument = (symbol: string | undefined): UseInstrumentResult =
     } finally {
       setLoading(false);
     }
-  }, [symbol]);
+  }, [symbol, type]);
 
   useEffect(() => {
     fetchInstrument();

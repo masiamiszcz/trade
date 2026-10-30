@@ -13,6 +13,20 @@ import type { Instrument as AdminInstrument } from '../types/admin';
 import type { HealthStatus, MarketAsset } from '../types';
 import type { CryptoCandle, CryptoChartRequest } from '../types/crypto';
 
+export interface CfdInstrumentSummary {
+  instrument: AdminInstrument;
+  currentPrice: number | null;
+  low1h: number | null;
+  high1h: number | null;
+  changePercent1h: number | null;
+  low24h: number | null;
+  high24h: number | null;
+  changePercent24h: number | null;
+  sparkline7d: number[];
+  candleOpenTimeUtc?: string | null;
+  lastUpdatedUtc?: string | null;
+}
+
 /**
  * Instrument type - basic market instrument
  */
@@ -113,6 +127,17 @@ class MarketDataService {
     }
   }
 
+  async getCfdInstruments(): Promise<CfdInstrumentSummary[]> {
+    try {
+      return await httpClient.fetch<CfdInstrumentSummary[]>({
+        url: API_CONFIG.endpoints.cfd.instruments,
+        method: 'GET',
+      });
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   async getChartCandles(symbol: string, rangeMinutes: number, intervalMinutes?: number, to?: string | null, userBaseCurrency?: string): Promise<CryptoCandle[]> {
     try {
       return await httpClient.fetch<CryptoCandle[]>({
@@ -132,6 +157,29 @@ class MarketDataService {
 
   async getCryptoChart(symbol: string, request: CryptoChartRequest): Promise<CryptoCandle[]> {
     return this.getChartCandles(symbol, request.rangeMinutes, request.intervalMinutes, request.to, request.userBaseCurrency);
+  }
+
+  async getCfdChartCandles(
+    symbol: string,
+    rangeMinutes: number,
+    intervalMinutes?: number,
+    to?: string | null,
+    userBaseCurrency?: string,
+  ): Promise<CryptoCandle[]> {
+    try {
+      return await httpClient.fetch<CryptoCandle[]>({
+        url: API_CONFIG.endpoints.cfd.chart(encodeURIComponent(symbol)),
+        method: 'POST',
+        body: JSON.stringify({
+          rangeMinutes,
+          intervalMinutes: intervalMinutes ?? null,
+          to: to ?? null,
+          userBaseCurrency: userBaseCurrency ?? null,
+        }),
+      });
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**

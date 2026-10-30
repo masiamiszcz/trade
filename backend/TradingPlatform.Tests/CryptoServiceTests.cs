@@ -35,7 +35,7 @@ public sealed class CryptoServiceTests
 
         var instrumentService = new Mock<IInstrumentService>();
         instrumentService
-            .Setup(x => x.GetBySymbolAsync("BTCUSD", It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetBySymbolAsync("BTCUSD", InstrumentType.Crypto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(instrument);
 
         var candleRepository = new Mock<ICandleRepository>();
@@ -128,7 +128,7 @@ public sealed class CryptoServiceTests
 
         var instrumentService = new Mock<IInstrumentService>();
         instrumentService
-            .Setup(x => x.GetBySymbolAsync("BTCUSD", It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetBySymbolAsync("BTCUSD", InstrumentType.Crypto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(instrument);
 
         var candleRepository = new Mock<ICandleRepository>();
@@ -208,7 +208,7 @@ public sealed class CryptoServiceTests
 
         var instrumentService = new Mock<IInstrumentService>();
         instrumentService
-            .Setup(x => x.GetBySymbolAsync("BTCUSD", It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetBySymbolAsync("BTCUSD", InstrumentType.Crypto, It.IsAny<CancellationToken>()))
             .ReturnsAsync(instrument);
 
         var candleRepository = new Mock<ICandleRepository>();

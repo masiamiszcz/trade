@@ -19,10 +19,16 @@ public sealed class TradingPlatformDbContextTests
             .OrderBy(x => x.Symbol)
             .ToListAsync();
 
-        Assert.Equal(3, instruments.Count);
+        Assert.Equal(4, instruments.Count);
         Assert.Contains(instruments, x => x.Symbol == "AAPL" && x.Pillar == AccountPillar.Stocks);
-        Assert.Contains(instruments, x => x.Symbol == "BTCUSD" && x.Pillar == AccountPillar.Crypto);
-        Assert.Contains(instruments, x => x.Symbol == "US500CFD" && x.Pillar == AccountPillar.Cfd);
+        Assert.Contains(instruments, x => x.Symbol == "BTCUSDT" && x.Type == InstrumentType.Crypto);
+        Assert.Contains(instruments, x => x.Symbol == "BTCUSDT" && x.Type == InstrumentType.Cfd);
+
+        var instrumentEntity = context.Model.FindEntityType(typeof(InstrumentEntity))!;
+        var symbolTypeIndex = instrumentEntity.GetIndexes().Single(index =>
+            index.Properties.Select(property => property.Name)
+                .SequenceEqual(new[] { nameof(InstrumentEntity.Symbol), nameof(InstrumentEntity.Type) }));
+        Assert.True(symbolTypeIndex.IsUnique);
     }
 
     [Fact]
@@ -196,7 +202,7 @@ public sealed class TradingPlatformDbContextTests
             .Include(x => x.ToAccount)
             .SingleAsync(x => x.Id == transferId);
 
-        Assert.Equal("BTCUSD", savedPosition.Instrument.Symbol);
+        Assert.Equal("BTCUSDT", savedPosition.Instrument.Symbol);
         Assert.Equal(AccountPillar.Crypto, savedPosition.Account.Pillar);
         Assert.Equal(1200m, savedTransfer.Amount);
         Assert.Equal("MAIN-0002", savedTransfer.FromAccount!.AccountNumber);

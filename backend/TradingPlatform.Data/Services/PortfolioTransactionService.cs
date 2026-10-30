@@ -71,7 +71,10 @@ namespace TradingPlatform.Data.Services
 
                 var amountInAccountCurrency = await _exchangeService.ConvertCurrencyAsync("USD", account.Currency, totalValue);
 
-                var instrument = await _unitOfWork.Instruments.GetBySymbolAsync(symbol, cancellationToken);
+                var instrument = await _unitOfWork.Instruments.GetBySymbolAsync(
+                    symbol,
+                    InstrumentType.Crypto,
+                    cancellationToken);
                 if (instrument == null)
                 {
                     await _unitOfWork.RollbackAsync(cancellationToken);
@@ -195,7 +198,10 @@ namespace TradingPlatform.Data.Services
 
                 var amountInAccountCurrency = await _exchangeService.ConvertCurrencyAsync("USD", account.Currency, totalValue);
 
-                var instrument = await _unitOfWork.Instruments.GetBySymbolAsync(symbol, cancellationToken);
+                var instrument = await _unitOfWork.Instruments.GetBySymbolAsync(
+                    symbol,
+                    InstrumentType.Crypto,
+                    cancellationToken);
                 if (instrument == null)
                 {
                     await _unitOfWork.RollbackAsync(cancellationToken);

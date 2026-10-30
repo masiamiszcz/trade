@@ -90,7 +90,7 @@ export const CryptoChart: React.FC<CryptoChartProps> = ({ candles, loading, erro
         yClose,
         bodyTop,
         bodyHeight,
-        isUp: candle.close >= candle.open,
+        isUp: candle.colorDirection ? candle.colorDirection === 'up' : candle.close >= candle.open,
         barWidth,
         label: formatTick(candle.openTime),
         candle,

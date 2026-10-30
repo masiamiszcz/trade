@@ -17,7 +17,7 @@ public sealed class InstrumentEntityConfiguration : IEntityTypeConfiguration<Ins
             .HasMaxLength(30)
             .IsRequired();
 
-        builder.HasIndex(x => x.Symbol)
+        builder.HasIndex(x => new { x.Symbol, x.Type })
             .IsUnique();
 
         builder.Property(x => x.Name)
@@ -84,13 +84,13 @@ public sealed class InstrumentEntityConfiguration : IEntityTypeConfiguration<Ins
             new InstrumentEntity
             {
                 Id = new Guid("cccccccc-cccc-cccc-cccc-cccccccccccc"),
-                Symbol = "BTCUSDTCFD",
-                Name = "Bitcoin / US Dollar CFD",
-                Description = "Bitcoin / US Dollar Contract for Difference",
+                Symbol = "BTCUSDT",
+                Name = "Bitcoin / Tether CFD",
+                Description = "Bitcoin / Tether Contract for Difference",
                 Type = InstrumentType.Cfd,
                 Pillar = AccountPillar.Cfd,
-                BaseCurrency = "USD",
-                QuoteCurrency = "USD",
+                BaseCurrency = "BTC",
+                QuoteCurrency = "USDT",
                 Status = InstrumentStatus.Approved,
                 IsBlocked = false,
                 CreatedBy = Guid.Empty,

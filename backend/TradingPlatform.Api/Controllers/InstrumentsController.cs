@@ -3,6 +3,7 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using TradingPlatform.Core.Dtos;
+    using TradingPlatform.Core.Enums;
     using TradingPlatform.Core.Interfaces;
 
     [ApiController]
@@ -58,10 +59,22 @@
         /// </summary>
         [HttpGet("symbol/{symbol}")]
         [AllowAnonymous]
-        public async Task<ActionResult<InstrumentDto>> GetBySymbol(string symbol, CancellationToken cancellationToken)
+        public async Task<ActionResult<InstrumentDto>> GetBySymbol(
+            string symbol,
+            [FromQuery] InstrumentType? type,
+            CancellationToken cancellationToken)
         {
-            var instrument = await _instrumentService.GetBySymbolAsync(symbol, cancellationToken);
-            return Ok(instrument);
+            try
+            {
+                var instrument = type.HasValue
+                    ? await _instrumentService.GetBySymbolAsync(symbol, type.Value, cancellationToken)
+                    : await _instrumentService.GetBySymbolAsync(symbol, cancellationToken);
+                return Ok(instrument);
+            }
+            catch (InvalidOperationException ex) when (!type.HasValue && ex.Message.Contains("Specify the instrument type.", StringComparison.Ordinal))
+            {
+                return Conflict(new { message = ex.Message, availableTypes = Enum.GetNames<InstrumentType>() });
+            }
         }
 
         /// <summary>
